@@ -1,0 +1,54 @@
+{% extends "base_generic.html" %}
+
+{% block title %} <title>Host Status: {{host_detail.ip_addr}} ({{host_detail.name}})</title> {% endblock %}
+
+{% block content %}
+<h1> Details on Host: {{host_detail.ip_addr}} ({{host_detail.name}}) </h1>
+<table style="width:100%">
+    <tr>
+        <th>IP Address</th>
+        <th>Name</th>
+        <th>Service Profile</th>
+        <th>Firewall</th>
+        <th>Status</th>
+    </tr>
+    <tr>
+        <td>{{host_detail.ip_addr}}</td>
+        <td>{{host_detail.name}}</td>
+        <td>{{host_detail.get_service_profile_display}}</td>
+        <td>{{host_detail.get_fw_display}}</td>
+        <td>{{host_detail.get_status_display}}</td>
+    </tr>
+</table>
+<hr>
+<div id="host_rules">
+    <h2> Suggested Firewall Rules: </h2>
+    <p>
+        <samp>
+            {% if host_detail.rules%}
+                {{host_detail.rules}}
+            {% else %}
+                (Please enter information about this host in order to generate firewall rules for the host-based firewall!)
+            {% endif %}
+        </samp>
+    </p>
+</div>
+<hr>
+<div id="host_actions">
+    <h2> Available Actions: </h2>
+        <form action="{{request.path}}update/" method="get">
+            {% csrf_token %}
+            <button type=submit {% if not can_update %}disabled{% endif %}>Edit Host Details</button>
+        </form>
+        
+        <form action="{{request.path}}register/" method="post">
+            {% csrf_token %}
+            <button type=submit {% if not can_register %}disabled{% endif %}>Register</button>
+        </form>
+        
+        <form action="{{request.path}}scan/" method="post">
+            {% csrf_token %}
+            <button type=submit {% if not can_scan %}disabled{% endif %}>(Repeat) Scan</button>
+        </form>
+</div>
+{% endblock %}

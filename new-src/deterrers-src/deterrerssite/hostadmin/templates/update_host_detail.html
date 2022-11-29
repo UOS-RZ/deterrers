@@ -1,0 +1,15 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+  <h1>Host: {{ host_instance.ip_addr }} ({{host_instance.name}})</h1>
+
+  <form action="" method="post">
+    {% csrf_token %}
+    <table>
+    {{ form.as_table }}
+    </table>
+    <br>
+    <input type="button" value="Back" onclick="history.back()">
+    <input type="submit" value="Submit">
+  </form>
+{% endblock %}

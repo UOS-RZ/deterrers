@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% block title %}<title>Host Administration Tool</title>{% endblock %}
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+  <!-- Add additional CSS in static file -->
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <div class="sidebar-nav">
+      {% block sidebar %}
+        <a href="{% url 'about' %}">About</a>
+        <br>
+        <hr>
+        {% if user.is_authenticated %}
+          <p>
+            User: <strong>{{ user.get_username }} </strong>
+            <a href="{% url 'hostadmin_overview' %}">Overview</a>
+            <a href="{% url 'hosts_list' %}">All my hosts</a>
+            <a href="{% url 'logout' %}">Logout</a>
+          </p>
+        {% else %}
+          <a href="{% url 'login' %}?next={{ request.path }}">Login</a>
+        {% endif %}
+     {% endblock %}
+      </div>
+
+      <div class="col-sm-10">
+        {% block content %}{% endblock %}
+        {% block pagination %}
+          {% if is_paginated %}
+              <div class="pagination">
+                  <span class="page-links">
+                      {% if page_obj.has_previous %}
+                          <a href="{{ request.path }}?page={{ page_obj.previous_page_number }}">Previous</a>
+                      {% endif %}
+                      <span class="page-current">
+                          Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+                      </span>
+                      {% if page_obj.has_next %}
+                          <a href="{{ request.path }}?page={{ page_obj.next_page_number }}">Next</a>
+                      {% endif %}
+                  </span>
+              </div>
+          {% endif %}
+        {% endblock %}
+      </div>
+    </div>
+  </div>
+</body>
+</html>

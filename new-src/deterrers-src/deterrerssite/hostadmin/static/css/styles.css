@@ -1,0 +1,45 @@
+.sidebar-nav {
+    margin: 0px;
+    padding: 10px;
+    list-style: none;
+    border: 2px solid black;
+
+    width: 180px;
+    position: fixed;
+    z-index: 1;
+    top: 20px;
+    left: 10px;
+    overflow-x: hidden;
+}
+
+.sidebar-nav a, p {
+    /* padding: 6px 8px 6px 16px; */
+    text-decoration: none;
+    font-size: 20px;
+    display: block;
+}
+
+
+
+.col-sm-10 {
+    margin-left: 200px; /* Same width as the sidebar + left position in px */
+    margin-top: 20px;
+    font-size: 20px; /* Increased text to enable scrolling */
+    padding: 0px 10px;
+}
+
+body {
+    background-color: darkslategrey;
+    color: white;
+}
+
+a {
+    color: darkgoldenrod;
+}
+
+table, th, td {
+    border: 1px solid white;
+    border-collapse: collapse;
+    padding: 10px;
+} 
+tr:hover {background-color: rgb(57, 96, 96);}

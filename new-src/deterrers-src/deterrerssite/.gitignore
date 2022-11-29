@@ -1,0 +1,3 @@
+*migrations/
+.coverage
+static-root/
