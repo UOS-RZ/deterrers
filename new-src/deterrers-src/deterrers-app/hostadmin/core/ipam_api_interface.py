@@ -100,7 +100,7 @@ class ProteusIPAMInterface():
 
     def __get_tagged_admins(self, host_id):
         """
-        Queries the Proteus IPAM system for all tagged admins of a certain host.
+        Queries the Proteus IPAM system for all tagged admins (max. 100) of a certain host.
 
         Args:
             host_id (int): Entity ID of the host in the Proteus IPAM system.
@@ -268,7 +268,8 @@ class ProteusIPAMInterface():
 
     def get_hosts_of_admin(self, admin_id : str):
         """
-        Queries all hosts that are tagged with an admin in the Proteus IPAM system.
+        Queries all hosts that are tagged with an admin or their corresponding parent tag in the 
+        Proteus IPAM system.
 
         Args:
             admin_id (str): Identifier string for the admin tag in the Proteus IPAM system.
@@ -276,32 +277,9 @@ class ProteusIPAMInterface():
         Returns:
             list(): Returns a list of MyHost instances.
         """
-        # escape user input
-        admin_id = self.__escape_user_input(admin_id)
 
-        hosts  = []
-        try:
-            # get TagGroup_id with getEntitiesByName
-            entitybyname_parameters = f"name={self.TAG_GROUP_NAME}&parentId=0&start=0&type=TagGroup"
-            get_entitiesbyname_url = self.MAIN_URL + "getEntityByName?" + entitybyname_parameters
-            response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
-            data = response.json()
-            tag_group_id = data["id"]
-
-            # get tag_id with getEntitiesByName
-            entitybyname_parameters = f"name={admin_id}&parentId={tag_group_id}&start=0&type=Tag"
-            get_entitiesbyname_url = self.MAIN_URL + "getEntityByName?" + entitybyname_parameters
-            response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
-            data = response.json()
-            try:
-                tag_id = data["id"]
-                if tag_id == 0:
-                    # there is no tag for this admin so return no hosts
-                    return []
-            except KeyError:
-                # if no tag was found for this admin there seems to be no host tagged to him yet
-                return []
-
+        def __get_linked_hosts(tag_id):
+            hosts = []
             # get tagged host's ids
             scroll_i  = 0
             scroll_cnt = 50         # magic number for how many hosts to query at once
@@ -328,6 +306,45 @@ class ProteusIPAMInterface():
                     if my_host.is_valid():
                         hosts.append(my_host)
                 ret_cnt = len(data)
+            return hosts
+
+        # escape user input
+        admin_id = self.__escape_user_input(admin_id)
+
+        hosts  = []
+        try:
+            # get TagGroup_id with getEntitiesByName
+            entitybyname_parameters = f"name={self.TAG_GROUP_NAME}&parentId=0&start=0&type=TagGroup"
+            get_entitiesbyname_url = self.MAIN_URL + "getEntityByName?" + entitybyname_parameters
+            response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
+            data = response.json()
+            tag_group_id = data["id"]
+
+            # get all parent tags (department tags) which themselves hold the actual admin tags
+            child_tags_parameters = f"count=1000&parentId={tag_group_id}&start=0&type=Tag"
+            get_child_tags_url = self.MAIN_URL + "getEntities?" + child_tags_parameters
+            response = requests.get(get_child_tags_url, headers=self.header, timeout=self.TIMEOUT)
+            data = response.json()
+            for tag_entity in data:
+                parent_tag_id = tag_entity['id']
+                # query whether the admin is a sub-tag of this tag
+                entitybyname_parameters = f"name={admin_id}&parentId={parent_tag_id}&start=0&type=Tag"
+                get_entitiesbyname_url = self.MAIN_URL + "getEntityByName?" + entitybyname_parameters
+                response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
+                data = response.json()
+                try:
+                    tag_id = data["id"]
+                    if tag_id == 0:
+                        # admin is no sub-tag of this parent tag, therefore continue with next one
+                        continue
+                except KeyError:
+                    continue
+                # get all linked hosts to this admin tag
+                hosts += __get_linked_hosts(tag_id)
+                # get all linked hosts to the parent tag
+                hosts += __get_linked_hosts(parent_tag_id)
+                # admins are only allowed to be sub-tag of one parent tag therefore break here
+                break
 
         except requests.exceptions.ConnectTimeout:
             logging.error('Connection to %s timed out!', self.MAIN_URL)
