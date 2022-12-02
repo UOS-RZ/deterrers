@@ -106,7 +106,7 @@ class ProteusIPAMInterface():
             host_id (int): Entity ID of the host in the Proteus IPAM system.
 
         Returns:
-            list: Returns a list of admins.
+            list: Returns a list of admin rz-ids.
         """
         tagged_admins = []
         try:
@@ -266,13 +266,13 @@ class ProteusIPAMInterface():
         return None
         
 
-    def get_hosts_of_admin(self, admin_id : str):
+    def get_hosts_of_admin(self, admin_rz_id : str):
         """
         Queries all hosts that are tagged with an admin or their corresponding parent tag in the 
         Proteus IPAM system.
 
         Args:
-            admin_id (str): Identifier string for the admin tag in the Proteus IPAM system.
+            admin_rz_id (str): Identifier string for the admin tag in the Proteus IPAM system.
 
         Returns:
             list(): Returns a list of MyHost instances.
@@ -309,7 +309,7 @@ class ProteusIPAMInterface():
             return hosts
 
         # escape user input
-        admin_id = self.__escape_user_input(admin_id)
+        admin_rz_id = self.__escape_user_input(admin_rz_id)
 
         hosts  = []
         try:
@@ -328,19 +328,19 @@ class ProteusIPAMInterface():
             for tag_entity in data:
                 parent_tag_id = tag_entity['id']
                 # query whether the admin is a sub-tag of this tag
-                entitybyname_parameters = f"name={admin_id}&parentId={parent_tag_id}&start=0&type=Tag"
+                entitybyname_parameters = f"name={admin_rz_id}&parentId={parent_tag_id}&start=0&type=Tag"
                 get_entitiesbyname_url = self.MAIN_URL + "getEntityByName?" + entitybyname_parameters
                 response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
                 data = response.json()
                 try:
-                    tag_id = data["id"]
-                    if tag_id == 0:
+                    admin_tag_id = data["id"]
+                    if admin_tag_id == 0:
                         # admin is no sub-tag of this parent tag, therefore continue with next one
                         continue
                 except KeyError:
                     continue
                 # get all linked hosts to this admin tag
-                hosts += __get_linked_hosts(tag_id)
+                hosts += __get_linked_hosts(admin_tag_id)
                 # get all linked hosts to the parent tag
                 hosts += __get_linked_hosts(parent_tag_id)
                 # admins are only allowed to be sub-tag of one parent tag therefore break here
