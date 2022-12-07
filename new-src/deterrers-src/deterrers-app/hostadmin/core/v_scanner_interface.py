@@ -317,6 +317,15 @@ class GmpVScannerInterface():
             except GvmError as err:
                 logger.error("Couldn't delete alert! Error: %s", repr(err))
 
+    def get_report_xml(self, report_uuid : str):
+        try:
+            response = self.gmp.get_report(report_uuid)
+            return response
+        except GvmError as err:
+            logger.error("Couldn't fetch report with ID '%s' from GSM! Error: %s", report_uuid, err)
+
+        return None
+
 
 
 # if __name__ == "__main__":
