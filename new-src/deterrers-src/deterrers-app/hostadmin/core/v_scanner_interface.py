@@ -22,7 +22,7 @@ class GmpVScannerInterface():
     Communication uses the python-gvm API package.
     """
     TIMEOUT = 20
-    SCANNER_HOSTNAME = "hulk.rz.uni-osnabrueck.de"
+    SCANNER_URL = "hulk.rz.uni-osnabrueck.de"
     PORT = 22 # default
 
     username = ''
@@ -44,7 +44,7 @@ class GmpVScannerInterface():
         transform = EtreeCheckCommandTransform()
 
         connection = SSHConnection(
-            hostname=self.SCANNER_HOSTNAME,
+            hostname=self.SCANNER_URL,
             port=self.PORT,
             timeout=self.TIMEOUT)
         self.gmp = Gmp(connection=connection, transform=transform)
@@ -78,6 +78,7 @@ class GmpVScannerInterface():
         response = self.gmp.get_version()
         pretty_print(response)
 
+
     def create_scan(self, host_ip : str, deterrers_url : str):
         """
         Creates and starts a scan for some host:
@@ -85,7 +86,7 @@ class GmpVScannerInterface():
             2. Create a scan task.
             3. Start the scan task.
             4. Create a scan alert.
-            5. Add the alert to the task.<
+            5. Add the alert to the task.
 
         Args:
             host_ip (str): Host IP address of the scanned host.
@@ -95,6 +96,7 @@ class GmpVScannerInterface():
             (str, str, str, str): Returns a tuple of (traget ID, task ID, report ID, alert ID).
                 Returns (None, None, None, None) on error.
         """
+        logger.debug("Create scan for %s", host_ip)
         target_uuid =None
         task_uuid = None
         report_uuid = None
@@ -121,25 +123,24 @@ class GmpVScannerInterface():
                 scanner_id=self.SCANNER_UUID
             )
             response_status = int(response.xpath('@status')[0])
-            if response_status != 201:
-                logger.error("Scan task '%s' could not be created! Status: %d", task_name, response_status)
+            if response_status != 201:  # status code docu: https://hulk.rz.uos.de/manual/en/gmp.html#status-codes
+                raise RuntimeError(f"Scan task '{task_name}' could not be created! Status: {response_status}")
             task_uuid = response.xpath('@id')[0]
             # start task
             response = self.gmp.start_task(task_uuid)
             response_status = int(response.xpath('@status')[0])
             if response_status != 202:
-                logger.error("Scan task '%s' could not be started! Status: %d", task_name, response_status)
+                raise RuntimeError(f"Scan task '{task_name}' could not be started! Status: {response_status}")
             if len(response.xpath('//report_id')) != 1:
-                logger.error("start_task_response does not contain exactly one report id!")
-                self.clean_up_scan_objects(target_uuid, task_uuid, None, None)
-                return None, None, None, None
+                raise RuntimeError("start_task_response does not contain exactly one report id!")
+
             # get uuid which is an element value
             report_uuid = response.xpath('//report_id')[0].text
 
             # create/get an alert that sends the report back to the server
             # TODO: change back to HTTP GET method (see above)
-            # alert_uuid = self.create_http_alert(host_ip, deterrers_url, target_uuid, task_uuid, report_uuid)
-            alert_uuid = self.create_email_alert( host_ip, task_uuid, "hulk@rz.uos.de", "nwintering@uos.de")
+            # alert_uuid = self.__create_http_alert(host_ip, deterrers_url, target_uuid, task_uuid, report_uuid)
+            alert_uuid = self.__create_email_alert( host_ip, task_uuid, "hulk@rz.uos.de", "nwintering@uos.de")
 
             # modify task to set the alert
             self.gmp.modify_task(task_id=task_uuid, alert_ids=[alert_uuid])
@@ -152,7 +153,22 @@ class GmpVScannerInterface():
             
         return None, None, None, None
 
-    def create_http_alert(self, host_ip : str, deterrers_url : str, target_uuid : str, task_uuid : str, report_uuid : str):
+
+    def create_registration_scan(self, host_ip : str, deterrers_url : str):
+        """
+        TODO: in case registration scan should have special properties (e.g. be more thorough)
+
+        Args:
+            host_ip (str): _description_
+            deterrers_url (str): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        return self.create_scan(host_ip, deterrers_url)
+
+
+    def __create_http_alert(self, host_ip : str, deterrers_url : str, target_uuid : str, task_uuid : str, report_uuid : str):
         """
         Creates an alert that issues a HTTP GET request to the DETERRERS server with all relevant0
         UUIDs as query parameters.
@@ -163,6 +179,9 @@ class GmpVScannerInterface():
             target_uuid (str): Target ID.
             task_uuid (str): Task ID.
             report_uuid (str): Report ID.
+
+        Raises:
+            RuntimeError: Exception is raised in case alert could not be created or modified.
 
         Returns:
             str: Returns the ID of th generated alert entity.
@@ -182,6 +201,9 @@ class GmpVScannerInterface():
             method_data=method_data,
             comment=comment
         )
+        response_status = int(response.xpath('@status')[0])
+        if response_status != 201:
+            raise RuntimeError(f"Couldn't create HTTP GET alert. Status: {response_status}")
         alert_uuid = response.xpath('@id')[0]
         # modify the alert so that its id is present in the url parameters
         # only possible after creation because id is not known earlier
@@ -192,9 +214,14 @@ class GmpVScannerInterface():
             method_data=method_data,
             comment=comment
         )
+        response_status = int(response.xpath('@status')[0])
+        if response_status != 202:
+            raise RuntimeError(f"Couldn't modify HTTP GET alert. Status: {response_status}")
+
         return alert_uuid
 
-    def create_email_alert(self, host_ip :str, task_uuid : str, from_addr : str, to_addr : str):
+
+    def __create_email_alert(self, host_ip :str, task_uuid : str, from_addr : str, to_addr : str):
         """
         Creates an alert that sends report to given e-mail.
 
@@ -203,6 +230,9 @@ class GmpVScannerInterface():
             task_uuid (str): Task ID.
             from_addr (str): E-Mail address of the GSM instance.
             to_addr (str): E-Mail address of the admin that is to be notified.
+
+        Raises:
+            RuntimeError: Exception is raised in case alert could not be created.
 
         Returns:
             str: Returns the ID of the generated alert entity.
@@ -222,6 +252,9 @@ class GmpVScannerInterface():
             method_data=method_data,
             comment=f"Auto-generated by DETERRERS for task {task_uuid} of {host_ip}."
         )
+        response_status = int(response.xpath('@status')[0])
+        if response_status != 201:
+            raise RuntimeError(f"Couldn't create email alert. Status: {response_status}")
         alert_uuid = response.xpath('@id')[0]
         return alert_uuid
 
@@ -236,6 +269,7 @@ class GmpVScannerInterface():
             report_uuid (str): Report ID.
             alert_uuid (str): Alert ID.
         """
+        logger.debug("Start clean up of scan!")
         if task_uuid:
             try:
                 self.gmp.stop_task(task_id=task_uuid)
@@ -261,6 +295,7 @@ class GmpVScannerInterface():
                 self.gmp.delete_alert(alert_uuid, ultimate=True)
             except GvmError as err:
                 logger.error("Couldn't delete alert! Error: %s", repr(err))
+
 
     def clean_up_all_history(self):
         """
@@ -316,6 +351,7 @@ class GmpVScannerInterface():
                 self.gmp.delete_alert(uuid, ultimate=True)
             except GvmError as err:
                 logger.error("Couldn't delete alert! Error: %s", repr(err))
+
 
     def get_report_xml(self, report_uuid : str):
         try:

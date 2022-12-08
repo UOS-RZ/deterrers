@@ -367,28 +367,32 @@ class ProteusIPAMInterface():
         Returns:
             bool: Returns True on success and False on error.
         """
-        try:
-            update_host_url = f"{self.MAIN_URL}update"
-            update_host_body = {
-                'id': host.entity_id,
-                'name': host.name,
-                'type': 'IP4Address',
-                'properties': f'macAddress={self.__escape_user_input(host.mac_addr)}|\
-                    deterrers_service_profile={self.__escape_user_input(host.get_service_profile_display())}|\
-                        deterrers_fw={self.__escape_user_input(host.get_fw_display())}|'}
+        if host.is_valid():
+            try:
+                update_host_url = f"{self.MAIN_URL}update"
+                update_host_body = {
+                    'id': host.entity_id,
+                    'name': host.name,
+                    'type': 'IP4Address',
+                    'properties': f'macAddress={self.__escape_user_input(host.mac_addr)}|\
+                        deterrers_service_profile={self.__escape_user_input(host.get_service_profile_display())}|\
+                            deterrers_fw={self.__escape_user_input(host.get_fw_display())}|\
+                                deterrers_status={self.__escape_user_input(host.get_status_display())}|'}
 
-            response = requests.put(update_host_url, json=update_host_body, headers=self.header, timeout=self.TIMEOUT)
+                response = requests.put(update_host_url, json=update_host_body, headers=self.header, timeout=self.TIMEOUT)
 
-            print(response.request.body)
-            print(f"Response Code {response.status_code}")
-            if response.status_code == 204:
-                return True
-                
-        except requests.exceptions.ConnectTimeout:
-            logger.error('Connection to %s timed out!', self.MAIN_URL)
-        except requests.exceptions.ConnectionError:
-            logger.error('Could not estaplish connection to "%s"!', self.MAIN_URL)
-        except Exception as err:
-            logger.error("Caught an exception in ProteusIPAMInterface.update_host_info(): %s", str(err))
+                print(response.request.body)
+                print(f"Response Code {response.status_code}")
+                if response.status_code == 204:
+                    return True
+                    
+            except requests.exceptions.ConnectTimeout:
+                logger.error('Connection to %s timed out!', self.MAIN_URL)
+            except requests.exceptions.ConnectionError:
+                logger.error('Could not estaplish connection to "%s"!', self.MAIN_URL)
+            except Exception as err:
+                logger.error("Caught an exception in ProteusIPAMInterface.update_host_info(): %s", str(err))
+        else:
+            logger.error("Host not valid: %s", str(host))
 
         return False

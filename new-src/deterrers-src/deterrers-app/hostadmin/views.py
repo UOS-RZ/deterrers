@@ -7,6 +7,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from .forms import ChangeHostDetailForm
 from .core.ipam_api_interface import ProteusIPAMInterface
+from .core.v_scanner_interface import GmpVScannerInterface
 
 from myuser.models import MyUser
 
@@ -215,7 +216,22 @@ def register_host(request, ip):
         if host.status != 'U':
             raise Http404()
 
-        # TODO: implement registration
+        # TODO: create API user in GSM
+        username = input("Username: ")
+        import getpass
+        password = getpass.getpass()
+        # create an initial scan of the host
+        with GmpVScannerInterface(username, password) as scanner:
+            own_url = request.get_host()
+            target_uuid, task_uuid, report_uuid, alert_uuid = scanner.create_registration_scan(ip, own_url)
+            if target_uuid and task_uuid and report_uuid and alert_uuid:
+                # update state in IPAM
+                host.status = 'R'
+                if not ipam.update_host_info(host):
+                    # TODO: Handle error
+                    pass
+
+        # TODO: implement further registration
 
     # redirect to a new URL:
     return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
@@ -237,6 +253,21 @@ def scan_host(request, ip):
         # check if this host can be scanned at the moment or whether there are already processes running for it
         if host.status not in ('U', 'B', 'O'):
             raise Http404()
+
+        # TODO: create API user in GSM
+        username = input("Username: ")
+        import getpass
+        password = getpass.getpass()
+        # create an initial scan of the host
+        with GmpVScannerInterface(username, password) as scanner:
+            own_url = request.get_host()
+            target_uuid, task_uuid, report_uuid, alert_uuid = scanner.create_scan(ip, own_url)
+            if target_uuid and task_uuid and report_uuid and alert_uuid:
+                # update state in IPAM
+                host.status = 'R'
+                if not ipam.update_host_info(host):
+                    # TODO: Handle error
+                    pass
 
         # TODO: implement scan
 
