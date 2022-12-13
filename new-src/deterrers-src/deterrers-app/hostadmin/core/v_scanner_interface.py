@@ -305,7 +305,7 @@ class GmpVScannerInterface():
         filter_str = "DETERRERS"
         # delete all reports by DETERRERS
         logger.info("Deleting all reports by DETERRERS!")
-        response = self.gmp.get_reports(filter_string=filter_str)
+        response = self.gmp.get_reports(filter_string=filter_str, ignore_pagination=True)
         to_del_set = set()
         for report in response.xpath('//report'):
             to_del_set.add( report.attrib['id'])
@@ -354,29 +354,65 @@ class GmpVScannerInterface():
 
 
     def get_report_xml(self, report_uuid : str):
+        rep_filter = "status=Done apply_overrides=0 rows=-1 min_qod=70 first=1"
         try:
-            response = self.gmp.get_report(report_uuid)
+            response = self.gmp.get_report(report_uuid, filter_string=rep_filter, ignore_pagination=True)
             return response
         except GvmError as err:
             logger.error("Couldn't fetch report with ID '%s' from GSM! Error: %s", report_uuid, err)
 
         return None
 
+    def extract_report_data(self, report):
+        scan_start = report.xpath('//scan_start')[0].text
+        print(scan_start)
+
+        results_xml = report.xpath('//results/result')
+        results = []
+
+        for result_xml in results_xml:
+            result_uuid = result_xml.attrib['id']
+            host_ip = result_xml.xpath('host')[0].text
+            hostname = result_xml.xpath('host/hostname')[0].text
+            nvt_name = result_xml.xpath('nvt/name')[0].text
+            nvt_oid = result_xml.xpath('nvt')[0].attrib['oid']
+            cvss_base = float(result_xml.xpath('nvt/cvss_base')[0].text)
+            cvss_vector = result_xml.xpath('nvt/severities/severity/value')[0].text
+
+            res = {
+                'uuid' : result_uuid,
+                'host_ip' : host_ip,
+                'hostname' : hostname,
+                'nvt_name' : nvt_name,
+                'nvt_oid' : nvt_oid,
+                'cvss_base' : cvss_base,
+                'cvss_vector' : cvss_vector
+            }
+            results.append(res)
+
+        return scan_start, results
 
 
-# if __name__ == "__main__":
-#     username = input("Username: ",)
-#     from getpass import getpass
-#     password = getpass()
 
-#     with GmpVScannerInterface(username, password) as interf:
-#         test_host_ip = "131.173.22.184"
+if __name__ == "__main__":
+    username = 'DETERRERS'
+    from getpass import getpass
+    password = getpass()
 
-#         target_uuid, task_uuid, report_uuid, alert_uuid = interf.create_scan(test_host_ip, test_host_ip)
-#         input("Enter anything to delete everything: ")
-#         try:
-#             interf.clean_up_all_history()
-#         except Exception() as err:
-#             logger.error("%s", repr(err))
-#         input("Enter anything to delete everything: ")
-#         interf.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
+    with GmpVScannerInterface(username, password) as interf:
+        test_host_ip = "131.173.22.184"
+
+        # target_uuid, task_uuid, report_uuid, alert_uuid = interf.create_scan(test_host_ip, test_host_ip)
+        # input("Enter anything to delete everything: ")
+        # try:
+        #     interf.clean_up_all_history()
+        # except Exception() as err:
+        #     logger.error("%s", repr(err))
+        # input("Enter anything to delete everything: ")
+        # interf.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
+
+        test_report_id = "c936b5cf-0e62-4c5b-af40-44ae18dee92c"
+        report = interf.get_report_xml(test_report_id)
+        with open('test_report_xml.txt', 'w') as f:
+            pretty_print(report, f)
+        interf.extract_report_data(report)

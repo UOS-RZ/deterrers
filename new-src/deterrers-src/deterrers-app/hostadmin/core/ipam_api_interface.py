@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 
 class ProteusIPAMInterface():
     # settings
-    USER = "deterrers-test" # TODO: change in production
-    PASSWORD = os.environ.get('PROTEUS_IPAM_SECRET_KEY', 'K9QW1j006i2FXkE7') # TODO: do not put sensitive information here
+    username = ''
+    password = ''
     BAM_URL = "proteus-clone.rz.uos.de" # TODO: change in production
     TAG_GROUP_NAME = "Deterrers Host Admins"
 
@@ -24,8 +24,12 @@ class ProteusIPAMInterface():
 
     header = ''
 
+    def __init__(self, username, password):
+        self.username = username
+        self.password = password
+
     def __enter__(self):
-        login_url = self.MAIN_URL + "login?username=" + self.USER + "&password=" + self.PASSWORD
+        login_url = self.MAIN_URL + "login?username=" + self.username + "&password=" + self.password
         try:
             # login to BlueCat
             response = requests.get(login_url, timeout=self.TIMEOUT)

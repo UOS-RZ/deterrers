@@ -199,3 +199,9 @@ LDAP_AUTH_RECEIVE_TIMEOUT = None
 # }
 
 LOGIN_URL = '/login/'
+
+# get all secret keys for APIs etc.
+PROTEUS_IPAM_USERNAME = "deterrers-test" # TODO: change in production
+PROTEUS_IPAM_SECRET_KEY = os.environ.get('PROTEUS_IPAM_SECRET_KEY', 'K9QW1j006i2FXkE7') # TODO: do not put sensitive information here
+GREENBONE_USERNAME = "DETERRERS"
+GREENBONE_SECRET_KEY = os.environ.get('GREENBONE_USER_SECRET_KEY', '')

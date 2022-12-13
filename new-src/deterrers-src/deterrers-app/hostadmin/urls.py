@@ -8,5 +8,6 @@ urlpatterns = [
     re_path(r'^host/(?P<ip>[0-9]{1,3}(_[0-9]{1,3}){3})/scan/$', views.scan_host, name='scan_host'),
     path('hosts/', views.hosts_list_view, name='hosts_list'),
     path('overview/', views.hostadmin_overview_view, name='hostadmin_overview'),
-    path('', views.about_view, name='about')
+    path('', views.about_view, name='about'),
+    path('greenbone-alert/' view.greenbone_alert, name='greenbone_alert')
 ]

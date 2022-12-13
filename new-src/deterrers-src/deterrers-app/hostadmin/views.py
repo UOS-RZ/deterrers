@@ -1,9 +1,10 @@
 from django.contrib.auth.decorators import login_required
-from django.http import Http404, HttpResponseRedirect
+from django.http import Http404, HttpResponseRedirect, HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.conf import settings
 
 from .forms import ChangeHostDetailForm
 from .core.ipam_api_interface import ProteusIPAMInterface
@@ -50,7 +51,7 @@ def host_detail_view(request, ip):
 
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface() as ipam:
+    with ProteusIPAMInterface(settings.PROTEUS_IPAM_USERNAME, settings.PROTEUS_IPAM_SECRET_KEY) as ipam:
         host = ipam.get_host_info_from_ip(ip) # TODO: could be changed to get_host_info_from_id() for better performance
     # check if host is valid
     if not host or not host.is_valid():
@@ -110,7 +111,7 @@ def hosts_list_view(request):
     PAGINATE = 20
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface() as ipam:
+    with ProteusIPAMInterface(settings.PROTEUS_IPAM_USERNAME, settings.PROTEUS_IPAM_SECRET_KEY) as ipam:
         hosts_list = ipam.get_hosts_of_admin(hostadmin.username)
 
     paginator = Paginator(hosts_list, PAGINATE)
@@ -152,7 +153,7 @@ def update_host_detail(request, ip):
     ip = ip.replace('_', '.')
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface() as ipam:
+    with ProteusIPAMInterface(settings.PROTEUS_IPAM_USERNAME, settings.PROTEUS_IPAM_SECRET_KEY) as ipam:
         host = ipam.get_host_info_from_ip(ip)
         if not host:
             raise Http404()
@@ -205,7 +206,7 @@ def register_host(request, ip):
     ip = ip.replace('_', '.')
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     
-    with ProteusIPAMInterface() as ipam:
+    with ProteusIPAMInterface(settings.PROTEUS_IPAM_USERNAME, settings.PROTEUS_IPAM_SECRET_KEY) as ipam:
         host = ipam.get_host_info_from_ip(ip)
         if not host:
             raise Http404()
@@ -216,12 +217,8 @@ def register_host(request, ip):
         if host.status != 'U':
             raise Http404()
 
-        # TODO: create API user in GSM
-        username = input("Username: ")
-        import getpass
-        password = getpass.getpass()
         # create an initial scan of the host
-        with GmpVScannerInterface(username, password) as scanner:
+        with GmpVScannerInterface(settings.GREENBONE_USERNAME, settings.GREENBONE_SECRET_KEY) as scanner:
             own_url = request.get_host()
             target_uuid, task_uuid, report_uuid, alert_uuid = scanner.create_registration_scan(ip, own_url)
             if target_uuid and task_uuid and report_uuid and alert_uuid:
@@ -243,7 +240,7 @@ def scan_host(request, ip):
     ip = ip.replace('_', '.')
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     
-    with ProteusIPAMInterface() as ipam:
+    with ProteusIPAMInterface(settings.PROTEUS_IPAM_USERNAME, settings.PROTEUS_IPAM_SECRET_KEY) as ipam:
         host = ipam.get_host_info_from_ip(ip)
         if not host:
             raise Http404()
@@ -254,12 +251,8 @@ def scan_host(request, ip):
         if host.status not in ('U', 'B', 'O'):
             raise Http404()
 
-        # TODO: create API user in GSM
-        username = input("Username: ")
-        import getpass
-        password = getpass.getpass()
         # create an initial scan of the host
-        with GmpVScannerInterface(username, password) as scanner:
+        with GmpVScannerInterface(username=settings.GREENBONE_USERNAME, password=settings.GREENBONE_SECRET_KEY) as scanner:
             own_url = request.get_host()
             target_uuid, task_uuid, report_uuid, alert_uuid = scanner.create_scan(ip, own_url)
             if target_uuid and task_uuid and report_uuid and alert_uuid:
@@ -269,7 +262,12 @@ def scan_host(request, ip):
                     # TODO: Handle error
                     pass
 
-        # TODO: implement scan
-
     # redirect to a new URL:
     return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
+
+
+@require_http_methods(['GET', ])
+def greenbone_alert(request):
+    # TODO: implement handler that accepts the report from the GSM
+
+    return HttpResponse("Success!", status=200)
