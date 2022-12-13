@@ -1,17 +1,27 @@
 # Dockerfile
 
-FROM python:3.10-slim-buster
+FROM python:3.10-alpine
 
-WORKDIR /usr/src/app
+ENV MICRO_SERVICE=/home/app/microservice
+ENV APP_USER=deterrers_user
+RUN addgroup -S $APP_USER && adduser -S $APP_USER -G $APP_USER
+
+RUN mkdir -p $MICRO_SERVICE
+RUN mkdir -p $MICRO_SERVICE/static
+
+# where the code lives
+WORKDIR $MICRO_SERVICE
 
 # set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
+#copy project
+COPY . $MICRO_SERVICE
+
 # install dependencies
 RUN pip install --upgrade pip
-COPY ./requirements.txt .
 RUN pip install -r requirements.txt
+COPY ./entrypoint.prod.sh $MICRO_SERVICE
 
-# copy project
-COPY . .
+CMD ["/bin/bash", "/home/app/microservice/entrypoint.prod.sh"]
