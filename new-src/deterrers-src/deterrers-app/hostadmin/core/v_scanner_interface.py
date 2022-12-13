@@ -1,6 +1,6 @@
 import logging
 
-from v_scanner_configurations import (
+from .v_scanner_configurations import (
     Credentials,
     ScanConfig,
     Scanner,
@@ -140,7 +140,7 @@ class GmpVScannerInterface():
             # create/get an alert that sends the report back to the server
             # TODO: change back to HTTP GET method (see above)
             # alert_uuid = self.__create_http_alert(host_ip, deterrers_url, target_uuid, task_uuid, report_uuid)
-            alert_uuid = self.__create_email_alert( host_ip, task_uuid, "hulk@rz.uos.de", "nwintering@uos.de")
+            alert_uuid = self.__create_email_alert(host_ip, task_uuid, "hulk@rz.uos.de", "nwintering@uos.de")
 
             # modify task to set the alert
             self.gmp.modify_task(task_id=task_uuid, alert_ids=[alert_uuid])
@@ -365,7 +365,6 @@ class GmpVScannerInterface():
 
     def extract_report_data(self, report):
         scan_start = report.xpath('//scan_start')[0].text
-        print(scan_start)
 
         results_xml = report.xpath('//results/result')
         results = []
@@ -415,4 +414,4 @@ if __name__ == "__main__":
         report = interf.get_report_xml(test_report_id)
         with open('test_report_xml.txt', 'w') as f:
             pretty_print(report, f)
-        interf.extract_report_data(report)
+        scan_start, results = interf.extract_report_data(report)

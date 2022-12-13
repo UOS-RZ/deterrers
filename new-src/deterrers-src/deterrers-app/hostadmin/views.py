@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponseRedirect, HttpResponse
 from django.shortcuts import get_object_or_404, render
@@ -11,6 +13,8 @@ from .core.ipam_api_interface import ProteusIPAMInterface
 from .core.v_scanner_interface import GmpVScannerInterface
 
 from myuser.models import MyUser
+
+logger = logging.getLogger(__name__)
 
 # Create your views here.
 
@@ -57,6 +61,7 @@ def host_detail_view(request, ip):
     if not host or not host.is_valid():
         raise Http404()
     # check if user is admin of this host
+
     if not hostadmin.username in host.admin_ids:
         raise Http404()
 
@@ -268,6 +273,23 @@ def scan_host(request, ip):
 
 @require_http_methods(['GET', ])
 def greenbone_alert(request):
-    # TODO: implement handler that accepts the report from the GSM
+    logger.info("Received notification from Greenbone Securtiy Manager that a scan completed.")
+
+    try:
+        report_uuid = request.GET.get('report_uuid')
+        task_uuid = request.GET.get('task_uuid')
+        target_uuid = request.GET.get('target_uuid')
+        alert_uuid = request.GET.get('alert_uuid')
+        with GmpVScannerInterface(username=settings.GREENBONE_USERNAME, password=settings.GREENBONE_SECRET_KEY) as scanner:
+            report_xml = scanner.get_report_xml(report_uuid)
+            scan_start, results = scanner.extract_report_data(report_xml)
+
+            # TODO: Risk assessment
+
+            scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
+
+    except Exception() as err:
+        logger.error(repr(err))
+        return HttpResponse("Error!", status=500)
 
     return HttpResponse("Success!", status=200)
