@@ -127,7 +127,7 @@ class ProteusIPAMInterface():
             get_linkedentities_url = self.MAIN_URL + "getLinkedEntities?" + linkedentities_parameters
             response = requests.get(get_linkedentities_url, headers=self.header, timeout=self.TIMEOUT)
             data = response.json()
-            # check for all tags whether they belong to the Deterrers Host Admins Tag Group
+            # check for all tags whether they belong to the Deterrers Host Admins Tag Group or a sub-tag
             for tag_entity in data:
                 tag_id = tag_entity['id']
                 tag_name = tag_entity['name']
@@ -135,7 +135,25 @@ class ProteusIPAMInterface():
                 response =  requests.get(get_parent_url, headers=self.header, timeout=self.TIMEOUT)
                 data = response.json()
                 if data['id'] == tag_group_id:
-                    tagged_admins.append(tag_name)
+                    # tag is a sub-tag of the Deterrers Host Admins Tag Group
+                    tagged_admins.append(tag_name) # add department tag for completeness
+                    # get all admin tags that are children of this tag
+                    child_tags_parameters = f"count=1000&parentId={tag_id}&start=0&type=Tag"
+                    get_child_tags_url = self.MAIN_URL + "getEntities?" + child_tags_parameters
+                    response = requests.get(get_child_tags_url, headers=self.header, timeout=self.TIMEOUT)
+                    data = response.json()
+                    for tag_entity in data:
+                        tag_id = tag_entity['id']
+                        tag_name = tag_entity['name']
+                        tagged_admins.append(tag_name)
+                else:
+                    # check if parent-tag is a sub-tag of Deterrers Host Admins Tag Group
+                    get_parent_url = self.MAIN_URL + "getParent?" + f"entityId={data['id']}"
+                    response =  requests.get(get_parent_url, headers=self.header, timeout=self.TIMEOUT)
+                    data = response.json()
+                    if data['id'] == tag_group_id:
+                        tagged_admins.append(tag_name)
+
         except Exception as err:
             logger.error("Caught an exception in ProteusIPAMInterface.__get_tagged_admins(): %s", str(err))
 
