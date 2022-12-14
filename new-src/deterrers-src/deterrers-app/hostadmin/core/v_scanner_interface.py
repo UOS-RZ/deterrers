@@ -393,25 +393,25 @@ class GmpVScannerInterface():
 
 
 
-if __name__ == "__main__":
-    username = 'DETERRERS'
-    from getpass import getpass
-    password = getpass()
+# if __name__ == "__main__":
+#     username = 'DETERRERS'
+#     from getpass import getpass
+#     password = getpass()
 
-    with GmpVScannerInterface(username, password) as interf:
-        test_host_ip = "131.173.22.184"
+#     with GmpVScannerInterface(username, password) as interf:
+#         test_host_ip = "131.173.22.184"
 
-        # target_uuid, task_uuid, report_uuid, alert_uuid = interf.create_scan(test_host_ip, test_host_ip)
-        # input("Enter anything to delete everything: ")
-        # try:
-        #     interf.clean_up_all_history()
-        # except Exception() as err:
-        #     logger.error("%s", repr(err))
-        # input("Enter anything to delete everything: ")
-        # interf.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
+#         # target_uuid, task_uuid, report_uuid, alert_uuid = interf.create_scan(test_host_ip, test_host_ip)
+#         # input("Enter anything to delete everything: ")
+#         # try:
+#         #     interf.clean_up_all_history()
+#         # except Exception() as err:
+#         #     logger.error("%s", repr(err))
+#         # input("Enter anything to delete everything: ")
+#         # interf.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
 
-        test_report_id = "c936b5cf-0e62-4c5b-af40-44ae18dee92c"
-        report = interf.get_report_xml(test_report_id)
-        with open('test_report_xml.txt', 'w') as f:
-            pretty_print(report, f)
-        scan_start, results = interf.extract_report_data(report)
+#         test_report_id = "c936b5cf-0e62-4c5b-af40-44ae18dee92c"
+#         report = interf.get_report_xml(test_report_id)
+#         with open('test_report_xml.txt', 'w') as f:
+#             pretty_print(report, f)
+#         scan_start, results = interf.extract_report_data(report)
