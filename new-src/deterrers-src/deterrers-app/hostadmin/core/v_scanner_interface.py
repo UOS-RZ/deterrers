@@ -22,8 +22,9 @@ class GmpVScannerInterface():
     Communication uses the python-gvm API package.
     """
     TIMEOUT = 20
-    SCANNER_URL = "hulk.rz.uni-osnabrueck.de"
-    PORT = 22 # default
+
+    scanner_url = ''
+    scanner_port = 22 # default
 
     username = ''
     password = ''
@@ -35,17 +36,19 @@ class GmpVScannerInterface():
     # TODO: which port list should be used (this is 'All IANA assigned TCP and UDP')
     PORT_LIST_UUID = PortList.ALL_IANA_TCP_UUID.value
     
-    def __init__(self, username, password):
+    def __init__(self, username, password, scanner_url, scanner_port=22):
         """
         Create a Gmp instance based on a TLS connection.
         """
         self.username = username
         self.password = password
+        self.scanner_url = scanner_url
+        self.scanner_port = scanner_port
         transform = EtreeCheckCommandTransform()
 
         connection = SSHConnection(
-            hostname=self.SCANNER_URL,
-            port=self.PORT,
+            hostname=self.scanner_url,
+            port=self.scanner_port,
             timeout=self.TIMEOUT)
         self.gmp = Gmp(connection=connection, transform=transform)
 

@@ -55,7 +55,7 @@ def host_detail_view(request, ip):
 
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(settings.PROTEUS_IPAM_USERNAME, settings.PROTEUS_IPAM_SECRET_KEY) as ipam:
+    with ProteusIPAMInterface(settings.PROTEUS_IPAM_USERNAME, settings.PROTEUS_IPAM_SECRET_KEY, settings.PROTEUS_IPAM_URL) as ipam:
         host = ipam.get_host_info_from_ip(ip) # TODO: could be changed to get_host_info_from_id() for better performance
     # check if host is valid
     if not host or not host.is_valid():
@@ -116,7 +116,7 @@ def hosts_list_view(request):
     PAGINATE = 20
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(settings.PROTEUS_IPAM_USERNAME, settings.PROTEUS_IPAM_SECRET_KEY) as ipam:
+    with ProteusIPAMInterface(settings.PROTEUS_IPAM_USERNAME, settings.PROTEUS_IPAM_SECRET_KEY, settings.PROTEUS_IPAM_URL) as ipam:
         hosts_list = ipam.get_hosts_of_admin(hostadmin.username)
 
     paginator = Paginator(hosts_list, PAGINATE)
@@ -158,7 +158,7 @@ def update_host_detail(request, ip):
     ip = ip.replace('_', '.')
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(settings.PROTEUS_IPAM_USERNAME, settings.PROTEUS_IPAM_SECRET_KEY) as ipam:
+    with ProteusIPAMInterface(settings.PROTEUS_IPAM_USERNAME, settings.PROTEUS_IPAM_SECRET_KEY, settings.PROTEUS_IPAM_URL) as ipam:
         host = ipam.get_host_info_from_ip(ip)
         if not host:
             raise Http404()
@@ -211,7 +211,7 @@ def register_host(request, ip):
     ip = ip.replace('_', '.')
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     
-    with ProteusIPAMInterface(settings.PROTEUS_IPAM_USERNAME, settings.PROTEUS_IPAM_SECRET_KEY) as ipam:
+    with ProteusIPAMInterface(settings.PROTEUS_IPAM_USERNAME, settings.PROTEUS_IPAM_SECRET_KEY, settings.PROTEUS_IPAM_URL) as ipam:
         host = ipam.get_host_info_from_ip(ip)
         if not host:
             raise Http404()
@@ -223,7 +223,7 @@ def register_host(request, ip):
             raise Http404()
 
         # create an initial scan of the host
-        with GmpVScannerInterface(settings.GREENBONE_USERNAME, settings.GREENBONE_SECRET_KEY) as scanner:
+        with GmpVScannerInterface(settings.GREENBONE_USERNAME, settings.GREENBONE_SECRET_KEY, settings.GREENBONE_URL) as scanner:
             own_url = request.get_host()
             target_uuid, task_uuid, report_uuid, alert_uuid = scanner.create_registration_scan(ip, own_url)
             if target_uuid and task_uuid and report_uuid and alert_uuid:
@@ -245,7 +245,7 @@ def scan_host(request, ip):
     ip = ip.replace('_', '.')
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     
-    with ProteusIPAMInterface(settings.PROTEUS_IPAM_USERNAME, settings.PROTEUS_IPAM_SECRET_KEY) as ipam:
+    with ProteusIPAMInterface(settings.PROTEUS_IPAM_USERNAME, settings.PROTEUS_IPAM_SECRET_KEY, settings.PROTEUS_IPAM_URL) as ipam:
         host = ipam.get_host_info_from_ip(ip)
         if not host:
             raise Http404()
@@ -257,7 +257,7 @@ def scan_host(request, ip):
             raise Http404()
 
         # create an initial scan of the host
-        with GmpVScannerInterface(username=settings.GREENBONE_USERNAME, password=settings.GREENBONE_SECRET_KEY) as scanner:
+        with GmpVScannerInterface(settings.GREENBONE_USERNAME, settings.GREENBONE_SECRET_KEY, settings.GREENBONE_URL) as scanner:
             own_url = request.get_host()
             target_uuid, task_uuid, report_uuid, alert_uuid = scanner.create_scan(ip, own_url)
             if target_uuid and task_uuid and report_uuid and alert_uuid:
@@ -280,7 +280,7 @@ def greenbone_alert(request):
         task_uuid = request.GET.get('task_uuid')
         target_uuid = request.GET.get('target_uuid')
         alert_uuid = request.GET.get('alert_uuid')
-        with GmpVScannerInterface(username=settings.GREENBONE_USERNAME, password=settings.GREENBONE_SECRET_KEY) as scanner:
+        with GmpVScannerInterface(settings.GREENBONE_USERNAME, settings.GREENBONE_SECRET_KEY, settings.GREENBONE_URL) as scanner:
             report_xml = scanner.get_report_xml(report_uuid)
             scan_start, results = scanner.extract_report_data(report_xml)
 

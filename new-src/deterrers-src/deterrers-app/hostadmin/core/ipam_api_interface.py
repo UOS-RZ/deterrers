@@ -4,7 +4,6 @@ Interface to BlueCat's Proteus IP Address Manager REST API
 import requests
 from ipaddress import ip_address
 import logging
-import os
 
 from .host import MyHost
 
@@ -14,22 +13,21 @@ class ProteusIPAMInterface():
     # settings
     username = ''
     password = ''
-    BAM_URL = "proteus-clone.rz.uos.de" # TODO: change in production
+    ipam_url = ''
     TAG_GROUP_NAME = "Deterrers Host Admins"
-
-    # set urls
-    MAIN_URL = "http://" + BAM_URL + "/Services/REST/v1/" # TODO: change back to https when working with production system
 
     TIMEOUT = 5
 
     header = ''
 
-    def __init__(self, username, password):
+    def __init__(self, username, password, ipam_url):
         self.username = username
         self.password = password
+        self.ipam_url = ipam_url
+        self.main_url = "http://" + ipam_url + "/Services/REST/v1/" # TODO: change back to https when working with production system
 
     def __enter__(self):
-        login_url = self.MAIN_URL + "login?username=" + self.username + "&password=" + self.password
+        login_url = self.main_url + "login?username=" + self.username + "&password=" + self.password
         try:
             # login to BlueCat
             response = requests.get(login_url, timeout=self.TIMEOUT)
@@ -46,7 +44,7 @@ class ProteusIPAMInterface():
 
 
     def __exit__(self, exc_type, exc_value, exc_tb):
-        logout_url = self.MAIN_URL + "logout?"
+        logout_url = self.main_url + "logout?"
         try:
             # logout from BlueCat
             response = requests.get(logout_url, headers = self.header, timeout=self.TIMEOUT)
@@ -118,20 +116,20 @@ class ProteusIPAMInterface():
         try:
             # get TagGroup_id with getEntitiesByName
             entitybyname_parameters = f"name={self.TAG_GROUP_NAME}&parentId=0&start=0&type=TagGroup"
-            get_entitiesbyname_url = self.MAIN_URL + "getEntityByName?" + entitybyname_parameters
+            get_entitiesbyname_url = self.main_url + "getEntityByName?" + entitybyname_parameters
             response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
             data = response.json()
             tag_group_id = data["id"]
             # get all tags
             linkedentities_parameters = f"count=100&entityId={host_id}&start=0&type=Tag"
-            get_linkedentities_url = self.MAIN_URL + "getLinkedEntities?" + linkedentities_parameters
+            get_linkedentities_url = self.main_url + "getLinkedEntities?" + linkedentities_parameters
             response = requests.get(get_linkedentities_url, headers=self.header, timeout=self.TIMEOUT)
             data = response.json()
             # check for all tags whether they belong to the Deterrers Host Admins Tag Group or a sub-tag
             for tag_entity in data:
                 tag_id = tag_entity['id']
                 tag_name = tag_entity['name']
-                get_parent_url = self.MAIN_URL + "getParent?" + f"entityId={tag_id}"
+                get_parent_url = self.main_url + "getParent?" + f"entityId={tag_id}"
                 response =  requests.get(get_parent_url, headers=self.header, timeout=self.TIMEOUT)
                 data = response.json()
                 if data['id'] == tag_group_id:
@@ -139,7 +137,7 @@ class ProteusIPAMInterface():
                     tagged_admins.append(tag_name) # add department tag for completeness
                     # get all admin tags that are children of this tag
                     child_tags_parameters = f"count=1000&parentId={tag_id}&start=0&type=Tag"
-                    get_child_tags_url = self.MAIN_URL + "getEntities?" + child_tags_parameters
+                    get_child_tags_url = self.main_url + "getEntities?" + child_tags_parameters
                     response = requests.get(get_child_tags_url, headers=self.header, timeout=self.TIMEOUT)
                     data = response.json()
                     for tag_entity in data:
@@ -148,7 +146,7 @@ class ProteusIPAMInterface():
                         tagged_admins.append(tag_name)
                 else:
                     # check if parent-tag is a sub-tag of Deterrers Host Admins Tag Group
-                    get_parent_url = self.MAIN_URL + "getParent?" + f"entityId={data['id']}"
+                    get_parent_url = self.main_url + "getParent?" + f"entityId={data['id']}"
                     response =  requests.get(get_parent_url, headers=self.header, timeout=self.TIMEOUT)
                     data = response.json()
                     if data['id'] == tag_group_id:
@@ -203,20 +201,20 @@ class ProteusIPAMInterface():
         try:
             # get configuration_id with getEntitiesByName
             entitybyname_parameters = "count=1&name=default&parentId=0&start=0&type=Configuration"
-            get_entitiesbyname_url = self.MAIN_URL + "getEntitiesByName?" + entitybyname_parameters
+            get_entitiesbyname_url = self.main_url + "getEntitiesByName?" + entitybyname_parameters
             response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
             data = response.json()
             configuration_id = data[0]["id"]
 
             # get range_id with IPRangedByIP
             iprangedbyip_parameters = f"address={ip}&containerId={configuration_id}&type=IP4Network"
-            get_iprandedbyip_url = self.MAIN_URL + "getIPRangedByIP?" + iprangedbyip_parameters
+            get_iprandedbyip_url = self.main_url + "getIPRangedByIP?" + iprangedbyip_parameters
             response = requests.get(get_iprandedbyip_url, headers = self.header, timeout=self.TIMEOUT)
             data = response.json()
             range_id = data["id"]
 
             # get properties of IP
-            get_ip4adress_url = self.MAIN_URL + f"getIP4Address?address={ip}&containerId={range_id}"
+            get_ip4adress_url = self.main_url + f"getIP4Address?address={ip}&containerId={range_id}"
             response = requests.get(get_ip4adress_url, headers = self.header, timeout=self.TIMEOUT)
             data = response.json()
 
@@ -239,9 +237,9 @@ class ProteusIPAMInterface():
             if my_host.is_valid():
                 return my_host
         except requests.exceptions.ConnectTimeout:
-            logger.error('Connection to %s timed out!', self.MAIN_URL)
+            logger.error('Connection to %s timed out!', self.main_url)
         except requests.exceptions.ConnectionError:
-            logger.error('Could not estaplish connection to "%s"!', self.MAIN_URL)
+            logger.error('Could not estaplish connection to "%s"!', self.main_url)
         except Exception as err:
             logger.error("Caught an exception in ProteusIPAMInterface.get_host_info_from_ip(): %s", str(err))
         
@@ -260,7 +258,7 @@ class ProteusIPAMInterface():
         """
         try:
             # get entity with given id
-            get_entitybyid_url = self.MAIN_URL + "getEntityById?" + f"id={id}"
+            get_entitybyid_url = self.main_url + "getEntityById?" + f"id={id}"
             response =  requests.get(get_entitybyid_url, headers=self.header, timeout=self.TIMEOUT)
             data = response.json()
             host_id, name, ip, mac, status, service, fw = self.__parse_ipam_host_entity(data)
@@ -281,9 +279,9 @@ class ProteusIPAMInterface():
                 return my_host
 
         except requests.exceptions.ConnectTimeout:
-            logger.error('Connection to %s timed out!', self.MAIN_URL)
+            logger.error('Connection to %s timed out!', self.main_url)
         except requests.exceptions.ConnectionError:
-            logger.error('Could not estaplish connection to "%s"!', self.MAIN_URL)
+            logger.error('Could not estaplish connection to "%s"!', self.main_url)
         except Exception as err:
             logger.error("Caught an exception in ProteusIPAMInterface.get_host_info_from_id(): %s", str(err))
 
@@ -309,7 +307,7 @@ class ProteusIPAMInterface():
             scroll_cnt = 50         # magic number for how many hosts to query at once
             ret_cnt = scroll_cnt    # set equally so that loop is traversed at least once
             while ret_cnt == scroll_cnt:
-                get_linked_entity_url= self.MAIN_URL + "getLinkedEntities?" + \
+                get_linked_entity_url= self.main_url + "getLinkedEntities?" + \
                     f"count={scroll_cnt}&entityId={tag_id}&start={scroll_i*scroll_cnt}&type=IP4Address"
                 response = requests.get(get_linked_entity_url, headers = self.header, timeout=self.TIMEOUT)
                 data = response.json()
@@ -339,21 +337,21 @@ class ProteusIPAMInterface():
         try:
             # get TagGroup_id with getEntitiesByName
             entitybyname_parameters = f"name={self.TAG_GROUP_NAME}&parentId=0&start=0&type=TagGroup"
-            get_entitiesbyname_url = self.MAIN_URL + "getEntityByName?" + entitybyname_parameters
+            get_entitiesbyname_url = self.main_url + "getEntityByName?" + entitybyname_parameters
             response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
             data = response.json()
             tag_group_id = data["id"]
 
             # get all parent tags (department tags) which themselves hold the actual admin tags
             child_tags_parameters = f"count=1000&parentId={tag_group_id}&start=0&type=Tag"
-            get_child_tags_url = self.MAIN_URL + "getEntities?" + child_tags_parameters
+            get_child_tags_url = self.main_url + "getEntities?" + child_tags_parameters
             response = requests.get(get_child_tags_url, headers=self.header, timeout=self.TIMEOUT)
             data = response.json()
             for tag_entity in data:
                 parent_tag_id = tag_entity['id']
                 # query whether the admin is a sub-tag of this tag
                 entitybyname_parameters = f"name={admin_rz_id}&parentId={parent_tag_id}&start=0&type=Tag"
-                get_entitiesbyname_url = self.MAIN_URL + "getEntityByName?" + entitybyname_parameters
+                get_entitiesbyname_url = self.main_url + "getEntityByName?" + entitybyname_parameters
                 response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
                 data = response.json()
                 try:
@@ -371,9 +369,9 @@ class ProteusIPAMInterface():
                 break
 
         except requests.exceptions.ConnectTimeout:
-            logger.error('Connection to %s timed out!', self.MAIN_URL)
+            logger.error('Connection to %s timed out!', self.main_url)
         except requests.exceptions.ConnectionError:
-            logger.error('Could not estaplish connection to "%s"!', self.MAIN_URL)
+            logger.error('Could not estaplish connection to "%s"!', self.main_url)
         except Exception as err:
             logger.error("Caught an exception in ProteusIPAMInterface.get_hosts_of_admin(): %s", str(err))
 
@@ -391,7 +389,7 @@ class ProteusIPAMInterface():
         """
         if host.is_valid():
             try:
-                update_host_url = f"{self.MAIN_URL}update"
+                update_host_url = f"{self.main_url}update"
                 update_host_body = {
                     'id': host.entity_id,
                     'name': host.name,
@@ -409,9 +407,9 @@ class ProteusIPAMInterface():
                     return True
                     
             except requests.exceptions.ConnectTimeout:
-                logger.error('Connection to %s timed out!', self.MAIN_URL)
+                logger.error('Connection to %s timed out!', self.main_url)
             except requests.exceptions.ConnectionError:
-                logger.error('Could not estaplish connection to "%s"!', self.MAIN_URL)
+                logger.error('Could not estaplish connection to "%s"!', self.main_url)
             except Exception as err:
                 logger.error("Caught an exception in ProteusIPAMInterface.update_host_info(): %s", str(err))
         else:
