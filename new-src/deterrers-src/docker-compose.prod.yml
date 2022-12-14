@@ -4,7 +4,7 @@ services:
   nginx:
     build: ./nginx
     ports:
-      - 1300:80
+      - 80:81
     volumes:
       - static_volume:/home/app/microservice/static
     depends_on:
@@ -22,8 +22,6 @@ services:
     env_file:
       - ./.env.prod
     image: deterrers-application
-    # volumes:
-    #   - ./deterrers-app/:/usr/src/app/
     volumes:
       - .:/microservice:rw # map data and files from parent directory in host to microservice directory in docker containe
       - static_volume:/home/app/microservice/static
