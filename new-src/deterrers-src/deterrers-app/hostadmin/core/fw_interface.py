@@ -15,7 +15,7 @@ class PaloAltoInterface():
     username = None
     password = None
 
-    header = None
+    header = {}
 
     def __init__(self, username, password, fw_url):
         self.username = username
@@ -26,11 +26,14 @@ class PaloAltoInterface():
         # get api key for this session
         req_url = f"https://{self.fw_url}/api/?type=keygen&user={self.username}&password={self.password}"
         response = requests.get(req_url, timeout=self.TIMEOUT)
-        etree.XMLTreeBuilder()
-        print(response)
+        response_xml = etree.XML(response.content)
+        status = int(response_xml.get('code'))
+        if status != 200:
+            raise RuntimeError("Could not get API key from firewall! Status Code: %d", status)
+        print(response_xml.tag)
 
 
-        self.header = {'X-PAN-KEY': self.api_key}
+        self.header['X-PAN-KEY'] = self.api_key
 
 
         return self
