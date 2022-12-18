@@ -9,5 +9,5 @@ urlpatterns = [
     path('hosts/', views.hosts_list_view, name='hosts_list'),
     path('overview/', views.hostadmin_overview_view, name='hostadmin_overview'),
     path('', views.about_view, name='about'),
-    path('greenbone-alert/', views.greenbone_alert, name='greenbone_alert')
+    path('greenbone-registration-alert/', views.greenbone_registration_alert, name='greenbone_registration_alert')
 ]

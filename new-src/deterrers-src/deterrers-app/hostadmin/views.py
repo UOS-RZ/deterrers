@@ -224,7 +224,7 @@ def register_host(request, ip):
 
         # create an initial scan of the host
         with GmpVScannerInterface(settings.GREENBONE_USERNAME, settings.GREENBONE_SECRET_KEY) as scanner:
-            own_url = request.get_host()
+            own_url = request.get_host() + reverse('greenbone_registration_alert')
             target_uuid, task_uuid, report_uuid, alert_uuid = scanner.create_registration_scan(ip, own_url)
             if target_uuid and task_uuid and report_uuid and alert_uuid:
                 # update state in IPAM
@@ -272,19 +272,24 @@ def scan_host(request, ip):
 
 
 @require_http_methods(['GET', ])
-def greenbone_alert(request):
+def greenbone_registration_alert(request):
     logger.info("Received notification from Greenbone Securtiy Manager that a scan completed.")
 
     try:
-        report_uuid = request.GET.get('report_uuid')
-        task_uuid = request.GET.get('task_uuid')
-        target_uuid = request.GET.get('target_uuid')
-        alert_uuid = request.GET.get('alert_uuid')
+        host_ip = request.GET['host_ip']
+        report_uuid = request.GET['report_uuid']
+        task_uuid = request.GET['task_uuid']
+        target_uuid = request.GET['target_uuid']
+        alert_uuid = request.GET['alert_uuid']
         with GmpVScannerInterface(username=settings.GREENBONE_USERNAME, password=settings.GREENBONE_SECRET_KEY) as scanner:
             report_xml = scanner.get_report_xml(report_uuid)
             scan_start, results = scanner.extract_report_data(report_xml)
 
             # TODO: Risk assessment
+            passed_scan = False
+
+            if passed_scan:
+                scanner.add_host_to_periodic_scan(host_ip=host_ip)
 
             scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
 
