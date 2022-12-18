@@ -4,3 +4,4 @@ django-python3-ldap == 0.15.3
 requests
 gunicorn
 python-gvm
+icalendar
