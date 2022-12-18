@@ -285,6 +285,8 @@ def greenbone_registration_alert(request):
             report_xml = scanner.get_report_xml(report_uuid)
             scan_start, results = scanner.extract_report_data(report_xml)
 
+            # TODO: get HTML report and send via e-mail to admin
+
             # TODO: Risk assessment
             passed_scan = False
 
@@ -298,3 +300,8 @@ def greenbone_registration_alert(request):
         return HttpResponse("Error!", status=500)
 
     return HttpResponse("Success!", status=200)
+
+@require_http_methods(['GET', ])
+def greenbone_scan_alert(request):
+    # TODO
+    pass
