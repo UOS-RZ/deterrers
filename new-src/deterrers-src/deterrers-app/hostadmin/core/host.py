@@ -28,6 +28,7 @@ class MyHost():
     FW_CHOICES = [
         ('A', 'UFW'),
         ('B', 'FirewallD'),
+        ('C', 'nftables'),
         ('', '')
     ]
     fw = ''
