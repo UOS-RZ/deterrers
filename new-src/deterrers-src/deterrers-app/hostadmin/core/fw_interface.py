@@ -1,12 +1,16 @@
 import logging
 import requests
 from lxml import etree
+import base64
 
 
 
 logger = logging.getLogger(__name__)
 
 class PaloAltoInterface():
+
+    # TODO: maybe specify API key lifetime in PA Webinterface
+
     TIMEOUT = 20
 
     fw_url = None
@@ -27,14 +31,13 @@ class PaloAltoInterface():
         req_url = f"https://{self.fw_url}/api/?type=keygen&user={self.username}&password={self.password}"
         response = requests.get(req_url, timeout=self.TIMEOUT)
         response_xml = etree.XML(response.content)
-        status = int(response_xml.get('code'))
+        status = response.status_code
         if status != 200:
-            raise RuntimeError("Could not get API key from firewall! Status Code: %d", status)
-        print(response_xml.tag)
-
+            raise RuntimeError(f"Could not get API key from firewall! Status Code: {status}")
+        
+        self.api_key = response_xml.xpath('//key')[0].text
 
         self.header['X-PAN-KEY'] = self.api_key
-
 
         return self
 
@@ -43,6 +46,19 @@ class PaloAltoInterface():
             pass
         except Exception() as err:
             logger.error(repr(err))
+
+    
+    def __create_address_object(self, ip_addr):
+        pass
+
+    def __add_address_object_to_address_group(self):
+        pass
+
+    def block_address(self, ip_addr : str):
+        pass
+
+    def unblock_address(self, ip_addr : str):
+        pass
 
 
 if __name__ == '__main__':

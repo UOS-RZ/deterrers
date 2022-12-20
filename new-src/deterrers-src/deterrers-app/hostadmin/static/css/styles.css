@@ -28,6 +28,16 @@
     padding: 0px 10px;
 }
 
+.messages-field {
+    margin-left: 200px; /* Same width as the sidebar + left position in px */
+    margin-top: 20px;
+    font-size: 20px; /* Increased text to enable scrolling */
+    padding: 0px 10px;
+
+    list-style: none;
+    border: 2px solid black;
+}
+
 body {
     background-color: darkslategrey;
     color: white;
