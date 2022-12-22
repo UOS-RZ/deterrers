@@ -1,6 +1,3 @@
-"""
-Interface to BlueCat's Proteus IP Address Manager REST API
-"""
 import requests
 from ipaddress import ip_address
 import logging
@@ -10,6 +7,9 @@ from .host import MyHost
 logger = logging.getLogger(__name__)
 
 class ProteusIPAMInterface():
+    """
+    Interface to BlueCat's Proteus IP Address Manager REST API
+    """
     # settings
     username = ''
     password = ''
