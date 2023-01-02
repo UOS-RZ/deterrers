@@ -16,7 +16,8 @@ class AddressGroups(Enum):
 class PaloAltoInterface():
     """
     Interface to the Palo Alto Firewall's PAN-OS v10.1.
-    Uses the REST API for object manipulation and XML API committing the changes.
+    Uses the REST API for object manipulation and XML API for configuration
+    and committing the changes.
     """
     # TODO: maybe specify API key lifetime in PA Webinterface
 
@@ -74,7 +75,9 @@ class PaloAltoInterface():
     def __acquire_config_lock(self):
         # Acquire lock for this session
         while True:
-            acquire_config_lock_url = self.xml_url + "?type=op&cmd=<request><config-lock><add><comment>DETERRERS config lock</comment></add></config-lock></request>"
+            acquire_config_lock_url = self.xml_url + \
+                "?type=op&cmd=<request><config-lock><add><comment>DETERRERS config lock" + \
+                    "</comment></add></config-lock></request>"
             response = requests.get(acquire_config_lock_url, headers=self.header, timeout=self.TIMEOUT)
             response_xml = etree.XML(response.content)
             status = response_xml.xpath('//response/@status')[0]
@@ -87,7 +90,8 @@ class PaloAltoInterface():
         # Release the lock for this session
         # https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-panorama-api/pan-os-xml-api-request-types/run-operational-mode-commands-api
         while True:
-            release_config_lock_url = self.xml_url + "?type=op&cmd=<request><config-lock><remove></remove></config-lock></request>"
+            release_config_lock_url = self.xml_url + \
+                "?type=op&cmd=<request><config-lock><remove></remove></config-lock></request>"
             response = requests.get(release_config_lock_url, headers=self.header, timeout=self.TIMEOUT)
             if response.status_code == 200:
                 # exit as soon as server responds with success
@@ -172,9 +176,13 @@ firewall! Status code: {response.status_code}. Status: {data.get('@status')}")
             if response.status_code != 200 or data.get('@status') != 'success':
                 raise RuntimeError(f"Could not update Address Group {addr_grp_name.value}. \
 Status code: {response.status_code}. Status: {data.get('@status')}")
-            # TODO: commit changes
+            # commit changes
             if not self.__commit_changes():
                 raise RuntimeError("Could not commit changes!")
+
+    def remove_addr_obj_from_addr_grps(self, ip_addr : str, addr_grps : set[AddressGroups]):
+        # TODO: implement
+        pass
 
 
     def __commit_changes(self):
@@ -197,8 +205,8 @@ Status code: {response.status_code}. Status: {data.get('@status')}")
         start = time.time()
         while True:
             if time.time() - start > 120:
-                # TODO: cancle commit job
                 logger.error("Commit took to long!")
+                self.__cancle_commit()
                 return False
             response = requests.get(get_job_status_url, headers=self.header, timeout=self.TIMEOUT)
             response_xml =  etree.XML(response.content)
@@ -209,6 +217,14 @@ Status code: {response.status_code}. Status: {data.get('@status')}")
             time.sleep(2)
 
         return True
+
+    def __cancle_commit(self):
+        # try to cancle scheduled commits
+        cancle_commit_url = self.xml_url + \
+            "?type=op&cmd=<request><clear-commit-tasks></clear-commit-tasks></request>"
+        response = requests.get(cancle_commit_url, headers=self.header, timeout=self.TIMEOUT)
+        if response.status_code != 200:
+            logger.error("Could not cancle commit!")
 
 
 
