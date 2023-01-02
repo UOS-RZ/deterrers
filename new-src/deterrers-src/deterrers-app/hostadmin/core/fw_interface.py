@@ -45,6 +45,7 @@ class PaloAltoInterface():
         self.xml_url = f"https://{fw_url}/api/"
 
     def __enter__(self):
+        logger.debug("Start firewall interface session.")
         # get api key for this session
         req_url = f"https://{self.fw_url}/api/?type=keygen&user={self.username}&password={self.password}"
         response = requests.get(req_url, timeout=self.TIMEOUT)
@@ -63,6 +64,7 @@ class PaloAltoInterface():
         return self
 
     def __exit__(self, exc_type, exc_value, exc_tb):
+        logger.debug("End firewall interface session.")
         try:
             self.__release_config_lock()
         except Exception() as err:
@@ -70,13 +72,28 @@ class PaloAltoInterface():
 
 
     def __acquire_config_lock(self):
-        # TODO: /api/?type=op&cmd=<request><config-lock><add><comment></comment></add></config-lock></request>
-        pass
+        # Acquire lock for this session
+        while True:
+            acquire_config_lock_url = self.xml_url + "?type=op&cmd=<request><config-lock><add><comment>DETERRERS config lock</comment></add></config-lock></request>"
+            response = requests.get(acquire_config_lock_url, headers=self.header, timeout=self.TIMEOUT)
+            response_xml = etree.XML(response.content)
+            status = response_xml.xpath('//response/@status')[0]
+            if response.status_code == 200 and status == "success":
+                return
+            # try again if this did not work
+            time.sleep(0.5)
 
     def __release_config_lock(self):
-        # TODO: /api/?type=op&cmd=<request><config-lock><remove></remove></config-lock></request>
+        # Release the lock for this session
         # https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-panorama-api/pan-os-xml-api-request-types/run-operational-mode-commands-api
-        pass
+        while True:
+            release_config_lock_url = self.xml_url + "?type=op&cmd=<request><config-lock><remove></remove></config-lock></request>"
+            response = requests.get(release_config_lock_url, headers=self.header, timeout=self.TIMEOUT)
+            if response.status_code == 200:
+                # exit as soon as server responds with success
+                return
+            time.sleep(0.5)
+            
 
 
     
