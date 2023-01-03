@@ -5,3 +5,4 @@ requests
 gunicorn
 python-gvm
 icalendar
+paramiko

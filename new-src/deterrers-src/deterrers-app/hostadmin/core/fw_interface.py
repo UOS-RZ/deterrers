@@ -231,9 +231,9 @@ Status code: {response.status_code}. Status: {data.get('@status')}")
 
 
 
-if __name__ == '__main__':
-    import getpass
-    password = getpass.getpass()
-    with PaloAltoInterface("nwintering", password, "pa-5220.rz.uni-osnabrueck.de") as fw:
-        test_host_ip = "131.173.22.185"
-        fw.add_addr_obj_to_addr_grps(test_host_ip, {AddressGroups.HTTP})
+# if __name__ == '__main__':
+#     import getpass
+#     password = getpass.getpass()
+#     with PaloAltoInterface("nwintering", password, "pa-5220.rz.uni-osnabrueck.de") as fw:
+#         test_host_ip = "131.173.22.185"
+#         fw.add_addr_obj_to_addr_grps(test_host_ip, {AddressGroups.HTTP})

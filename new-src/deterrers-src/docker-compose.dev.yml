@@ -5,12 +5,15 @@ services:
     build: 
       context: ./deterrers-app
       dockerfile: Dockerfile
-    command: python manage.py runserver 0.0.0.0:8000
+    command: sh -c "python manage.py makemigrations &&
+                    python manage.py migrate &&
+                    python manage.py add_ssh_fingerprints &&
+                    python manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/microservice:rw # map data and files from parent directory in host to microservice directory in docker containe
       - static_volume:/home/app/microservice/static
     ports:
-      - 8000:8000
+      - 80:8000
     env_file:
       - ./.env.dev
     image: deterrers-application

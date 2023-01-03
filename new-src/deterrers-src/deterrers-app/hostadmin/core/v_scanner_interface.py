@@ -2,6 +2,7 @@ import logging
 from enum import Enum
 from datetime import datetime
 import icalendar
+import os
 
 from gvm.protocols.gmp import Gmp
 from gvm.connections import SSHConnection
@@ -28,7 +29,7 @@ class PortList(Enum):
     ALL_IANA_TCP_UDP_UUID = "4a4717fe-57d2-11e1-9a26-406186ea4fc5"
     ALL_TCP_UUID = "fd591a34-56fd-11e1-9f27-406186ea4fc5"
     ALL_TCP_NMAP_1000_UDP_UUID = "9ddce1ae-57e7-11e1-b13c-406186ea4fc5"
-    ALL_TCP_UDP_UUID = "fa135e67-5e57-40ca-bbad-06dd8e201443"
+    ALL_TCP_UDP_UUID = "94c4fe31-c6e4-4e38-b876-fc00a0225021"
 
 class Credentials(Enum):
     HULK_SSH_CRED_UUID = "22bdc0be-827c-4566-9b1d-2679cf85cb65"
@@ -63,7 +64,9 @@ class GmpVScannerInterface():
         connection = SSHConnection(
             hostname=self.scanner_url,
             port=self.scanner_port,
-            timeout=self.TIMEOUT)
+            timeout=self.TIMEOUT,
+            # vulnerability scanner must have been added to a known_hosts-file before application was started
+            known_hosts_file=os.environ['MICRO_SERVICE'])
         self.gmp = Gmp(connection=connection, transform=transform)
 
     def __enter__(self):
@@ -76,6 +79,7 @@ class GmpVScannerInterface():
         Returns:
             GreenboneVScannerInterface: Returns self.
         """
+        logger.debug("Start session with vulnerability scanner.")
         self.gmp = self.gmp.__enter__()
         try:
             # further initialization need to be enclosed here
@@ -88,6 +92,7 @@ class GmpVScannerInterface():
 
 
     def __exit__(self, exc_type, exc_value, traceback):
+        logger.debug("End session with vulnerability scanner.")
         self.gmp.__exit__(exc_type, exc_value, traceback)
 
 
@@ -688,23 +693,23 @@ class GmpVScannerInterface():
 #     from getpass import getpass
 #     password = getpass()
 
-#     with GmpVScannerInterface(username, password) as interf:
+#     with GmpVScannerInterface(username, password, '172.17.207.232') as interf:
 #         test_host_ip = "131.173.22.184"
 
-#         # target_uuid, task_uuid, report_uuid, alert_uuid = interf.create_scan(test_host_ip, test_host_ip)
-#         # input("Enter anything to delete everything: ")
-#         # try:
-#         #     interf.clean_up_all_history()
-#         # except Exception() as err:
-#         #     logger.error("%s", repr(err))
-#         # input("Enter anything to delete everything: ")
-#         # interf.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
+#         target_uuid, task_uuid, report_uuid, alert_uuid = interf.create_scan(test_host_ip, test_host_ip)
+#         input("Enter anything to delete everything: ")
+#         interf.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
+        # input("Enter anything to delete everything: ")
+        # try:
+        #     interf.clean_up_all_history()
+        # except Exception() as err:
+        #     logger.error("%s", repr(err))
 
-#         # test_report_id = "c936b5cf-0e62-4c5b-af40-44ae18dee92c"
-#         # report = interf.get_report_xml(test_report_id)
-#         # with open('test_report_xml.txt', 'w') as f:
-#         #     pretty_print(report, f)
-#         # scan_start, results = interf.extract_report_data(report)
+        # test_report_id = "c936b5cf-0e62-4c5b-af40-44ae18dee92c"
+        # report = interf.get_report_xml(test_report_id)
+        # with open('test_report_xml.txt', 'w') as f:
+        #     pretty_print(report, f)
+        # scan_start, results = interf.extract_report_data(report)
 
-#         interf.add_host_to_periodic_task(test_host_ip)
-#         interf.add_host_to_periodic_task("131.173.23.44")
+        # interf.add_host_to_periodic_task(test_host_ip)
+        # interf.add_host_to_periodic_task("131.173.23.44")
