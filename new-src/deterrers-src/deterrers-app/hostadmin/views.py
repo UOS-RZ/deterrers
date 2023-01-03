@@ -290,27 +290,39 @@ def v_scanner_registration_alert(request):
             # TODO: get HTML report and send via e-mail to admin
 
             # TODO: Risk assessment
-            passed_scan = False
+            passed_scan = True
 
             if passed_scan:
                 scanner.add_host_to_periodic_scan(host_ip=host_ip)
                 # get the service profile of this host
                 with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
                     host = ipam.get_host_info_from_ip(host_ip)
-                # change the perimeter firewall configuration so that only hosts service profile is allowed
-                with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_PASSWORD, settings.FIREWALL_URL) as fw:
-                    match host.service_profile:
-                        case 'H':
-                            fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.HTTP,})
-                        case 'S':
-                            fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.SSH,})
-                        case 'M':
-                            fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.OPEN,})
-                        case _:
-                            raise RuntimeError(f"Unknown service profile: {host.service_profile}")
+                    # change the perimeter firewall configuration so that only hosts service profile is allowed
+                    with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
+                        match host.service_profile:
+                            case 'H':
+                                fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.HTTP,})
+                            case 'S':
+                                fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.SSH,})
+                            case 'M':
+                                fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.OPEN,})
+                            case _:
+                                raise RuntimeError(f"Unknown service profile: {host.service_profile}")
+                    host.status = 'O'
+                    ipam.update_host_info(host)
+            else:
+                # TODO: block host
+                with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+                    host = ipam.get_host_info_from_ip(host_ip)
+                    # change the perimeter firewall configuration so that only hosts service profile is allowed
+                    with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
+                        fw.remove_addr_obj_from_addr_grps(host_ip, {AddressGroups.HTTP, AddressGroups.SSH, AddressGroups.OPEN})
+                        host.status = 'B'
+                        ipam.update_host_info(host)
+
             scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
 
-    except Exception() as err:
+    except Exception as err:
         logger.error(repr(err))
         return HttpResponse("Error!", status=500)
 

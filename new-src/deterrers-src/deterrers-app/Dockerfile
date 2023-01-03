@@ -20,9 +20,6 @@ ENV PYTHONUNBUFFERED 1
 #copy project
 COPY . $MICRO_SERVICE
 
-# install SSH
-RUN apt-get -yq update && apt-get -yqq install ssh
-
 # install dependencies
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt

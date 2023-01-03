@@ -474,31 +474,7 @@ class GmpVScannerInterface():
         if response_status != 200:
             raise RuntimeError(f"Couldn't get tasks! Status: {response_status}")
         
-        task_count = int(response.xpath('//task_count')[0].text)
-        if task_count == 1: # for some reason the count starts at 1 when there is no task returned...
-            # target for periodic task does not exist yet, therfore create it
-            old_target_uuid = self.__create_target(
-                [host_ip, ],
-                f"Target for {self.PERIODIC_TASK_NAME} | {datetime.now()}",
-                Credentials.HULK_SSH_CRED_UUID.value,
-                22,
-                PortList.ALL_IANA_TCP_UDP_UUID.value
-            )
-            schedule_uuid = self.__create_schedule(
-                f"Schedule for {self.PERIODIC_TASK_NAME}",
-                "weekly"
-            )
-            task_uuid = self.__create_task(
-                old_target_uuid,
-                self.PERIODIC_TASK_NAME,
-                ScanConfig.FULL_FAST_UUID.value,
-                Scanner.OPENVAS_DEFAULT_SCANNER_UUID.value,
-                True,
-                schedule_uuid
-            )
-            report_uuid = self.__start_task(task_uuid, self.PERIODIC_TASK_NAME)
-
-        elif task_count == 2:
+        try:
             task_xml = response.xpath('//task')[0]
             task_uuid = task_xml.attrib['id']
             old_target_uuid = task_xml.xpath('//target/@id')[0]
@@ -528,11 +504,28 @@ class GmpVScannerInterface():
             response_status = int(response.xpath('@status')[0])
             if response_status != 200:
                 raise RuntimeError(f"Couldn't delete target {old_target_uuid}! Status: {response_status}")
-
-        else:
-            raise RuntimeError(f"There are too many tasks matching the periodic task name. Couldn't add host {host_ip}.")
-
-
+        except IndexError:
+            # target for periodic task does not exist yet, therfore create it
+            old_target_uuid = self.__create_target(
+                [host_ip, ],
+                f"Target for {self.PERIODIC_TASK_NAME} | {datetime.now()}",
+                Credentials.HULK_SSH_CRED_UUID.value,
+                22,
+                PortList.ALL_IANA_TCP_UDP_UUID.value
+            )
+            schedule_uuid = self.__create_schedule(
+                f"Schedule for {self.PERIODIC_TASK_NAME}",
+                "weekly"
+            )
+            task_uuid = self.__create_task(
+                old_target_uuid,
+                self.PERIODIC_TASK_NAME,
+                ScanConfig.FULL_FAST_UUID.value,
+                Scanner.OPENVAS_DEFAULT_SCANNER_UUID.value,
+                True,
+                schedule_uuid
+            )
+            report_uuid = self.__start_task(task_uuid, self.PERIODIC_TASK_NAME)
 
 
     def clean_up_scan_objects(self, target_uuid : str, task_uuid : str, report_uuid : str, alert_uuid : str):
@@ -702,7 +695,7 @@ class GmpVScannerInterface():
         # input("Enter anything to delete everything: ")
         # try:
         #     interf.clean_up_all_history()
-        # except Exception() as err:
+        # except Exception as err:
         #     logger.error("%s", repr(err))
 
         # test_report_id = "c936b5cf-0e62-4c5b-af40-44ae18dee92c"

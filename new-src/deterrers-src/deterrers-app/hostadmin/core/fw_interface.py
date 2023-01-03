@@ -68,7 +68,7 @@ class PaloAltoInterface():
         logger.debug("End firewall interface session.")
         try:
             self.__release_config_lock()
-        except Exception() as err:
+        except Exception as err:
             logger.error(repr(err))
 
 
@@ -204,7 +204,7 @@ Status code: {response.status_code}. Status: {data.get('@status')}")
         get_job_status_url = self.xml_url + "?" + get_job_status_params
         start = time.time()
         while True:
-            if time.time() - start > 120:
+            if time.time() - start > 300:
                 logger.error("Commit took to long!")
                 self.__cancle_commit()
                 return False
