@@ -40,12 +40,12 @@ ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost 127.0.0.1 0.0.
 
 # TODO: clean up for production
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
+    'django.contrib.admin',                 # useful
+    'django.contrib.auth',                  # needed
+    'django.contrib.contenttypes',          
+    'django.contrib.sessions',              # needed
+    'django.contrib.messages',              # needed
+    'django.contrib.staticfiles',           # needed
     # Custom applications
     'hostadmin.apps.HostadminConfig',
     'myuser',
@@ -203,7 +203,14 @@ LDAP_AUTH_RECEIVE_TIMEOUT = None
 LOGIN_URL = '/login/'
 
 # get all secret keys for APIs etc.
-PROTEUS_IPAM_USERNAME = "deterrers-test" # TODO: change in production
-PROTEUS_IPAM_SECRET_KEY = os.environ.get('PROTEUS_IPAM_SECRET_KEY', 'K9QW1j006i2FXkE7') # TODO: do not put sensitive information here
-GREENBONE_USERNAME = "DETERRERS"
-GREENBONE_SECRET_KEY = os.environ.get('GREENBONE_USER_SECRET_KEY', '')
+IPAM_URL = os.environ.get('IPAM_URL')
+IPAM_USERNAME = os.environ.get('IPAM_USERNAME')
+IPAM_SECRET_KEY = os.environ.get('IPAM_SECRET_KEY', '')
+
+V_SCANNER_URL = os.environ.get('V_SCANNER_URL')
+V_SCANNER_USERNAME = os.environ.get('V_SCANNER_USERNAME')
+V_SCANNER_SECRET_KEY = os.environ.get('V_SCANNER_SECRET_KEY', '')
+
+FIREWALL_URL = os.environ.get('FIREWALL_URL')
+FIREWALL_USERNAME = os.environ.get('FIREWALL_USERNAME')
+FIREWALL_SECRET_KEY = os.environ.get('FIREWALL_SECRET_KEY')

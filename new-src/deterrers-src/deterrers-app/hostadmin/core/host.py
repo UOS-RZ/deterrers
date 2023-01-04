@@ -11,7 +11,7 @@ class MyHost():
     ip_addr = ''
     admin_ids = []
     STATUS_CHOICES = [
-        ('U', 'Unscanned'),
+        ('U', 'Unscanned'), # TODO: should rather be 'Unregistered' but must be changed everywhere
         ('R', 'Under Review'),
         ('B', 'Blocked'),
         ('O', 'Online'),
@@ -28,6 +28,7 @@ class MyHost():
     FW_CHOICES = [
         ('A', 'UFW'),
         ('B', 'FirewallD'),
+        ('C', 'nftables'),
         ('', '')
     ]
     fw = ''

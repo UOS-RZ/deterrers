@@ -1,10 +1,11 @@
 # Dockerfile
 
-FROM python:3.10-alpine
+FROM python:3.10-slim-bullseye
 
 ENV MICRO_SERVICE=/home/app/microservice
 ENV APP_USER=deterrers_user
-RUN addgroup -S $APP_USER && adduser -S $APP_USER -G $APP_USER
+# RUN addgroup -S $APP_USER && adduser -S $APP_USER -G $APP_USER
+RUN addgroup $APP_USER && adduser $APP_USER --ingroup $APP_USER
 
 RUN mkdir -p $MICRO_SERVICE
 RUN mkdir -p $MICRO_SERVICE/static

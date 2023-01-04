@@ -7,10 +7,12 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.conf import settings
+from django.contrib import messages
 
 from .forms import ChangeHostDetailForm
 from .core.ipam_api_interface import ProteusIPAMInterface
 from .core.v_scanner_interface import GmpVScannerInterface
+from .core.fw_interface import PaloAltoInterface, AddressGroups
 
 from myuser.models import MyUser
 
@@ -55,7 +57,7 @@ def host_detail_view(request, ip):
 
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(settings.PROTEUS_IPAM_USERNAME, settings.PROTEUS_IPAM_SECRET_KEY, settings.PROTEUS_IPAM_URL) as ipam:
+    with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
         host = ipam.get_host_info_from_ip(ip) # TODO: could be changed to get_host_info_from_id() for better performance
     # check if host is valid
     if not host or not host.is_valid():
@@ -116,7 +118,7 @@ def hosts_list_view(request):
     PAGINATE = 20
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(settings.PROTEUS_IPAM_USERNAME, settings.PROTEUS_IPAM_SECRET_KEY, settings.PROTEUS_IPAM_URL) as ipam:
+    with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
         hosts_list = ipam.get_hosts_of_admin(hostadmin.username)
 
     paginator = Paginator(hosts_list, PAGINATE)
@@ -158,7 +160,7 @@ def update_host_detail(request, ip):
     ip = ip.replace('_', '.')
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(settings.PROTEUS_IPAM_USERNAME, settings.PROTEUS_IPAM_SECRET_KEY, settings.PROTEUS_IPAM_URL) as ipam:
+    with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
         host = ipam.get_host_info_from_ip(ip)
         if not host:
             raise Http404()
@@ -211,7 +213,7 @@ def register_host(request, ip):
     ip = ip.replace('_', '.')
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     
-    with ProteusIPAMInterface(settings.PROTEUS_IPAM_USERNAME, settings.PROTEUS_IPAM_SECRET_KEY, settings.PROTEUS_IPAM_URL) as ipam:
+    with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
         host = ipam.get_host_info_from_ip(ip)
         if not host:
             raise Http404()
@@ -223,17 +225,16 @@ def register_host(request, ip):
             raise Http404()
 
         # create an initial scan of the host
-        with GmpVScannerInterface(settings.GREENBONE_USERNAME, settings.GREENBONE_SECRET_KEY, settings.GREENBONE_URL) as scanner:
-            own_url = request.get_host() + reverse('greenbone_registration_alert')
+        with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
+            own_url = request.get_host() + reverse('v_scanner_registration_alert')
             target_uuid, task_uuid, report_uuid, alert_uuid = scanner.create_registration_scan(ip, own_url)
             if target_uuid and task_uuid and report_uuid and alert_uuid:
                 # update state in IPAM
                 host.status = 'R'
                 if not ipam.update_host_info(host):
-                    # TODO: Handle error
-                    pass
-
-        # TODO: implement further registration
+                    scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
+                    messages.error(request, "Registration was aborted due to unknown reasons. Please notify the DETERRERS admin.")
+                    logger.error("register_host() could not update the state of host %s", host.ip_addr)
 
     # redirect to a new URL:
     return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
@@ -245,7 +246,7 @@ def scan_host(request, ip):
     ip = ip.replace('_', '.')
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     
-    with ProteusIPAMInterface(settings.PROTEUS_IPAM_USERNAME, settings.PROTEUS_IPAM_SECRET_KEY, settings.PROTEUS_IPAM_URL) as ipam:
+    with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
         host = ipam.get_host_info_from_ip(ip)
         if not host:
             raise Http404()
@@ -257,22 +258,23 @@ def scan_host(request, ip):
             raise Http404()
 
         # create an initial scan of the host
-        with GmpVScannerInterface(settings.GREENBONE_USERNAME, settings.GREENBONE_SECRET_KEY, settings.GREENBONE_URL) as scanner:
-            own_url = request.get_host()
+        with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
+            own_url = request.get_host() + reverse('v_scanner_scan_alert')
             target_uuid, task_uuid, report_uuid, alert_uuid = scanner.create_scan(ip, own_url)
             if target_uuid and task_uuid and report_uuid and alert_uuid:
                 # update state in IPAM
                 host.status = 'R'
                 if not ipam.update_host_info(host):
-                    # TODO: Handle error
-                    pass
+                    scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
+                    messages.error(request, "Scan was aborted due to unknown reasons. Please notify the DETERRERS admin.")
+                    logger.error("scan_host() could not update the state of host %s", host.ip_addr)
 
     # redirect to a new URL:
     return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
 
 
 @require_http_methods(['GET', ])
-def greenbone_registration_alert(request):
+def v_scanner_registration_alert(request):
     logger.info("Received notification from Greenbone Securtiy Manager that a scan completed.")
 
     try:
@@ -281,20 +283,60 @@ def greenbone_registration_alert(request):
         task_uuid = request.GET['task_uuid']
         target_uuid = request.GET['target_uuid']
         alert_uuid = request.GET['alert_uuid']
-        with GmpVScannerInterface(username=settings.GREENBONE_USERNAME, password=settings.GREENBONE_SECRET_KEY) as scanner:
+        with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
             report_xml = scanner.get_report_xml(report_uuid)
             scan_start, results = scanner.extract_report_data(report_xml)
 
+            # TODO: get HTML report and send via e-mail to admin
+
             # TODO: Risk assessment
-            passed_scan = False
+            passed_scan = True
 
             if passed_scan:
-                scanner.add_host_to_periodic_scan(host_ip=host_ip)
+                own_url = request.get_host() + reverse('v_scanner_periodic_alert')
+                logger.debug("HTTP Alert URL is %s", own_url)
+                scanner.add_host_to_periodic_scan(host_ip=host_ip, deterrers_url=own_url)
+                # get the service profile of this host
+                with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+                    host = ipam.get_host_info_from_ip(host_ip)
+                    # change the perimeter firewall configuration so that only hosts service profile is allowed
+                    with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
+                        match host.service_profile:
+                            case 'H':
+                                fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.HTTP,})
+                            case 'S':
+                                fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.SSH,})
+                            case 'M':
+                                fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.OPEN,})
+                            case _:
+                                raise RuntimeError(f"Unknown service profile: {host.service_profile}")
+                    host.status = 'O'
+                    if not ipam.update_host_info(host):
+                        logger.error("v_scanner_registration_alert() could not update host status to 'O'!")
+            else:
+                with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+                    host = ipam.get_host_info_from_ip(host_ip)
+                    # change the perimeter firewall configuration so that only hosts service profile is allowed
+                    with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
+                        fw.remove_addr_obj_from_addr_grps(host_ip, {AddressGroups.HTTP, AddressGroups.SSH, AddressGroups.OPEN})
+                    host.status = 'B'
+                    if not ipam.update_host_info(host):
+                        logger.error("v_scanner_registration_alert() could not update host status to 'B'!")
 
             scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
 
-    except Exception() as err:
+    except Exception as err:
         logger.error(repr(err))
         return HttpResponse("Error!", status=500)
 
     return HttpResponse("Success!", status=200)
+
+@require_http_methods(['GET', ])
+def v_scanner_scan_alert(request):
+    # TODO
+    pass
+
+@require_http_methods(['GET',])
+def v_scanner_periodic_alert(request):
+    # TODO
+    pass

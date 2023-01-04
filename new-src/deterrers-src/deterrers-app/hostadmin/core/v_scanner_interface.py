@@ -2,6 +2,7 @@ import logging
 from enum import Enum
 from datetime import datetime
 import icalendar
+import os
 
 from gvm.protocols.gmp import Gmp
 from gvm.connections import SSHConnection
@@ -28,7 +29,7 @@ class PortList(Enum):
     ALL_IANA_TCP_UDP_UUID = "4a4717fe-57d2-11e1-9a26-406186ea4fc5"
     ALL_TCP_UUID = "fd591a34-56fd-11e1-9f27-406186ea4fc5"
     ALL_TCP_NMAP_1000_UDP_UUID = "9ddce1ae-57e7-11e1-b13c-406186ea4fc5"
-    ALL_TCP_UDP_UUID = "fa135e67-5e57-40ca-bbad-06dd8e201443"
+    ALL_TCP_UDP_UUID = "94c4fe31-c6e4-4e38-b876-fc00a0225021"
 
 class Credentials(Enum):
     HULK_SSH_CRED_UUID = "22bdc0be-827c-4566-9b1d-2679cf85cb65"
@@ -63,7 +64,9 @@ class GmpVScannerInterface():
         connection = SSHConnection(
             hostname=self.scanner_url,
             port=self.scanner_port,
-            timeout=self.TIMEOUT)
+            timeout=self.TIMEOUT,
+            # vulnerability scanner must have been added to a known_hosts-file before application was started
+            known_hosts_file=os.environ['MICRO_SERVICE']+'/known_hosts')
         self.gmp = Gmp(connection=connection, transform=transform)
 
     def __enter__(self):
@@ -76,6 +79,7 @@ class GmpVScannerInterface():
         Returns:
             GreenboneVScannerInterface: Returns self.
         """
+        logger.debug("Start session with vulnerability scanner.")
         self.gmp = self.gmp.__enter__()
         try:
             # further initialization need to be enclosed here
@@ -88,6 +92,7 @@ class GmpVScannerInterface():
 
 
     def __exit__(self, exc_type, exc_value, traceback):
+        logger.debug("End session with vulnerability scanner.")
         self.gmp.__exit__(exc_type, exc_value, traceback)
 
 
@@ -122,7 +127,6 @@ class GmpVScannerInterface():
         try:
             # create a target
             target_name = f"DETERRERS - Scan target {host_ip}"
-            # TODO: which port list should be used (this is 'All IANA assigned TCP and UDP')
             target_uuid = self.__create_target(
                 [host_ip,],
                 target_name,
@@ -146,7 +150,7 @@ class GmpVScannerInterface():
             # create/get an alert that sends the report back to the server
             # TODO: change back to HTTP GET method (see above)
             # alert_uuid = self.__create_http_alert(host_ip, deterrers_url, target_uuid, task_uuid, report_uuid)
-            alert_uuid = self.__create_email_alert(host_ip, task_uuid, "hulk@rz.uos.de", "nwintering@uos.de")
+            alert_uuid = self.__create_email_alert(host_ip, task_uuid, target_uuid, report_uuid, "hulk@rz.uos.de", "nwintering@uos.de")
 
             # modify task to set the alert
             self.gmp.modify_task(task_id=task_uuid, alert_ids=[alert_uuid])
@@ -209,7 +213,7 @@ class GmpVScannerInterface():
             # create/get an alert that sends the report back to the server
             # TODO: change back to HTTP GET method (see above)
             # alert_uuid = self.__create_http_alert(host_ip, deterrers_url, target_uuid, task_uuid, report_uuid)
-            alert_uuid = self.__create_email_alert(host_ip, task_uuid, "hulk@rz.uos.de", "nwintering@uos.de")
+            alert_uuid = self.__create_email_alert(host_ip, task_uuid, target_uuid, report_uuid, "hulk@rz.uos.de", "nwintering@uos.de")
 
             # modify task to set the alert
             self.gmp.modify_task(task_id=task_uuid, alert_ids=[alert_uuid])
@@ -223,20 +227,20 @@ class GmpVScannerInterface():
         return None, None, None, None
 
 
-    def __start_task(self, task_uuid : str, task_name : str):
+    def __start_task(self, task_uuid : str, task_name : str) -> str:
         """
-        TODO: Docu
+        Start a scan task in the vulnerability scanner.
 
         Args:
-            task_uuid (str): _description_
-            task_name (str): _description_
+            task_uuid (str): UUID of the task.
+            task_name (str): Name of the task
 
         Raises:
-            RuntimeError: _description_
-            RuntimeError: _description_
+            RuntimeError: If vulnerability scanner couldn't start task.
+            RuntimeError: If an invalid number of report UUIDs is returned by the scanner.
 
         Returns:
-            _type_: _description_
+            str: UUID of the report.
         """
         response = self.gmp.start_task(task_uuid)
         response_status = int(response.xpath('@status')[0])
@@ -248,32 +252,39 @@ class GmpVScannerInterface():
         report_uuid = response.xpath('//report_id')[0].text
         return report_uuid
 
-    def __create_task(self, target_uuid : str, task_name  : str, scan_config : str, scanner : str, alterable : bool = False, schedule : str  = None):
+    def __create_task(
+        self,
+        target_uuid : str,
+        task_name : str,
+        scan_config_uuid : str,
+        scanner_uuid : str,
+        alterable : bool = False,
+        schedule_uuid : str|None  = None) -> str:
         """
-        TODO: Docu
+        Create a scan task with given configurations.
 
         Args:
-            target_uuid (str): _description_
-            task_name (str): _description_
-            scan_config (str): _description_
-            scanner (str): _description_
-            alterable (bool, optional): _description_. Defaults to False.
-            schedule (str, optional): _description_. Defaults to None.
+            target_uuid (str): UUID of the target.
+            task_name (str): Name to give the task.
+            scan_config_uuid (str): UUID of the ScanConfiguration.
+            scanner_uuid (str): UUID of the scanner.
+            alterable (bool, optional): Whether to create the task as alterable. Defaults to False.
+            schedule_uuid (str|None, optional): UUID of the schedule. Defaults to None.
 
         Raises:
-            RuntimeError: _description_
+            RuntimeError: If vulnerability scanner could not create the task.
 
         Returns:
-            _type_: _description_
+            str: UUID of the created task.
         """
         response = self.gmp.create_task(
             name=task_name,
             comment=f"Auto-generated by DETERRERS - {datetime.now()}",
-            config_id=scan_config,
+            config_id=scan_config_uuid,
             target_id=target_uuid,
-            scanner_id=scanner,
+            scanner_id=scanner_uuid,
             alterable=alterable,
-            schedule_id=schedule
+            schedule_id=schedule_uuid
         )
         response_status = int(response.xpath('@status')[0])
         if response_status != 201:  # status code docu: https://hulk.rz.uos.de/manual/en/gmp.html#status-codes
@@ -281,27 +292,33 @@ class GmpVScannerInterface():
         task_uuid = response.xpath('@id')[0]
         return task_uuid
 
-    def __create_target(self, host_ip : list, target_name : str, ssh_cred : str, ssh_cred_port : int, port_list : str):
+    def __create_target(
+        self,
+        host_ip : list,
+        target_name : str,
+        ssh_cred_uuid : str,
+        ssh_cred_port : int,
+        port_list_uuid : str) -> str:
         """
-        TODO: Docu
+        Create a scan target with given configurations.
 
         Args:
-            host_ip (list): _description_
-            target_name (str): _description_
-            ssh_cred (str): _description_
-            ssh_cred_port (int): _description_
-            port_list (str): _description_
+            host_ip (list): IP addresses of hosts to be targeted by this target.
+            target_name (str): Name to give the target.
+            ssh_cred_uuid (str): UUID of the SSH credential configuration.
+            ssh_cred_port (int): Port to use for SSH.
+            port_list_uuid (str): UUID of the PortList.
 
         Returns:
-            _type_: _description_
+            str: UUID of the created target.
         """
         response = self.gmp.create_target(
             name=target_name,
             comment=f"Auto-generated by DETERRERS - {datetime.now()}",
             hosts=host_ip,
-            ssh_credential_id=ssh_cred,
+            ssh_credential_id=ssh_cred_uuid,
             ssh_credential_port=ssh_cred_port,
-            port_list_id=port_list,
+            port_list_id=port_list_uuid,
             alive_test=AliveTest.CONSIDER_ALIVE
         )
         # parse target-id
@@ -362,7 +379,14 @@ class GmpVScannerInterface():
         return alert_uuid
 
 
-    def __create_email_alert(self, host_ip :str, task_uuid : str, from_addr : str, to_addr : str):
+    def __create_email_alert(
+        self,
+        host_ip :str,
+        task_uuid : str,
+        target_uuid : str,
+        report_uuid : str,
+        from_addr : str,
+        to_addr : str):
         """
         Creates an alert that sends report to given e-mail.
 
@@ -381,7 +405,7 @@ class GmpVScannerInterface():
         method_data = {
             "from_address" : from_addr,
             "to_address" : to_addr,
-            "subject" : f"Test Alert from GSM for task {task_uuid}",
+            "subject" : f"Test Alert from GSM for host_ip={host_ip}&target_uuid={target_uuid}&task_uuid={task_uuid}&report_uuid={report_uuid}",
             "notice" : "2" # attack report
         }
         response = self.gmp.create_alert(
@@ -399,19 +423,19 @@ class GmpVScannerInterface():
         alert_uuid = response.xpath('@id')[0]
         return alert_uuid
 
-    def __create_schedule(self, schedule_name : str, freq : str):
+    def __create_schedule(self, schedule_name : str, freq : str) -> str:
         """
-        TODO: Docu
+        Create a schedule for scan tasks in the vulnerability scanner.
 
         Args:
-            schedule_name (str): _description_
-            freq (str): _description_
+            schedule_name (str): Name to give the schedule.
+            freq (str): Frequency for the schedult, e.g. 'daily', 'weekly', 'monthly' etc.
 
         Raises:
-            RuntimeError: _description_
+            RuntimeError: If vulnerability scanner could not create the schedule.
 
         Returns:
-            _type_: _description_
+            str: UUID of the schedule.
         """
         now = datetime.now()
         cal = icalendar.Calendar()
@@ -438,19 +462,16 @@ class GmpVScannerInterface():
         return schedule_uuid
 
     
-    def add_host_to_periodic_scan(self, host_ip : str):
+    def add_host_to_periodic_scan(self, host_ip : str, deterrers_url : str):
         """
-        TODO: Docu
+        Add a host to the periodic scan task which scans all hosts that are online once a week.
+        If the periodic scan task does not exist yet, it will be created.
 
         Args:
-            host_ip (str): _description_
+            host_ip (str): IP address to add to the periodic scan task.
 
         Raises:
-            RuntimeError: _description_
-            RuntimeError: _description_
-            RuntimeError: _description_
-            RuntimeError: _description_
-            RuntimeError: _description_
+            RuntimeError: If communication with vulnerability scanner fails.
         """
 
         # check whether periodic task exists, if not create it
@@ -460,31 +481,7 @@ class GmpVScannerInterface():
         if response_status != 200:
             raise RuntimeError(f"Couldn't get tasks! Status: {response_status}")
         
-        task_count = int(response.xpath('//task_count')[0].text)
-        if task_count == 1: # for some reason the count starts at 1 when there is no task returned...
-            # target for periodic task does not exist yet, therfore create it
-            old_target_uuid = self.__create_target(
-                [host_ip, ],
-                f"Target for {self.PERIODIC_TASK_NAME} | {datetime.now()}",
-                Credentials.HULK_SSH_CRED_UUID.value,
-                22,
-                PortList.ALL_IANA_TCP_UDP_UUID.value
-            )
-            schedule_uuid = self.__create_schedule(
-                f"Schedule for {self.PERIODIC_TASK_NAME}",
-                "weekly"
-            )
-            task_uuid = self.__create_task(
-                old_target_uuid,
-                self.PERIODIC_TASK_NAME,
-                ScanConfig.FULL_FAST_UUID.value,
-                Scanner.OPENVAS_DEFAULT_SCANNER_UUID.value,
-                True,
-                schedule_uuid
-            )
-            report_uuid = self.__start_task(task_uuid, self.PERIODIC_TASK_NAME)
-
-        elif task_count == 2:
+        try:
             task_xml = response.xpath('//task')[0]
             task_uuid = task_xml.attrib['id']
             old_target_uuid = task_xml.xpath('//target/@id')[0]
@@ -514,11 +511,37 @@ class GmpVScannerInterface():
             response_status = int(response.xpath('@status')[0])
             if response_status != 200:
                 raise RuntimeError(f"Couldn't delete target {old_target_uuid}! Status: {response_status}")
-
-        else:
-            raise RuntimeError(f"There are too many tasks matching the periodic task name. Couldn't add host {host_ip}.")
-
-
+        except IndexError:
+            # target for periodic task does not exist yet, therfore create it
+            target_uuid = self.__create_target(
+                [host_ip, ],
+                f"Target for {self.PERIODIC_TASK_NAME} | {datetime.now()}",
+                Credentials.HULK_SSH_CRED_UUID.value,
+                22,
+                PortList.ALL_IANA_TCP_UDP_UUID.value
+            )
+            schedule_uuid = self.__create_schedule(
+                f"Schedule for {self.PERIODIC_TASK_NAME}",
+                "weekly"
+            )
+            task_uuid = self.__create_task(
+                target_uuid,
+                self.PERIODIC_TASK_NAME,
+                ScanConfig.FULL_FAST_UUID.value,
+                Scanner.OPENVAS_DEFAULT_SCANNER_UUID.value,
+                True,
+                schedule_uuid
+            )
+            report_uuid = self.__start_task(task_uuid, self.PERIODIC_TASK_NAME)
+            alert_uuid = self.__create_http_alert(
+                host_ip,
+                deterrers_url,
+                target_uuid,
+                task_uuid,
+                report_uuid
+            )
+            # modify task to set the alert
+            self.gmp.modify_task(task_id=task_uuid, alert_ids=[alert_uuid])
 
 
     def clean_up_scan_objects(self, target_uuid : str, task_uuid : str, report_uuid : str, alert_uuid : str):
@@ -617,13 +640,13 @@ class GmpVScannerInterface():
 
     def get_report_xml(self, report_uuid : str):
         """
-        TODO: Docu
+        Query the XML report for some report UUID.
 
         Args:
-            report_uuid (str): _description_
+            report_uuid (str): UUID of the report.
 
         Returns:
-            _type_: _description_
+            _type_: XML etree object of the report.
         """
         rep_filter = "status=Done apply_overrides=0 rows=-1 min_qod=70 first=1"
         try:
@@ -634,15 +657,16 @@ class GmpVScannerInterface():
 
         return None
 
-    def extract_report_data(self, report):
+    def extract_report_data(self, report) -> tuple:
         """
-        TODO: Docu
+        Extract relevant result data from a report.
 
         Args:
-            report (_type_): _description_
+            report (_type_): XML etree report objcet.
 
         Returns:
-            _type_: _description_
+            tuple: Tuple consisting of the scan start time and a list of dictionaries which hold
+                the result information.
         """
         scan_start = report.xpath('//scan_start')[0].text
 
@@ -678,23 +702,23 @@ class GmpVScannerInterface():
 #     from getpass import getpass
 #     password = getpass()
 
-#     with GmpVScannerInterface(username, password) as interf:
+#     with GmpVScannerInterface(username, password, '172.17.207.232') as interf:
 #         test_host_ip = "131.173.22.184"
 
-#         # target_uuid, task_uuid, report_uuid, alert_uuid = interf.create_scan(test_host_ip, test_host_ip)
-#         # input("Enter anything to delete everything: ")
-#         # try:
-#         #     interf.clean_up_all_history()
-#         # except Exception() as err:
-#         #     logger.error("%s", repr(err))
-#         # input("Enter anything to delete everything: ")
-#         # interf.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
+#         target_uuid, task_uuid, report_uuid, alert_uuid = interf.create_scan(test_host_ip, test_host_ip)
+#         input("Enter anything to delete everything: ")
+#         interf.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
+        # input("Enter anything to delete everything: ")
+        # try:
+        #     interf.clean_up_all_history()
+        # except Exception as err:
+        #     logger.error("%s", repr(err))
 
-#         # test_report_id = "c936b5cf-0e62-4c5b-af40-44ae18dee92c"
-#         # report = interf.get_report_xml(test_report_id)
-#         # with open('test_report_xml.txt', 'w') as f:
-#         #     pretty_print(report, f)
-#         # scan_start, results = interf.extract_report_data(report)
+        # test_report_id = "c936b5cf-0e62-4c5b-af40-44ae18dee92c"
+        # report = interf.get_report_xml(test_report_id)
+        # with open('test_report_xml.txt', 'w') as f:
+        #     pretty_print(report, f)
+        # scan_start, results = interf.extract_report_data(report)
 
-#         interf.add_host_to_periodic_task(test_host_ip)
-#         interf.add_host_to_periodic_task("131.173.23.44")
+        # interf.add_host_to_periodic_task(test_host_ip)
+        # interf.add_host_to_periodic_task("131.173.23.44")

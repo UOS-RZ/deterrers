@@ -1,6 +1,3 @@
-"""
-Interface to BlueCat's Proteus IP Address Manager REST API
-"""
 import requests
 from ipaddress import ip_address
 import logging
@@ -10,6 +7,9 @@ from .host import MyHost
 logger = logging.getLogger(__name__)
 
 class ProteusIPAMInterface():
+    """
+    Interface to BlueCat's Proteus IP Address Manager REST API
+    """
     # settings
     username = ''
     password = ''
@@ -38,7 +38,7 @@ class ProteusIPAMInterface():
         except requests.exceptions.ConnectTimeout:
             logger.error('Connection to %s timed out!', login_url)
         except requests.exceptions.ConnectionError:
-            logger.error('Could not estaplish connection to "%s"!', login_url)
+            logger.error('Could not establish connection to "%s"!', login_url)
 
         return self
 
@@ -395,15 +395,13 @@ class ProteusIPAMInterface():
                     'name': host.name,
                     'type': 'IP4Address',
                     'properties': f'macAddress={self.__escape_user_input(host.mac_addr)}|\
-                        deterrers_service_profile={self.__escape_user_input(host.get_service_profile_display())}|\
-                            deterrers_fw={self.__escape_user_input(host.get_fw_display())}|\
-                                deterrers_status={self.__escape_user_input(host.get_status_display())}|'}
+deterrers_service_profile={self.__escape_user_input(host.get_service_profile_display())}|\
+deterrers_fw={self.__escape_user_input(host.get_fw_display())}|\
+deterrers_status={self.__escape_user_input(host.get_status_display())}|'}
 
                 response = requests.put(update_host_url, json=update_host_body, headers=self.header, timeout=self.TIMEOUT)
 
-                print(response.request.body)
-                print(f"Response Code {response.status_code}")
-                if response.status_code == 204:
+                if response.status_code == 200:
                     return True
                     
             except requests.exceptions.ConnectTimeout:
