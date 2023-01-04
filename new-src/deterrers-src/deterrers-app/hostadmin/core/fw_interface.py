@@ -9,6 +9,10 @@ logger = logging.getLogger(__name__)
 
 
 class AddressGroups(Enum):
+    """
+    Enumeration of the different AddressGroup names which specify the service profiles in the
+    firewall configuration.
+    """
     HTTP = "FWP1-WEB"
     SSH = "FWP2-SSH"
     OPEN = "FWP3-OPEN"
@@ -17,7 +21,7 @@ class PaloAltoInterface():
     """
     Interface to the Palo Alto Firewall's PAN-OS v10.1.
     Uses the REST API for object manipulation and XML API for configuration
-    and committing the changes.
+    and commiting the changes.
     """
     # TODO: maybe specify API key lifetime in PA Webinterface
 
@@ -73,7 +77,9 @@ class PaloAltoInterface():
 
 
     def __acquire_config_lock(self):
-        # Acquire lock for this session
+        """
+        Acquire lock for this session.
+        """
         while True:
             acquire_config_lock_url = self.xml_url + \
                 "?type=op&cmd=<request><config-lock><add><comment>DETERRERS config lock" + \
@@ -87,7 +93,9 @@ class PaloAltoInterface():
             time.sleep(0.5)
 
     def __release_config_lock(self):
-        # Release the lock for this session
+        """
+        Release the lock for this session.
+        """
         # https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-panorama-api/pan-os-xml-api-request-types/run-operational-mode-commands-api
         while True:
             release_config_lock_url = self.xml_url + \
@@ -97,11 +105,18 @@ class PaloAltoInterface():
                 # exit as soon as server responds with success
                 return
             time.sleep(0.5)
-            
-
 
     
     def __create_addr_obj(self, ip_addr : str):
+        """
+        TODO
+
+        Args:
+            ip_addr (str): _description_
+
+        Returns:
+            _type_: _description_
+        """
         ip_addr_name =  ip_addr.replace('.', '-')
         create_addr_params = f"name={ip_addr_name}&location={self.LOCATION}&input-format=json"
         create_addr_url = self.rest_url + "Objects/Addresses?" +create_addr_params
@@ -124,6 +139,18 @@ class PaloAltoInterface():
         return ip_addr_name
 
     def __get_addr_obj(self, ip_addr : str):
+        """
+        TODO
+
+        Args:
+            ip_addr (str): _description_
+
+        Raises:
+            RuntimeError: _description_
+
+        Returns:
+            _type_: _description_
+        """
         ip_addr_name =  ip_addr.replace('.', '-')
 
         get_address_params = f"name={ip_addr_name}&location={self.LOCATION}"
@@ -142,6 +169,16 @@ class PaloAltoInterface():
 
 
     def add_addr_obj_to_addr_grps(self, ip_addr : str, addr_grps : set[AddressGroups]):
+        """
+        TODO
+
+        Args:
+            ip_addr (str): _description_
+            addr_grps (set[AddressGroups]): _description_
+
+        Raises:
+            RuntimeError: _description_
+        """
         addr_obj_name = self.__get_addr_obj(ip_addr)
         if not addr_obj_name:
             addr_obj_name = self.__create_addr_obj(ip_addr)
@@ -152,7 +189,9 @@ class PaloAltoInterface():
             get_addr_grp_url = self.rest_url + "Objects/AddressGroups?" + get_addr_grp_params
             response = requests.get(get_addr_grp_url, headers=self.header, timeout=self.TIMEOUT)
             data = response.json()
-            if response.status_code != 200 or data.get('@status') != 'success' or int(data.get('result').get('@total-count')) != 1:
+            if response.status_code != 200 \
+                or data.get('@status') != 'success' \
+                    or int(data.get('result').get('@total-count')) != 1:
                 raise RuntimeError(f"Could not query Address Group {addr_grp_name.value} from \
 firewall! Status code: {response.status_code}. Status: {data.get('@status')}")
 
@@ -176,16 +215,54 @@ firewall! Status code: {response.status_code}. Status: {data.get('@status')}")
             if response.status_code != 200 or data.get('@status') != 'success':
                 raise RuntimeError(f"Could not update Address Group {addr_grp_name.value}. \
 Status code: {response.status_code}. Status: {data.get('@status')}")
-            # commit changes
-            if not self.__commit_changes():
-                raise RuntimeError("Could not commit changes!")
+        # commit changes
+        if not self.__commit_changes():
+            raise RuntimeError("Could not commit changes!")
+
 
     def remove_addr_obj_from_addr_grps(self, ip_addr : str, addr_grps : set[AddressGroups]):
-        # TODO: implement
-        pass
+        # TODO: docu
+        addr_obj_name = self.__get_addr_obj(ip_addr)
+        for addr_grp_name in addr_grps:
+            # get all properties of the address group
+            get_addr_grp_params =  f"name={addr_grp_name.value}&location={self.LOCATION}"
+            get_addr_grp_url = self.rest_url + "Objects/AddressGroups?" + get_addr_grp_params
+            response = requests.get(get_addr_grp_url, headers=self.header, timeout=self.TIMEOUT)
+            data = response.json()
+            if response.status_code != 200 \
+                or data.get('@status') != 'success' \
+                    or int(data.get('result').get('@total-count')) != 1:
+                raise RuntimeError(f"Could not query Address Group {addr_grp_name.value} from \
+firewall! Status code: {response.status_code}. Status: {data.get('@status')}")
+
+            addr_grp_obj = data.get('result').get('entry')[0]
+            # remove addr obj from addr grp
+            put_addr_grp_params = f"name={addr_grp_name.value}&location={self.LOCATION}&input-format=json"
+            put_addr_grp_url = self.rest_url + "Objects/AddressGroups?" + put_addr_grp_params
+            put_addr_grp_payload = {
+                "entry" : {
+                    "static" : {
+                        "member" : list(set(addr_grp_obj['static']['member']) - set([addr_obj_name,])),
+                    },
+                    "@name" : addr_grp_obj['@name'],
+                    "description" : addr_grp_obj.get('description', '')
+                }
+            }
+            response = requests.put(
+                put_addr_grp_url, json=put_addr_grp_payload, headers=self.header, timeout=self.TIMEOUT
+            )
+        # commit changes
+        if not self.__commit_changes():
+            raise RuntimeError("Could not commit changes!")
 
 
     def __commit_changes(self):
+        """
+        Commit changes.
+
+        Returns:
+            bool: Returns True on success and False on error.
+        """
         commit_params = "type=commit&cmd=<commit></commit>"
         commit_url = self.xml_url + "?" + commit_params
         response = requests.get(commit_url, headers=self.header, timeout=self.TIMEOUT)
@@ -219,7 +296,9 @@ Status code: {response.status_code}. Status: {data.get('@status')}")
         return True
 
     def __cancle_commit(self):
-        # try to cancle scheduled commits
+        """
+        Try to cancle scheduled commits.
+        """
         cancle_commit_url = self.xml_url + \
             "?type=op&cmd=<request><clear-commit-tasks></clear-commit-tasks></request>"
         response = requests.get(cancle_commit_url, headers=self.header, timeout=self.TIMEOUT)
@@ -237,3 +316,5 @@ Status code: {response.status_code}. Status: {data.get('@status')}")
 #     with PaloAltoInterface("nwintering", password, "pa-5220.rz.uni-osnabrueck.de") as fw:
 #         test_host_ip = "131.173.22.185"
 #         fw.add_addr_obj_to_addr_grps(test_host_ip, {AddressGroups.HTTP})
+#         input('Enter')
+#         fw.remove_addr_obj_from_addr_grps(test_host_ip, {AddressGroups.HTTP, AddressGroups.SSH, AddressGroups.OPEN})

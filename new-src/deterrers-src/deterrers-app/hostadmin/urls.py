@@ -11,4 +11,5 @@ urlpatterns = [
     path('', views.about_view, name='about'),
     path('greenbone-registration-alert/', views.v_scanner_registration_alert, name='v_scanner_registration_alert'),
     path('greenbone-scan-alert/', views.v_scanner_scan_alert, name='v_scanner_scan_alert'),
+    path('greenbone-periodic-alert/', views.v_scanner_periodic_alert, name='v_scanner_periodic_alert'),
 ]

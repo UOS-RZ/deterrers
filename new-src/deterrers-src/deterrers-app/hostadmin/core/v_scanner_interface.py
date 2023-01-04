@@ -150,7 +150,7 @@ class GmpVScannerInterface():
             # create/get an alert that sends the report back to the server
             # TODO: change back to HTTP GET method (see above)
             # alert_uuid = self.__create_http_alert(host_ip, deterrers_url, target_uuid, task_uuid, report_uuid)
-            alert_uuid = self.__create_email_alert(host_ip, task_uuid, "hulk@rz.uos.de", "nwintering@uos.de")
+            alert_uuid = self.__create_email_alert(host_ip, task_uuid, target_uuid, report_uuid, "hulk@rz.uos.de", "nwintering@uos.de")
 
             # modify task to set the alert
             self.gmp.modify_task(task_id=task_uuid, alert_ids=[alert_uuid])
@@ -213,7 +213,7 @@ class GmpVScannerInterface():
             # create/get an alert that sends the report back to the server
             # TODO: change back to HTTP GET method (see above)
             # alert_uuid = self.__create_http_alert(host_ip, deterrers_url, target_uuid, task_uuid, report_uuid)
-            alert_uuid = self.__create_email_alert(host_ip, task_uuid, "hulk@rz.uos.de", "nwintering@uos.de")
+            alert_uuid = self.__create_email_alert(host_ip, task_uuid, target_uuid, report_uuid, "hulk@rz.uos.de", "nwintering@uos.de")
 
             # modify task to set the alert
             self.gmp.modify_task(task_id=task_uuid, alert_ids=[alert_uuid])
@@ -379,7 +379,14 @@ class GmpVScannerInterface():
         return alert_uuid
 
 
-    def __create_email_alert(self, host_ip :str, task_uuid : str, from_addr : str, to_addr : str):
+    def __create_email_alert(
+        self,
+        host_ip :str,
+        task_uuid : str,
+        target_uuid : str,
+        report_uuid : str,
+        from_addr : str,
+        to_addr : str):
         """
         Creates an alert that sends report to given e-mail.
 
@@ -398,7 +405,7 @@ class GmpVScannerInterface():
         method_data = {
             "from_address" : from_addr,
             "to_address" : to_addr,
-            "subject" : f"Test Alert from GSM for task {task_uuid}",
+            "subject" : f"Test Alert from GSM for host_ip={host_ip}&target_uuid={target_uuid}&task_uuid={task_uuid}&report_uuid={report_uuid}",
             "notice" : "2" # attack report
         }
         response = self.gmp.create_alert(
@@ -455,7 +462,7 @@ class GmpVScannerInterface():
         return schedule_uuid
 
     
-    def add_host_to_periodic_scan(self, host_ip : str):
+    def add_host_to_periodic_scan(self, host_ip : str, deterrers_url : str):
         """
         Add a host to the periodic scan task which scans all hosts that are online once a week.
         If the periodic scan task does not exist yet, it will be created.
@@ -506,7 +513,7 @@ class GmpVScannerInterface():
                 raise RuntimeError(f"Couldn't delete target {old_target_uuid}! Status: {response_status}")
         except IndexError:
             # target for periodic task does not exist yet, therfore create it
-            old_target_uuid = self.__create_target(
+            target_uuid = self.__create_target(
                 [host_ip, ],
                 f"Target for {self.PERIODIC_TASK_NAME} | {datetime.now()}",
                 Credentials.HULK_SSH_CRED_UUID.value,
@@ -518,7 +525,7 @@ class GmpVScannerInterface():
                 "weekly"
             )
             task_uuid = self.__create_task(
-                old_target_uuid,
+                target_uuid,
                 self.PERIODIC_TASK_NAME,
                 ScanConfig.FULL_FAST_UUID.value,
                 Scanner.OPENVAS_DEFAULT_SCANNER_UUID.value,
@@ -526,6 +533,15 @@ class GmpVScannerInterface():
                 schedule_uuid
             )
             report_uuid = self.__start_task(task_uuid, self.PERIODIC_TASK_NAME)
+            alert_uuid = self.__create_http_alert(
+                host_ip,
+                deterrers_url,
+                target_uuid,
+                task_uuid,
+                report_uuid
+            )
+            # modify task to set the alert
+            self.gmp.modify_task(task_id=task_uuid, alert_ids=[alert_uuid])
 
 
     def clean_up_scan_objects(self, target_uuid : str, task_uuid : str, report_uuid : str, alert_uuid : str):

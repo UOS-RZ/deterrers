@@ -293,7 +293,9 @@ def v_scanner_registration_alert(request):
             passed_scan = True
 
             if passed_scan:
-                scanner.add_host_to_periodic_scan(host_ip=host_ip)
+                own_url = request.get_host() + reverse('v_scanner_periodic_alert')
+                logger.debug("HTTP Alert URL is %s", own_url)
+                scanner.add_host_to_periodic_scan(host_ip=host_ip, deterrers_url=own_url)
                 # get the service profile of this host
                 with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
                     host = ipam.get_host_info_from_ip(host_ip)
@@ -309,16 +311,17 @@ def v_scanner_registration_alert(request):
                             case _:
                                 raise RuntimeError(f"Unknown service profile: {host.service_profile}")
                     host.status = 'O'
-                    ipam.update_host_info(host)
+                    if not ipam.update_host_info(host):
+                        logger.error("v_scanner_registration_alert() could not update host status to 'O'!")
             else:
-                # TODO: block host
                 with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
                     host = ipam.get_host_info_from_ip(host_ip)
                     # change the perimeter firewall configuration so that only hosts service profile is allowed
                     with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
                         fw.remove_addr_obj_from_addr_grps(host_ip, {AddressGroups.HTTP, AddressGroups.SSH, AddressGroups.OPEN})
-                        host.status = 'B'
-                        ipam.update_host_info(host)
+                    host.status = 'B'
+                    if not ipam.update_host_info(host):
+                        logger.error("v_scanner_registration_alert() could not update host status to 'B'!")
 
             scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
 
@@ -330,5 +333,10 @@ def v_scanner_registration_alert(request):
 
 @require_http_methods(['GET', ])
 def v_scanner_scan_alert(request):
+    # TODO
+    pass
+
+@require_http_methods(['GET',])
+def v_scanner_periodic_alert(request):
     # TODO
     pass
