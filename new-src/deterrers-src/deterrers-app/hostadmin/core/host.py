@@ -8,32 +8,24 @@ class MyHost():
     Custom host class that holds all important information per host in DETERRERS.
     """
 
-    ip_addr = ''
-    admin_ids = []
     STATUS_CHOICES = [
         ('U', 'Unscanned'), # TODO: should rather be 'Unregistered' but must be changed everywhere
         ('R', 'Under Review'),
         ('B', 'Blocked'),
         ('O', 'Online'),
     ]
-    status = ''
-    name = ""
     SERVICE_CHOICES = [
         ('H', 'HTTP'),
         ('S', 'SSH'),
         ('M', 'Multipurpose'),
         ('', '')
     ]
-    service_profile = ''
     FW_CHOICES = [
         ('A', 'UFW'),
         ('B', 'FirewallD'),
         ('C', 'nftables'),
         ('', '')
     ]
-    fw = ''
-    rules = ''
-    entity_id = None
 
     def __init__(self, ip : str, mac : str, admin_ids : list, status : str, name='', service='', fw='', rules='', entity_id=None):
         # Mandatory

@@ -29,25 +29,16 @@ class PaloAltoInterface():
     VERSION = "v10.1"
     LOCATION = 'vsys&vsys=vsys4' # TODO: change location in production
 
-    fw_url = None
-    rest_url = None
-    xml_url = None
-
-    api_key = None
-
-    username = None
-    password = None
-
-    header = {
-        "Accept" : "application/json",
-    }
-
     def __init__(self, username : str, password : str, fw_url : str):
         self.username = username
         self.password = password
         self.fw_url = fw_url
         self.rest_url = f"https://{fw_url}/restapi/{self.VERSION}/"
         self.xml_url = f"https://{fw_url}/api/"
+        self.api_key = None
+        self.header = {
+            "Accept" : "application/json",
+        }
 
     def __enter__(self):
         logger.debug("Start firewall interface session.")

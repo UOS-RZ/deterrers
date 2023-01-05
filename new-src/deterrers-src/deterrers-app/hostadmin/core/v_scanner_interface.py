@@ -43,12 +43,7 @@ class GmpVScannerInterface():
     """
     TIMEOUT = 20
 
-    scanner_url = ''
-    scanner_port = 22 # default
     PERIODIC_TASK_NAME = "DETERRERS - Periodic task for registered hosts"
-
-    username = ''
-    password = ''
 
     
     def __init__(self, username, password, scanner_url, scanner_port=22):

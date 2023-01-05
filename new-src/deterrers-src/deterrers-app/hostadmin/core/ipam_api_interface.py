@@ -11,20 +11,17 @@ class ProteusIPAMInterface():
     Interface to BlueCat's Proteus IP Address Manager REST API
     """
     # settings
-    username = ''
-    password = ''
-    ipam_url = ''
     TAG_GROUP_NAME = "Deterrers Host Admins"
 
     TIMEOUT = 5
 
-    header = ''
 
     def __init__(self, username, password, ipam_url):
         self.username = username
         self.password = password
         self.ipam_url = ipam_url
         self.main_url = "http://" + ipam_url + "/Services/REST/v1/" # TODO: change back to https when working with production system
+        self.header = ''
 
     def __enter__(self):
         login_url = self.main_url + "login?username=" + self.username + "&password=" + self.password
