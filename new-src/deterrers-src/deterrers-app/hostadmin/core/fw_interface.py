@@ -109,7 +109,7 @@ class PaloAltoInterface():
     
     def __create_addr_obj(self, ip_addr : str):
         """
-        TODO
+        TODO: docu
 
         Args:
             ip_addr (str): _description_
@@ -140,7 +140,7 @@ class PaloAltoInterface():
 
     def __get_addr_obj(self, ip_addr : str):
         """
-        TODO
+        TODO: docu
 
         Args:
             ip_addr (str): _description_
@@ -170,7 +170,7 @@ class PaloAltoInterface():
 
     def add_addr_obj_to_addr_grps(self, ip_addr : str, addr_grps : set[AddressGroups]):
         """
-        TODO
+        TODO: docu
 
         Args:
             ip_addr (str): _description_
