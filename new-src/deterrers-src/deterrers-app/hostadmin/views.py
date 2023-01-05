@@ -13,6 +13,7 @@ from .forms import ChangeHostDetailForm
 from .core.ipam_api_interface import ProteusIPAMInterface
 from .core.v_scanner_interface import GmpVScannerInterface
 from .core.fw_interface import PaloAltoInterface, AddressGroups
+from .core.risk_assessor import compute_risk_of_network_exposure
 
 from myuser.models import MyUser
 
@@ -290,6 +291,7 @@ def v_scanner_registration_alert(request):
             # TODO: get HTML report and send via e-mail to admin
 
             # TODO: Risk assessment
+            risk = compute_risk_of_network_exposure(results)
             passed_scan = True
 
             if passed_scan:

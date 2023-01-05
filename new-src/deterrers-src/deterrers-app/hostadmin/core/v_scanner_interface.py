@@ -54,8 +54,8 @@ class GmpVScannerInterface():
         self.password = password
         self.scanner_url = scanner_url
         self.scanner_port = scanner_port
-        transform = EtreeCheckCommandTransform()
 
+        transform = EtreeCheckCommandTransform()
         connection = SSHConnection(
             hostname=self.scanner_url,
             port=self.scanner_port,
