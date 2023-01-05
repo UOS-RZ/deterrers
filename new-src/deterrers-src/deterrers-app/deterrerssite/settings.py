@@ -35,6 +35,27 @@ ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost 127.0.0.1 0.0.
 
 # CSRF_TRUSTED_ORIGINS = ['https://*.mydomain.com','https://*.127.0.0.1','http://*.127.0.0.1'] # TODO: change in production
 
+# more extensive logging
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "loggers": {
+        "django_python3_ldap": {
+            "handlers": ["console"],
+            "level": os.environ['LOG_LEVEL'],
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': os.environ['LOG_LEVEL'],
+    },
+}
+
 
 # Application definition
 
@@ -183,22 +204,6 @@ LDAP_AUTH_CONNECTION_PASSWORD = None
 LDAP_AUTH_CONNECT_TIMEOUT = None
 LDAP_AUTH_RECEIVE_TIMEOUT = None
 
-# more extensive logging for ldap
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-        },
-    },
-    "loggers": {
-        "django_python3_ldap": {
-            "handlers": ["console"],
-            "level": "INFO",
-        },
-    },
-}
 
 LOGIN_URL = '/login/'
 
