@@ -48,7 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',           # needed
     # Custom applications
     'hostadmin.apps.HostadminConfig',
-    'myuser',
+    'myuser.apps.MyuserConfig',
     # Third-party applications
     'django_python3_ldap',
 ]
@@ -184,21 +184,21 @@ LDAP_AUTH_CONNECT_TIMEOUT = None
 LDAP_AUTH_RECEIVE_TIMEOUT = None
 
 # more extensive logging for ldap
-# LOGGING = {
-#     "version": 1,
-#     "disable_existing_loggers": False,
-#     "handlers": {
-#         "console": {
-#             "class": "logging.StreamHandler",
-#         },
-#     },
-#     "loggers": {
-#         "django_python3_ldap": {
-#             "handlers": ["console"],
-#             "level": "INFO",
-#         },
-#     },
-# }
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "loggers": {
+        "django_python3_ldap": {
+            "handlers": ["console"],
+            "level": "INFO",
+        },
+    },
+}
 
 LOGIN_URL = '/login/'
 
