@@ -16,6 +16,8 @@ services:
       context: ./deterrers-app
       dockerfile: Dockerfile
     command: sh -c "python manage.py makemigrations &&
+                    python manage.py makemigrations hostadmin &&
+                    python manage.py makemigrations myuser &&
                     python manage.py migrate &&
                     python manage.py collectstatic --noinput &&
                     python manage.py add_ssh_fingerprints &&
@@ -27,9 +29,10 @@ services:
     volumes:
       - .:/microservice:rw # map data and files from parent directory in host to microservice directory in docker containe
       - static_volume:/home/app/microservice/static
+      - ./db:/home/app/microservice/db
     expose:
       - 8000
     restart: "on-failure"
 
 volumes:
- static_volume:
+  static_volume:

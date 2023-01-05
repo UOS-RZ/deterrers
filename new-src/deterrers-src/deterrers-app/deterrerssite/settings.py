@@ -47,12 +47,12 @@ LOGGING = {
     "loggers": {
         "django_python3_ldap": {
             "handlers": ["console"],
-            "level": os.environ['LOG_LEVEL'],
+            "level": os.environ.get('LOG_LEVEL', 'INFO'),
         },
     },
     'root': {
         'handlers': ['console'],
-        'level': os.environ['LOG_LEVEL'],
+        'level': os.environ.get('LOG_LEVEL', 'INFO'),
     },
 }
 
@@ -111,7 +111,7 @@ WSGI_APPLICATION = 'deterrerssite.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': os.path.join(os.environ.get('MICRO_SERVICE', BASE_DIR), 'db/db.sqlite3'),
     }
 }
 

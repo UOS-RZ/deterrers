@@ -1,4 +1,4 @@
 *__pycache__
-*.sqlite3
+db/
 .pip_cache/
 .env.prod
