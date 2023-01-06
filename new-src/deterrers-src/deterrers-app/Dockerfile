@@ -23,6 +23,7 @@ COPY . $MICRO_SERVICE
 # install dependencies
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
-COPY ./entrypoint.prod.sh $MICRO_SERVICE
+COPY ./entrypoint.sh $MICRO_SERVICE
+RUN chmod +x $MICRO_SERVICE/entrypoint.sh
 
-CMD ["/bin/bash", "/home/app/microservice/entrypoint.prod.sh"]
+ENTRYPOINT ["/bin/bash", "/home/app/microservice/entrypoint.sh"]
