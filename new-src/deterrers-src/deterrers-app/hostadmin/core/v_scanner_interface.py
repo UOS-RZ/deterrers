@@ -36,6 +36,9 @@ class Credentials(Enum):
     HULK_SMB_CRED_UUID = "13c917aa-e0cc-4027-b249-068ed0f6f4a0"
 
 
+# TODO: implement for OpenVAS REST API https://github.com/Mixeway/MixewayOpenVASRestAPI
+
+
 class GmpVScannerInterface():
     """
     Interface to the Greenbone Vulnerability Scanner via Greenbone Management Protocol (GMP) v22.4.
