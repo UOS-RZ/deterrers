@@ -127,6 +127,7 @@ class GmpVScannerInterface():
                 target_name,
                 Credentials.HULK_SSH_CRED_UUID.value,
                 22,
+                Credentials.HULK_SMB_CRED_UUID,
                 PortList.ALL_IANA_TCP_UDP_UUID.value
             )
 
@@ -190,6 +191,7 @@ class GmpVScannerInterface():
                 target_name,
                 Credentials.HULK_SSH_CRED_UUID.value,
                 22,
+                Credentials.HULK_SMB_CRED_UUID,
                 PortList.ALL_TCP_UDP_UUID.value
             )
 
@@ -293,6 +295,7 @@ class GmpVScannerInterface():
         target_name : str,
         ssh_cred_uuid : str,
         ssh_cred_port : int,
+        smb_cred_uuid : str,
         port_list_uuid : str) -> str:
         """
         Create a scan target with given configurations.
@@ -313,6 +316,7 @@ class GmpVScannerInterface():
             hosts=host_ip,
             ssh_credential_id=ssh_cred_uuid,
             ssh_credential_port=ssh_cred_port,
+            smb_credential_id=smb_cred_uuid,
             port_list_id=port_list_uuid,
             alive_test=AliveTest.CONSIDER_ALIVE
         )
@@ -513,6 +517,7 @@ class GmpVScannerInterface():
                 f"Target for {self.PERIODIC_TASK_NAME} | {datetime.now()}",
                 Credentials.HULK_SSH_CRED_UUID.value,
                 22,
+                Credentials.HULK_SMB_CRED_UUID,
                 PortList.ALL_IANA_TCP_UDP_UUID.value
             )
             schedule_uuid = self.__create_schedule(
