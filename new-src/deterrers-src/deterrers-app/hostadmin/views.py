@@ -319,7 +319,7 @@ def v_scanner_registration_alert(request):
             else:
                 with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
                     host = ipam.get_host_info_from_ip(host_ip)
-                    # change the perimeter firewall configuration so that only hosts service profile is allowed
+                    # change the perimeter firewall configuration so that host is blocked
                     with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
                         fw.remove_addr_obj_from_addr_grps(host_ip, {AddressGroups.HTTP, AddressGroups.SSH, AddressGroups.OPEN})
                     host.status = 'B'
