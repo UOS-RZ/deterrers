@@ -2,7 +2,7 @@ import requests
 from ipaddress import ip_address
 import logging
 
-from .host import MyHost
+from .host import MyHost, HostStatusContract, HostServiceContract, HostFWContract
 
 logger = logging.getLogger(__name__)
 
@@ -51,13 +51,6 @@ class ProteusIPAMInterface():
             logger.error('Could not estaplish connection to "%s"!', logout_url)
     
     def __parse_ipam_host_entity(self, entity):
-
-        def long_to_short(long_s, choices):
-            # look up the short form of the choice in a choice-list of form [(x,xyz), (a,abc), (1,123)]
-            for s, l in choices:
-                if l == long_s:
-                    return s
-            return ''
         
         try:
             host_id = entity['id']
@@ -80,23 +73,23 @@ class ProteusIPAMInterface():
             except KeyError:
                 mac = ''
             try:
-                status = long_to_short(props['deterrers_status'], MyHost.STATUS_CHOICES)
+                status = HostStatusContract(props['deterrers_status'])
             except KeyError:
-                status = ''
+                status = None
             try:
-                service_profile = long_to_short(props['deterrers_service_profile'], MyHost.SERVICE_CHOICES)
+                service_profile = HostServiceContract(props['deterrers_service_profile'])
             except KeyError:
-                service_profile = ''
+                service_profile = HostServiceContract.EMPTY
             try:
-                fw = long_to_short(props['deterrers_fw'], MyHost.FW_CHOICES)
+                fw = HostFWContract(props['deterrers_fw'])
             except KeyError:
-                fw = ''
+                fw = HostFWContract.EMPTY
         except KeyError:
             ip = ''
             mac = ''
-            status = ''
-            service_profile = ''
-            fw = ''
+            status = None
+            service_profile = HostServiceContract.EMPTY
+            fw = HostFWContract.EMPTY
         return host_id, name, ip, mac, status, service_profile, fw
 
     def __get_tagged_admins(self, host_id):

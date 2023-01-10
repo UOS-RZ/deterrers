@@ -1,6 +1,25 @@
 import ipaddress
+from enum import Enum
 
 from django.urls import reverse
+
+class HostStatusContract(Enum):
+    UNREGISTERED =  'Unscanned' # TODO: should rather be 'Unregistered' but must be changed everywhere
+    UNDER_REVIEW =  'Under Review'
+    BLOCKED =       'Blocked'
+    ONLINE =        'Online'
+
+class HostServiceContract(Enum):
+    HTTP =          'HTTP'
+    SSH =           'SSH'
+    MULTIPURPOSE =  'Multipurpose'
+    EMPTY =         ''
+
+class HostFWContract(Enum):
+    UFW =       'UFW'
+    FIREWALLD = 'FirewallD'
+    NFTABLES =  'nftables'
+    EMPTY =     ''
 
 
 class MyHost():
@@ -8,26 +27,18 @@ class MyHost():
     Custom host class that holds all important information per host in DETERRERS.
     """
 
-    STATUS_CHOICES = [
-        ('U', 'Unscanned'), # TODO: should rather be 'Unregistered' but must be changed everywhere
-        ('R', 'Under Review'),
-        ('B', 'Blocked'),
-        ('O', 'Online'),
-    ]
-    SERVICE_CHOICES = [
-        ('H', 'HTTP'),
-        ('S', 'SSH'),
-        ('M', 'Multipurpose'),
-        ('', '')
-    ]
-    FW_CHOICES = [
-        ('A', 'UFW'),
-        ('B', 'FirewallD'),
-        ('C', 'nftables'),
-        ('', '')
-    ]
+    def __init__(
+        self,
+        ip : str,
+        mac : str,
+        admin_ids : list,
+        status : HostStatusContract,
+        name : str = '',
+        service : HostServiceContract = HostServiceContract.EMPTY,
+        fw : HostFWContract = HostFWContract.EMPTY,
+        rules  : str = '',
+        entity_id=None ):
 
-    def __init__(self, ip : str, mac : str, admin_ids : list, status : str, name='', service='', fw='', rules='', entity_id=None):
         # Mandatory
         self.ip_addr = ip.replace('_', '.')
         self.mac_addr = mac
@@ -54,28 +65,13 @@ class MyHost():
         return reverse('host_detail', kwargs={'ip' : self.get_ip_escaped()})
 
     def get_service_profile_display(self) -> str:
-        if self.service_profile:
-            for id, desc in self.SERVICE_CHOICES:
-                if id == self.service_profile:
-                    return desc
-
-        return ''
+        return self.service_profile.value
 
     def get_fw_display(self) -> str:
-        if self.fw:
-            for id, desc in self.FW_CHOICES:
-                if id == self.fw:
-                    return desc
-
-        return ''
+        return self.fw.value
 
     def get_status_display(self) -> str:
-        if self.status:
-            for id, desc in self.STATUS_CHOICES:
-                if id == self.status:
-                    return desc
-
-        return ''
+        return self.status.value
 
     def is_valid(self) -> bool:
         """
@@ -100,13 +96,13 @@ class MyHost():
             except ValueError:
                 return False
         
-        if self.status not in [id for id, _ in self.STATUS_CHOICES]:
+        if self.status not in HostStatusContract:
             return False
 
-        if self.service_profile not in [id for id, _ in self.SERVICE_CHOICES]:
+        if self.service_profile not in HostServiceContract:
             return False
 
-        if self.fw not in [id for id, _ in self.FW_CHOICES]:
+        if self.fw not in HostFWContract:
             return False
         
         return True

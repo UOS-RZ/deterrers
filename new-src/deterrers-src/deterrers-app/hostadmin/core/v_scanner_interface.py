@@ -36,6 +36,9 @@ class Credentials(Enum):
     HULK_SMB_CRED_UUID = "13c917aa-e0cc-4027-b249-068ed0f6f4a0"
 
 
+# TODO: implement for Open Scanner Protocol https://python-gvm.readthedocs.io/en/latest/usage.html#using-osp
+
+
 class GmpVScannerInterface():
     """
     Interface to the Greenbone Vulnerability Scanner via Greenbone Management Protocol (GMP) v22.4.
@@ -54,8 +57,8 @@ class GmpVScannerInterface():
         self.password = password
         self.scanner_url = scanner_url
         self.scanner_port = scanner_port
-        transform = EtreeCheckCommandTransform()
 
+        transform = EtreeCheckCommandTransform()
         connection = SSHConnection(
             hostname=self.scanner_url,
             port=self.scanner_port,
@@ -127,6 +130,7 @@ class GmpVScannerInterface():
                 target_name,
                 Credentials.HULK_SSH_CRED_UUID.value,
                 22,
+                Credentials.HULK_SMB_CRED_UUID,
                 PortList.ALL_IANA_TCP_UDP_UUID.value
             )
 
@@ -190,6 +194,7 @@ class GmpVScannerInterface():
                 target_name,
                 Credentials.HULK_SSH_CRED_UUID.value,
                 22,
+                Credentials.HULK_SMB_CRED_UUID,
                 PortList.ALL_TCP_UDP_UUID.value
             )
 
@@ -293,6 +298,7 @@ class GmpVScannerInterface():
         target_name : str,
         ssh_cred_uuid : str,
         ssh_cred_port : int,
+        smb_cred_uuid : str,
         port_list_uuid : str) -> str:
         """
         Create a scan target with given configurations.
@@ -313,6 +319,7 @@ class GmpVScannerInterface():
             hosts=host_ip,
             ssh_credential_id=ssh_cred_uuid,
             ssh_credential_port=ssh_cred_port,
+            smb_credential_id=smb_cred_uuid,
             port_list_id=port_list_uuid,
             alive_test=AliveTest.CONSIDER_ALIVE
         )
@@ -513,6 +520,7 @@ class GmpVScannerInterface():
                 f"Target for {self.PERIODIC_TASK_NAME} | {datetime.now()}",
                 Credentials.HULK_SSH_CRED_UUID.value,
                 22,
+                Credentials.HULK_SMB_CRED_UUID,
                 PortList.ALL_IANA_TCP_UDP_UUID.value
             )
             schedule_uuid = self.__create_schedule(
