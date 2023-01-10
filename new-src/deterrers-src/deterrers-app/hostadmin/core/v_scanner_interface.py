@@ -130,7 +130,7 @@ class GmpVScannerInterface():
                 target_name,
                 Credentials.HULK_SSH_CRED_UUID.value,
                 22,
-                Credentials.HULK_SMB_CRED_UUID,
+                Credentials.HULK_SMB_CRED_UUID.value,
                 PortList.ALL_IANA_TCP_UDP_UUID.value
             )
 
@@ -194,7 +194,7 @@ class GmpVScannerInterface():
                 target_name,
                 Credentials.HULK_SSH_CRED_UUID.value,
                 22,
-                Credentials.HULK_SMB_CRED_UUID,
+                Credentials.HULK_SMB_CRED_UUID.value,
                 PortList.ALL_TCP_UDP_UUID.value
             )
 
