@@ -98,15 +98,15 @@ class PaloAltoInterface():
             time.sleep(0.5)
 
     
-    def __create_addr_obj(self, ip_addr : str):
+    def __create_addr_obj(self, ip_addr : str) -> str:
         """
-        TODO: docu
+        Creates a new AddressObject in the firewall configuration.
 
         Args:
-            ip_addr (str): _description_
+            ip_addr (str): IP address of the new AddressObject.
 
         Returns:
-            _type_: _description_
+            str: Returns the name of the new AddressObject (is derived from IP address).
         """
         ip_addr_name =  ip_addr.replace('.', '-')
         create_addr_params = f"name={ip_addr_name}&location={self.LOCATION}&input-format=json"
@@ -129,18 +129,18 @@ class PaloAltoInterface():
 
         return ip_addr_name
 
-    def __get_addr_obj(self, ip_addr : str):
+    def __get_addr_obj(self, ip_addr : str) -> str|None:
         """
-        TODO: docu
+        Queries a AddressObject from the firewall configuration.
 
         Args:
-            ip_addr (str): _description_
+            ip_addr (str): IP address of the AddressObject from which the name is derived.
 
         Raises:
-            RuntimeError: _description_
+            RuntimeError: Thrown when there are more than one AddressObjects with this name.
 
         Returns:
-            _type_: _description_
+            str|None: Returns the name of the AddressObject if it is found. Returns None otherwise.
         """
         ip_addr_name =  ip_addr.replace('.', '-')
 
@@ -161,14 +161,14 @@ class PaloAltoInterface():
 
     def add_addr_obj_to_addr_grps(self, ip_addr : str, addr_grps : set[AddressGroups]):
         """
-        TODO: docu
+        Creates an AddressObject for an IP address if necessary and adds it to some AddressGroups.
 
         Args:
-            ip_addr (str): _description_
-            addr_grps (set[AddressGroups]): _description_
+            ip_addr (str): IP Address of the AddressObject.
+            addr_grps (set[AddressGroups]): AddressGroups to which the AddressObject is added.
 
         Raises:
-            RuntimeError: _description_
+            RuntimeError: Raised if AddressGroup could not be queried or changes could not be commited.
         """
         addr_obj_name = self.__get_addr_obj(ip_addr)
         if not addr_obj_name:
@@ -212,7 +212,16 @@ Status code: {response.status_code}. Status: {data.get('@status')}")
 
 
     def remove_addr_obj_from_addr_grps(self, ip_addr : str, addr_grps : set[AddressGroups]):
-        # TODO: docu
+        """
+        Removes an AddressObject from some AddressGroups.
+
+        Args:
+            ip_addr (str): IP address of the AddressObject.
+            addr_grps (set[AddressGroups]): AddressGroups from which the AddressObject is removed.
+        
+        Raises:
+            RuntimeError: Raised if AddressGroup could not be queried or if changes could not be committed.
+        """
         addr_obj_name = self.__get_addr_obj(ip_addr)
         for addr_grp_name in addr_grps:
             # get all properties of the address group

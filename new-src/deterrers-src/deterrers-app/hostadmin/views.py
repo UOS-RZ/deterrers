@@ -13,6 +13,8 @@ from .forms import ChangeHostDetailForm
 from .core.ipam_api_interface import ProteusIPAMInterface
 from .core.v_scanner_interface import GmpVScannerInterface
 from .core.fw_interface import PaloAltoInterface, AddressGroups
+from .core.risk_assessor import compute_risk_of_network_exposure
+from .core.host import HostStatusContract, HostServiceContract, HostFWContract
 
 from myuser.models import MyUser
 
@@ -74,29 +76,29 @@ def host_detail_view(request, ip):
 
     # pass flags for available actions into context
     match host.status:
-        case 'U':
+        case HostStatusContract.UNREGISTERED:
             context['can_update'] = True
-            if host.service_profile != '' and host.fw != '':
+            if host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY:
                 context['can_register'] = True
                 context['can_scan'] = True
             else:
                 context['can_register'] = False
                 context['can_scan'] = False
-        case 'R':
+        case HostStatusContract.UNDER_REVIEW:
             context['can_update'] = False
             context['can_register'] = False
             context['can_scan'] = False
-        case 'B':
+        case HostStatusContract.BLOCKED:
             context['can_update'] = True
             context['can_register'] = False
-            if host.service_profile != '' and host.fw != '':
+            if host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY:
                 context['can_scan'] = True
             else:
                 context['can_scan'] = False
-        case 'O':
+        case HostStatusContract.ONLINE:
             context['can_update'] = True
             context['can_register'] = False
-            if host.service_profile != '' and host.fw != '':
+            if host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY:
                 context['can_scan'] = True
             else:
                 context['can_scan'] = False
@@ -170,7 +172,7 @@ def update_host_detail(request, ip):
             raise Http404()
 
         # check if this host can be changed at the moment or whether there are already processes running for it
-        if host.status not in ('U', 'B', 'O'):
+        if host.status not in (HostStatusContract.UNREGISTERED, HostStatusContract.BLOCKED, HostStatusContract.ONLINE):
             raise Http404()
 
         # do processing based on whether this is GET or POST request
@@ -180,8 +182,8 @@ def update_host_detail(request, ip):
             if form.is_valid():
                 # update the actual model instance
                 # host_inst.name = form.cleaned_data['name']
-                host.service_profile = form.cleaned_data['service_profile']
-                host.fw = form.cleaned_data['fw']
+                host.service_profile = HostServiceContract(form.cleaned_data['service_profile'])
+                host.fw = HostFWContract(form.cleaned_data['fw'])
                 
                 ret = ipam.update_host_info(host)
                 if ret:
@@ -195,8 +197,8 @@ def update_host_detail(request, ip):
             form = ChangeHostDetailForm(
                 initial={
                     'name' : host.name,
-                    'service_profile' : host.service_profile,
-                    'fw' : host.fw
+                    'service_profile' : host.service_profile.value,
+                    'fw' : host.fw.value
                 }
             )
 
@@ -221,7 +223,7 @@ def register_host(request, ip):
         if not hostadmin.username in host.admin_ids:
             raise Http404()
         # check if this host can be registered
-        if host.status != 'U':
+        if host.status != HostStatusContract.UNREGISTERED:
             raise Http404()
 
         # create an initial scan of the host
@@ -230,7 +232,7 @@ def register_host(request, ip):
             target_uuid, task_uuid, report_uuid, alert_uuid = scanner.create_registration_scan(ip, own_url)
             if target_uuid and task_uuid and report_uuid and alert_uuid:
                 # update state in IPAM
-                host.status = 'R'
+                host.status = HostStatusContract.UNDER_REVIEW
                 if not ipam.update_host_info(host):
                     scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
                     messages.error(request, "Registration was aborted due to unknown reasons. Please notify the DETERRERS admin.")
@@ -254,7 +256,7 @@ def scan_host(request, ip):
         if not hostadmin.username in host.admin_ids:
             raise Http404()
         # check if this host can be scanned at the moment or whether there are already processes running for it
-        if host.status not in ('U', 'B', 'O'):
+        if host.status not in (HostStatusContract.UNREGISTERED, HostStatusContract.BLOCKED, HostStatusContract.ONLINE):
             raise Http404()
 
         # create an initial scan of the host
@@ -263,7 +265,7 @@ def scan_host(request, ip):
             target_uuid, task_uuid, report_uuid, alert_uuid = scanner.create_scan(ip, own_url)
             if target_uuid and task_uuid and report_uuid and alert_uuid:
                 # update state in IPAM
-                host.status = 'R'
+                host.status = HostStatusContract.UNDER_REVIEW
                 if not ipam.update_host_info(host):
                     scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
                     messages.error(request, "Scan was aborted due to unknown reasons. Please notify the DETERRERS admin.")
@@ -290,6 +292,7 @@ def v_scanner_registration_alert(request):
             # TODO: get HTML report and send via e-mail to admin
 
             # TODO: Risk assessment
+            risk = compute_risk_of_network_exposure(results)
             passed_scan = True
 
             if passed_scan:
@@ -316,7 +319,7 @@ def v_scanner_registration_alert(request):
             else:
                 with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
                     host = ipam.get_host_info_from_ip(host_ip)
-                    # change the perimeter firewall configuration so that only hosts service profile is allowed
+                    # change the perimeter firewall configuration so that host is blocked
                     with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
                         fw.remove_addr_obj_from_addr_grps(host_ip, {AddressGroups.HTTP, AddressGroups.SSH, AddressGroups.OPEN})
                     host.status = 'B'

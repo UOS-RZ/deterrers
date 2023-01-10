@@ -1,20 +1,15 @@
 from django import forms
-from django.core.exceptions import ValidationError
 
-from .core.host import MyHost
+from .core.host import HostServiceContract, HostFWContract
 
 
 class ChangeHostDetailForm(forms.Form):
-    # name = forms.CharField(
-    #     max_length=256,
-    #     label='Name',
-    #     help_text='Descriptive name of this host.',
-    #     required = False,
-    #     initial=''
-    # )
+    # create lists of tuples in order to make use of the model validation of django
+    SERVICE_CHOICES = [(profile.value, profile.value) for profile in HostServiceContract]
+    FW_CHOICES = [(fw.value, fw.value) for fw in HostFWContract]
 
     service_profile = forms.ChoiceField(
-        choices=MyHost.SERVICE_CHOICES,
+        choices=SERVICE_CHOICES,
         label='Service Profile',
         help_text='Service Profile that has to be chosen for this host.',
         required = False,
@@ -22,7 +17,7 @@ class ChangeHostDetailForm(forms.Form):
     )
 
     fw = forms.ChoiceField(
-        choices=MyHost.FW_CHOICES,
+        choices=FW_CHOICES,
         label='Host-based Firewall',
         help_text='Host-based Firewall running on this host.',
         required = False,
