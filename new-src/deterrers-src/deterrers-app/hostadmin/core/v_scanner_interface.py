@@ -400,7 +400,7 @@ class GmpVScannerInterface():
         method_data = {
             "from_address" : from_addr,
             "to_address" : to_addr,
-            "subject" : f"Test Alert from GSM for host_ip={host_ip}&target_uuid={target_uuid}&task_uuid={task_uuid}&report_uuid={report_uuid}",
+            "subject" : f"Test Alert from GSM for host_ip={host_ip}",
             "notice" : "2" # attack report
         }
         response = self.gmp.create_alert(
