@@ -144,11 +144,11 @@ class GmpVScannerInterface():
 
             # create/get an alert that sends the report back to the server
             # TODO: change back to HTTP GET method (see above)
-            # alert_uuid = self.__create_http_alert(host_ip, deterrers_url, target_uuid, task_uuid, report_uuid)
-            alert_uuid = self.__create_email_alert(host_ip, task_uuid, target_uuid, report_uuid, "hulk@rz.uos.de", "nwintering@uos.de")
+            alert_uuid = [self.__create_http_alert(host_ip, deterrers_url, target_uuid, task_uuid, report_uuid)]
+            alert_uuid.append(self.__create_email_alert(host_ip, task_uuid, target_uuid, report_uuid, "hulk@rz.uos.de", "nwintering@uos.de"))
 
             # modify task to set the alert
-            self.gmp.modify_task(task_id=task_uuid, alert_ids=[alert_uuid])
+            self.gmp.modify_task(task_id=task_uuid, alert_ids=alert_uuid)
 
             return target_uuid, task_uuid, report_uuid, alert_uuid
 
@@ -207,11 +207,11 @@ class GmpVScannerInterface():
 
             # create/get an alert that sends the report back to the server
             # TODO: change back to HTTP GET method (see above)
-            # alert_uuid = self.__create_http_alert(host_ip, deterrers_url, target_uuid, task_uuid, report_uuid)
-            alert_uuid = self.__create_email_alert(host_ip, task_uuid, target_uuid, report_uuid, "hulk@rz.uos.de", "nwintering@uos.de")
+            alert_uuid = [self.__create_http_alert(host_ip, deterrers_url, target_uuid, task_uuid, report_uuid)]
+            alert_uuid.append( self.__create_email_alert(host_ip, task_uuid, target_uuid, report_uuid, "hulk@rz.uos.de", "nwintering@uos.de"))
 
             # modify task to set the alert
-            self.gmp.modify_task(task_id=task_uuid, alert_ids=[alert_uuid])
+            self.gmp.modify_task(task_id=task_uuid, alert_ids=alert_uuid)
 
             return target_uuid, task_uuid, report_uuid, alert_uuid
 
