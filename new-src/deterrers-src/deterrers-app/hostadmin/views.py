@@ -305,15 +305,15 @@ def v_scanner_registration_alert(request):
                     # change the perimeter firewall configuration so that only hosts service profile is allowed
                     with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
                         match host.service_profile:
-                            case 'H':
+                            case HostServiceContract.HTTP:
                                 fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.HTTP,})
-                            case 'S':
+                            case HostServiceContract.SSH:
                                 fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.SSH,})
-                            case 'M':
+                            case HostServiceContract.MULTIPURPOSE:
                                 fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.OPEN,})
                             case _:
                                 raise RuntimeError(f"Unknown service profile: {host.service_profile}")
-                    host.status = 'O'
+                    host.status = HostStatusContract.ONLINE
                     if not ipam.update_host_info(host):
                         logger.error("v_scanner_registration_alert() could not update host status to 'O'!")
             else:
@@ -322,7 +322,7 @@ def v_scanner_registration_alert(request):
                     # change the perimeter firewall configuration so that host is blocked
                     with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
                         fw.remove_addr_obj_from_addr_grps(host_ip, {AddressGroups.HTTP, AddressGroups.SSH, AddressGroups.OPEN})
-                    host.status = 'B'
+                    host.status = HostStatusContract.BLOCKED
                     if not ipam.update_host_info(host):
                         logger.error("v_scanner_registration_alert() could not update host status to 'B'!")
 
