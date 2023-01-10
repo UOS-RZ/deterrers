@@ -520,7 +520,7 @@ class GmpVScannerInterface():
                 f"Target for {self.PERIODIC_TASK_NAME} | {datetime.now()}",
                 Credentials.HULK_SSH_CRED_UUID.value,
                 22,
-                Credentials.HULK_SMB_CRED_UUID,
+                Credentials.HULK_SMB_CRED_UUID.value,
                 PortList.ALL_IANA_TCP_UDP_UUID.value
             )
             schedule_uuid = self.__create_schedule(
