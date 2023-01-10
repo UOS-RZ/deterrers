@@ -368,7 +368,7 @@ class GmpVScannerInterface():
             comment=comment
         )
         response_status = int(response.xpath('@status')[0])
-        if response_status != 202:
+        if response_status != 200:
             raise RuntimeError(f"Couldn't modify HTTP GET alert. Status: {response_status}")
 
         return alert_uuid
