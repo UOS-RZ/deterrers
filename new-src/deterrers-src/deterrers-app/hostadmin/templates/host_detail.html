@@ -5,32 +5,68 @@
 {% block content %}
 <h1> Details on Host: {{host_detail.ip_addr}} ({{host_detail.name}}) </h1>
 <table style="width:100%">
-    <tr>
-        <th>IP Address</th>
-        <th>Name</th>
-        <th>Service Profile</th>
-        <th>Firewall</th>
-        <th>Status</th>
-    </tr>
-    <tr>
-        <td>{{host_detail.ip_addr}}</td>
-        <td>{{host_detail.name}}</td>
-        <td>{{host_detail.get_service_profile_display}}</td>
-        <td>{{host_detail.get_fw_display}}</td>
-        <td>{{host_detail.get_status_display}}</td>
-    </tr>
+    <thead>
+        <tr>
+            <th>IP Address</th>
+            <th>Name</th>
+            <th>Internet Service Profile</th>
+            <th>Host-based Firewall</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>{{host_detail.ip_addr}}</td>
+            <td>{{host_detail.name}}</td>
+            <td>{{host_detail.get_service_profile_display}}</td>
+            <td>{{host_detail.get_fw_display}}</td>
+            <td>{{host_detail.get_status_display}}</td>
+        </tr>
+    </tbody>
 </table>
 <hr>
 <div id="host_rules">
-    <h2> Suggested Firewall Rules: </h2>
+    <h2> Additional Firewall Rules: </h2>
     <p>
-        <samp>
-            {% if host_detail.rules%}
-                {{host_detail.rules}}
-            {% else %}
-                (Please enter information about this host in order to generate firewall rules for the host-based firewall!)
-            {% endif %}
-        </samp>
+        <table style="width:100%">
+            <thead>
+                <tr>
+                    <th>Allow from:</th>
+                    <th>Port(s):</th>
+                    <th></th>
+                </tr>
+            </thead>
+            </tbody>
+            {% for rule in host_rules %}
+                <form action="{{request.path}}rule/delete/{{rule.id}}/" method="post">
+                    {% csrf_token %}
+                    <tr>
+                        <td>{{rule.allow_srcs|join:", "}}</td>
+                        <td>{{rule.allow_ports|join:", "}}</td>
+                        <td><button type=submit>Delete</button></td>
+                    </tr>
+                </form>
+            {% endfor %}
+            </tbody>
+            <tfoot>
+                <form action='' method="post">
+                    {% csrf_token %}
+                    <tr>
+                        <td>
+                            {{form.subnets}}
+                            {{form.subnets.errors}}
+                        </td>
+                        <td>
+                            {{form.ports}}
+                            {{form.ports.errors}}
+                        </td>
+                        <td>
+                            <input type="submit" value="Add">
+                        </td>
+                    </tr>
+                </form>
+            </tfoot>
+        </table>
     </p>
 </div>
 <hr>

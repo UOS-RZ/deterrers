@@ -21,6 +21,14 @@ class HostFWContract(Enum):
     NFTABLES =  'nftables'
     EMPTY =     ''
 
+class IntraSubnetContract(Enum):
+    ANY = {'name' : 'Any', 'range' : 'any'}
+    RZ_BACKBONE = {'name' : 'Uni RZ-Backbone', 'range' : '131.173.16.0/22'}
+    VM_BACKBONE = {'name' : 'Uni VM-Backbone', 'range' : '131.173.22.0/23'}
+
+    def display(self):
+        return f"{self.value['name']} ({self.value['range']})"
+
 
 class MyHost():
     """
@@ -36,7 +44,7 @@ class MyHost():
         name : str = '',
         service : HostServiceContract = HostServiceContract.EMPTY,
         fw : HostFWContract = HostFWContract.EMPTY,
-        rules  : str = '',
+        rules  : list[dict] = [],
         entity_id=None ):
 
         # Mandatory
@@ -48,7 +56,13 @@ class MyHost():
         self.name = name
         self.service_profile = service
         self.fw = fw
-        self.rules = rules
+        # list of dictionaries of form: 
+        # {
+        #     'allow_srcs' : <list[IntraSubnetContract.value]>,
+        #     'allow_ports' : <list[int]>,
+        #     'id' : <UUID>
+        # }
+        self.custom_rules = rules
         self.entity_id = entity_id
 
 
@@ -104,5 +118,7 @@ class MyHost():
 
         if self.fw not in HostFWContract:
             return False
+
+        # TODO: check validity of intranet_rules
         
         return True
