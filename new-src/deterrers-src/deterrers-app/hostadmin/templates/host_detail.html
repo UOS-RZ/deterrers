@@ -54,14 +54,27 @@
                     <tr>
                         <td>
                             {{form.subnets}}
-                            {{form.subnets.errors}}
+                            {% if form.subnets.errors %}
+                                <div class="form-errors">
+                                    {{form.subnets.errors}}
+                                </div>
+                            {% endif %}
                         </td>
                         <td>
                             {{form.ports}}
-                            {{form.ports.errors}}
+                            {% if form.ports.errors %}
+                                <div class="form-errors">
+                                    {{form.ports.errors}}
+                                </div>
+                            {% endif %}
                         </td>
                         <td>
                             <input type="submit" value="Add">
+                            {% if form.errors %}
+                                <div class="form-errors">
+                                    {{from.errors}}
+                                </div>
+                            {% endif %}
                         </td>
                     </tr>
                 </form>

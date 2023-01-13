@@ -86,7 +86,6 @@ def host_detail_view(request, ip):
                 
                 ret = ipam.update_host_info(host)
                 if not ret:
-                    # TODO: make visible (not shown at the moment)
                     form.add_error(None, "Host rules could not be updated! Try again later...")
                 else:
                     form = AddHostRulesForm()
@@ -102,12 +101,9 @@ def host_detail_view(request, ip):
                 'allow_ports' : rule['allow_ports'],
                 'id' : rule['id']}
             for rule in host.custom_rules],
+        'form' : form,
     }
 
-    # create new empty form
-    form = AddHostRulesForm()
-
-    context['form'] = form
     # pass flags for available actions into context
     match host.status:
         case HostStatusContract.UNREGISTERED:
