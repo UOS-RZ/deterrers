@@ -1,6 +1,7 @@
 import requests
 from ipaddress import ip_address
 import logging
+import json
 
 from .host import MyHost, HostStatusContract, HostServiceContract, HostFWContract
 
@@ -84,13 +85,18 @@ class ProteusIPAMInterface():
                 fw = HostFWContract(props['deterrers_fw'])
             except KeyError:
                 fw = HostFWContract.EMPTY
+            try:
+                rules = json.loads(props['deterrers_rules'])
+            except KeyError:
+                rules = []
         except KeyError:
             ip = ''
             mac = ''
             status = None
             service_profile = HostServiceContract.EMPTY
             fw = HostFWContract.EMPTY
-        return host_id, name, ip, mac, status, service_profile, fw
+            rules = []
+        return host_id, name, ip, mac, status, service_profile, fw, rules
 
     def __get_tagged_admins(self, host_id):
         """
@@ -208,7 +214,7 @@ class ProteusIPAMInterface():
             response = requests.get(get_ip4adress_url, headers = self.header, timeout=self.TIMEOUT)
             data = response.json()
 
-            host_id, name, ip, mac, status, service, fw = self.__parse_ipam_host_entity(data)
+            host_id, name, ip, mac, status, service, fw, rules = self.__parse_ipam_host_entity(data)
 
             # get all tagged admins
             tagged_admins = self.__get_tagged_admins(host_id)
@@ -222,6 +228,7 @@ class ProteusIPAMInterface():
                 name=name,
                 service=service,
                 fw=fw,
+                rules=rules,
                 entity_id=host_id
             )
             if my_host.is_valid():
@@ -251,7 +258,7 @@ class ProteusIPAMInterface():
             get_entitybyid_url = self.main_url + "getEntityById?" + f"id={id}"
             response =  requests.get(get_entitybyid_url, headers=self.header, timeout=self.TIMEOUT)
             data = response.json()
-            host_id, name, ip, mac, status, service, fw = self.__parse_ipam_host_entity(data)
+            host_id, name, ip, mac, status, service, fw, rules = self.__parse_ipam_host_entity(data)
             # get all tagged admins
             tagged_admins = self.__get_tagged_admins(host_id)
 
@@ -263,6 +270,7 @@ class ProteusIPAMInterface():
                 name=name,
                 service=service,
                 fw=fw,
+                rules=rules,
                 entity_id=host_id
             )
             if my_host.is_valid():
@@ -302,7 +310,7 @@ class ProteusIPAMInterface():
                 response = requests.get(get_linked_entity_url, headers = self.header, timeout=self.TIMEOUT)
                 data = response.json()
                 for host_e in data:
-                    host_id, name, ip, mac, status, service, fw = self.__parse_ipam_host_entity(host_e)
+                    host_id, name, ip, mac, status, service, fw, rules = self.__parse_ipam_host_entity(host_e)
                     # get all tagged admins
                     tagged_admins = self.__get_tagged_admins(host_id)
                     my_host = MyHost(
@@ -313,6 +321,7 @@ class ProteusIPAMInterface():
                         name=name,
                         service=service,
                         fw=fw,
+                        rules=rules,
                         entity_id=host_id
                     )
                     if my_host.is_valid():
@@ -387,7 +396,8 @@ class ProteusIPAMInterface():
                     'properties': f'macAddress={self.__escape_user_input(host.mac_addr)}|\
 deterrers_service_profile={self.__escape_user_input(host.get_service_profile_display())}|\
 deterrers_fw={self.__escape_user_input(host.get_fw_display())}|\
-deterrers_status={self.__escape_user_input(host.get_status_display())}|'}
+deterrers_status={self.__escape_user_input(host.get_status_display())}|\
+deterrers_rules={json.dumps(host.custom_rules)}|'}
 
                 response = requests.put(update_host_url, json=update_host_body, headers=self.header, timeout=self.TIMEOUT)
 

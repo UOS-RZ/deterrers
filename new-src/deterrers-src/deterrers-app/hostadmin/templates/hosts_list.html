@@ -3,27 +3,31 @@
 {% block title %} <title>My Hosts</title> {% endblock %}
 
 {% block content %}
-  <h1>List of my hosts</h1>
-  <p>There are the following hosts administerd by me:</p>
-  {% if hosts_list %}
-  <table style="width:100%">
-    <tr>
-      <th>IP Address</th>
-      <th>Name</th>
-      <th>Profile</th>
-      <th>Status</th>
-    </tr>
-    {% for host in hosts_list %}
-    <tr>
-      <td><a href="{{ host.get_absolute_url }}">{{host.ip_addr}}</a></td>
-      <td>{{host.name}}</td>
-      <td>{{host.get_service_profile_display}}</td>
-      <td>{{host.get_status_display}}</td>
-    </tr>
-    {% endfor %}
-  </table>
-  {% else %}
-    <p>There are no hosts for this administrator.</p>
-  {% endif %}
+	<h1>List of my hosts</h1>
+	<p>There are the following hosts administerd by me:</p>
+	{% if hosts_list %}
+	<table style="width:100%">
+		<thead>
+			<tr>
+				<th>IP Address</th>
+				<th>Name</th>
+				<th>Profile</th>
+				<th>Status</th>
+			</tr>
+		</thead>
+		{% for host in hosts_list %}
+		<tbody>
+			<tr>
+				<td><a href="{{ host.get_absolute_url }}">{{host.ip_addr}}</a></td>
+				<td>{{host.name}}</td>
+				<td>{{host.get_service_profile_display}}</td>
+				<td>{{host.get_status_display}}</td>
+			</tr>
+		</tbody>
+		{% endfor %}
+	</table>
+	{% else %}
+		<p>There are no hosts for this administrator.</p>
+	{% endif %}
 
 {% endblock %}
