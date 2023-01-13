@@ -53,3 +53,7 @@ table, th, td {
     padding: 10px;
 } 
 tr:hover {background-color: rgb(57, 96, 96);}
+
+.form-errors {
+    color: red;
+}
