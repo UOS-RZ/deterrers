@@ -1,5 +1,7 @@
 {% extends "base_generic.html" %}
 
+{% load django_bootstrap5 %}
+
 {% block title %} <title>Host Status: {{host_detail.ip_addr}} ({{host_detail.name}})</title> {% endblock %}
 
 {% block content %}
@@ -43,33 +45,23 @@
                     <tr>
                         <td>{{rule.allow_srcs|join:", "}}</td>
                         <td>{{rule.allow_ports|join:", "}}</td>
-                        <td><button type=submit>Delete</button></td>
+                        <td>{% bootstrap_button button_type="submit" content="Delete" %}</td>
                     </tr>
                 </form>
             {% endfor %}
             </tbody>
             <tfoot>
-                <form action='' method="post">
+                <form action='' method="post" class="form">
                     {% csrf_token %}
                     <tr>
                         <td>
-                            {{form.subnets}}
-                            {% if form.subnets.errors %}
-                                <div class="form-errors">
-                                    {{form.subnets.errors}}
-                                </div>
-                            {% endif %}
+                            {% bootstrap_field form.subnets show_label=False %}
                         </td>
                         <td>
-                            {{form.ports}}
-                            {% if form.ports.errors %}
-                                <div class="form-errors">
-                                    {{form.ports.errors}}
-                                </div>
-                            {% endif %}
+                            {% bootstrap_field form.ports show_label=False %}
                         </td>
                         <td>
-                            <input type="submit" value="Add">
+                            {% bootstrap_button button_type="submit" content="Add" %}
                             {% if form.errors %}
                                 <div class="form-errors">
                                     {{from.errors}}
@@ -77,6 +69,7 @@
                             {% endif %}
                         </td>
                     </tr>
+                    <br>
                 </form>
             </tfoot>
         </table>
@@ -85,19 +78,64 @@
 <hr>
 <div id="host_actions">
     <h2> Available Actions: </h2>
+    <p>
         <form action="{{request.path}}update/" method="get">
-            {% csrf_token %}
-            <button type=submit {% if not can_update %}disabled{% endif %}>Edit Host Details</button>
+            <div class="d-grid gap-2 col-6 mx-auto">
+                {% csrf_token %}
+                {% if can_update %}
+                    {% bootstrap_button name="update_btn" button_type="submit" content="Edit Host Details" button_class="btn btn-primary btn-lg" %}
+                {% else %}
+                    {% bootstrap_button name="update_btn" button_type="submit" content="Edit Host Details" button_class="btn btn-primary btn-lg" disabled=True %}
+                {% endif %}
+            </div>
         </form>
+    </p>
         
+    <p>
         <form action="{{request.path}}register/" method="post">
-            {% csrf_token %}
-            <button type=submit {% if not can_register %}disabled{% endif %}>Register</button>
+            <div class="d-grid gap-2 col-6 mx-auto">
+                {% csrf_token %}
+                {% if can_register %}
+                    {% bootstrap_button name="register_btn" button_type="submit" content="Register" button_class="btn btn-primary btn-lg" %}
+                {% else %}
+                    {% bootstrap_button name="register_btn" button_type="submit" content="Register" button_class="btn btn-primary btn-lg" disabled=True %}
+                {% endif %}
+            </div>
         </form>
-        
+    </p>
+
+    <p>
         <form action="{{request.path}}scan/" method="post">
-            {% csrf_token %}
-            <button type=submit {% if not can_scan %}disabled{% endif %}>(Repeat) Scan</button>
+            <div class="d-grid gap-2 col-6 mx-auto">
+                {% csrf_token %}
+                {% if can_scan %}
+                    {% bootstrap_button name="scan_btn" button_type="submit" content="(Repeat) Scan" button_class="btn btn-primary btn-lg" %}
+                {% else %}
+                    {% bootstrap_button name="scan_btn" button_type="submit" content="(Repeat) Scan" button_class="btn btn-primary btn-lg" disabled=True %}
+                {% endif %}
+            </div>
         </form>
+    </p>
+
+        {% comment %} <form action="" method="get">
+            {% csrf_token %}
+            {% if can_update %}
+                {% bootstrap_button id="update_btn" button_type="submit" content="Edit Host Details" button_class="btn btn-primary" size="lg" formaction="{{request.path}}update/" %}
+            {% else %}
+                {% bootstrap_button id="update_btn" button_type="submit" content="Edit Host Details" button_class="btn btn-primary btn-lg" formaction="{{request.path}}update/" disabled=True %}
+            {% endif %}
+            
+            {% if can_register %}
+                {% bootstrap_button id="register_btn" button_type="submit" content="Register" button_class="btn btn-primary" size="lg" formaction="{{request.path}}register/" %}
+            {% else %}
+                {% bootstrap_button id="register_btn" button_type="submit" content="Register" button_class="btn btn-primary" size="lg" formaction="{{request.path}}register/" disabled=True %}
+            {% endif %}
+
+            {% if can_scan %}
+                {% bootstrap_button id="scan_btn" button_type="submit" content="(Repeat) Scan" button_class="btn btn-primary" size="lg" formaction="{{request.path}}scan/" %}
+            {% else %}
+                {% bootstrap_button id="scan_btn" button_type="submit" content="(Repeat) Scan" button_class="btn btn-primary" size="lg" formaction="{{request.path}}scan/" disabled=True %}
+            {% endif %}
+        </form> {% endcomment %}
 </div>
 {% endblock %}

@@ -15,7 +15,7 @@ from .core.ipam_api_interface import ProteusIPAMInterface
 from .core.v_scanner_interface import GmpVScannerInterface
 from .core.fw_interface import PaloAltoInterface, AddressGroups
 from .core.risk_assessor import compute_risk_of_network_exposure
-from .core.host import HostStatusContract, HostServiceContract, HostFWContract, IntraSubnetContract
+from .core.host import MyHost, HostStatusContract, HostServiceContract, HostFWContract, IntraSubnetContract
 
 from myuser.models import MyUser
 
@@ -105,39 +105,55 @@ def host_detail_view(request, ip):
     }
 
     # pass flags for available actions into context
-    match host.status:
-        case HostStatusContract.UNREGISTERED:
-            context['can_update'] = True
-            if host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY:
-                context['can_register'] = True
-                context['can_scan'] = True
-            else:
-                context['can_register'] = False
-                context['can_scan'] = False
-        case HostStatusContract.UNDER_REVIEW:
-            context['can_update'] = False
-            context['can_register'] = False
-            context['can_scan'] = False
-        case HostStatusContract.BLOCKED:
-            context['can_update'] = True
-            context['can_register'] = False
-            if host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY:
-                context['can_scan'] = True
-            else:
-                context['can_scan'] = False
-        case HostStatusContract.ONLINE:
-            context['can_update'] = True
-            context['can_register'] = False
-            if host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY:
-                context['can_scan'] = True
-            else:
-                context['can_scan'] = False
-        case _:
-            context['can_update'] = False
-            context['can_register'] = False
-            context['can_scan'] = False
+    can_update, can_register, can_scan = __get_available_actions(host)
+    context['can_update'] = can_update
+    context['can_register'] = can_register
+    context['can_scan'] = can_scan
 
     return render(request, 'host_detail.html', context)
+
+def __get_available_actions(host : MyHost) -> tuple[bool, bool, bool]:
+    """
+    Compute which actions can be perfomed on a host.
+
+    Args:
+        host (MyHost): Host instance.
+
+    Returns:
+        tuple[bool, bool, bool]: Returns a tuple of boolean flags indicating, one for each action.
+    """
+    match host.status:
+        case HostStatusContract.UNREGISTERED:
+            can_update = True
+            if host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY:
+                can_register = True
+                can_scan = True
+            else:
+                can_register = False
+                can_scan = False
+        case HostStatusContract.UNDER_REVIEW:
+            can_update = False
+            can_register = False
+            can_scan = False
+        case HostStatusContract.BLOCKED:
+            can_update = True
+            can_register = False
+            if host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY:
+                can_scan = True
+            else:
+                can_scan = False
+        case HostStatusContract.ONLINE:
+            can_update = True
+            can_register = False
+            if host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY:
+                can_scan = True
+            else:
+                can_scan = False
+        case _:
+            can_update = False
+            can_register = False
+            can_scan = False
+    return can_update, can_register, can_scan
 
 @login_required
 @require_http_methods(['POST',])
@@ -230,7 +246,8 @@ def update_host_detail(request, ip):
             raise Http404()
 
         # check if this host can be changed at the moment or whether there are already processes running for it
-        if host.status not in (HostStatusContract.UNREGISTERED, HostStatusContract.BLOCKED, HostStatusContract.ONLINE):
+        can_update, _, _ = __get_available_actions(host)
+        if not can_update:
             raise Http404()
 
         # do processing based on whether this is GET or POST request
@@ -280,7 +297,8 @@ def register_host(request, ip):
         if not hostadmin.username in host.admin_ids:
             raise Http404()
         # check if this host can be registered
-        if host.status != HostStatusContract.UNREGISTERED:
+        _, can_register, _ = __get_available_actions(host)
+        if not can_register:
             raise Http404()
 
         # create an initial scan of the host
@@ -313,7 +331,8 @@ def scan_host(request, ip):
         if not hostadmin.username in host.admin_ids:
             raise Http404()
         # check if this host can be scanned at the moment or whether there are already processes running for it
-        if host.status not in (HostStatusContract.UNREGISTERED, HostStatusContract.BLOCKED, HostStatusContract.ONLINE):
+        _, _, can_scan = __get_available_actions(host)
+        if not can_scan:
             raise Http404()
 
         # create an initial scan of the host

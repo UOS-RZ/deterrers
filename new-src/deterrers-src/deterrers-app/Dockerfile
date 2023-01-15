@@ -17,13 +17,14 @@ WORKDIR $MICRO_SERVICE
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-#copy project
-COPY . $MICRO_SERVICE
-
 # install dependencies
+COPY ./requirements.txt $MICRO_SERVICE
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 COPY ./entrypoint.sh $MICRO_SERVICE
 RUN chmod +x $MICRO_SERVICE/entrypoint.sh
+
+#copy project
+COPY . $MICRO_SERVICE
 
 ENTRYPOINT ["/bin/bash", "/home/app/microservice/entrypoint.sh"]
