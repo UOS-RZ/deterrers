@@ -28,16 +28,6 @@
     padding: 0px 10px;
 }
 
-.messages-field {
-    margin-left: 200px; /* Same width as the sidebar + left position in px */
-    margin-top: 20px;
-    font-size: 20px; /* Increased text to enable scrolling */
-    padding: 0px 10px;
-
-    list-style: none;
-    border: 2px solid black;
-}
-
 body {
     background-color: darkslategrey;
     color: white;
@@ -54,6 +44,7 @@ table, th, td {
 } 
 tr:hover {background-color: rgb(57, 96, 96);}
 
-.form-errors {
-    color: red;
+.btn-primary {
+    background-color: rgb(37, 62, 62);
+    border-color: rgb(0, 0, 0)
 }

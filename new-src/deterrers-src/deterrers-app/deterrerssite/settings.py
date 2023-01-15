@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     'myuser.apps.MyuserConfig',
     # Third-party applications
     'django_python3_ldap',
+    'django_bootstrap5',
 ]
 
 MIDDLEWARE = [
