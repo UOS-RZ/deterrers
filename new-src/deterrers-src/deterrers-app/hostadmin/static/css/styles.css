@@ -45,6 +45,12 @@ table, th, td {
 tr:hover {background-color: rgb(57, 96, 96);}
 
 .btn-primary {
-    background-color: rgb(37, 62, 62);
-    border-color: rgb(0, 0, 0)
+    background-color: darkgoldenrod;
+    border-color: rgb(0, 0, 0);
+    
+}
+
+.btn.btn-primary:disabled {
+    background-color: rgb(231, 170, 13);
+    border-color: rgb(0, 0, 0);
 }
