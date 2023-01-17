@@ -419,3 +419,8 @@ def v_scanner_scan_alert(request):
 def v_scanner_periodic_alert(request):
     # TODO
     pass
+
+@require_http_methods(['GET',])
+def get_fw_config(request):
+    # TODO: https://docs.djangoproject.com/en/4.1/ref/request-response/#fileresponse-objects
+    pass
