@@ -139,7 +139,7 @@ class GmpVScannerInterface():
             task_uuid = self.__create_task(
                 target_uuid,
                 task_name,
-                ScanConfig.FULL_FAST_UUID.value,
+                ScanConfig.FULL_VERY_DEEP_UUID.value,
                 Scanner.OPENVAS_DEFAULT_SCANNER_UUID.value,
                 False
             )
@@ -195,7 +195,7 @@ class GmpVScannerInterface():
                 Credentials.HULK_SSH_CRED_UUID.value,
                 22,
                 Credentials.HULK_SMB_CRED_UUID.value,
-                PortList.ALL_TCP_UDP_UUID.value
+                PortList.ALL_IANA_TCP_UDP_UUID.value
             )
 
             # create the task
