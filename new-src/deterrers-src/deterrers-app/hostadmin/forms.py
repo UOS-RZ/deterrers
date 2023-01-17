@@ -46,16 +46,20 @@ class AddHostRulesForm(forms.Form):
                     port_range = p_str[0].split(':')
                     assert len(port_range) in (1, 2)
                     for port in port_range:
+                        # check that each number is a valid port
                         port = int(port)
                         assert port >= 0
                         assert port < 65536
                     if len(port_range) == 2:
+                        # check that, if range is specified, the second port number is bigger than the first one
                         assert int(port_range[1]) > int(port_range[0])
                     # (re)attach protocol to port range
                     if len(p_str) == 1:
-                        port_spec = port_range + "/tcp"
+                        port_spec = ':'.join(port_range) + "/tcp"
                     elif len(p_str) == 2:
-                       port_spec = '/'.join(p_str)
+                        # check that protocol is valid
+                        assert p_str[1] in ("tcp", "udp")
+                        port_spec = '/'.join(p_str)
                     else:
                         raise Exception()
                     port_entries.append(port_spec)
@@ -77,7 +81,8 @@ class AddHostRulesForm(forms.Form):
     ports = PortsField(
         label='Ports:',
         help_text='Allow incoming traffic on these ports. Following forms are allowed seperated by commas:\n' \
-            "<port> or <port>:<port> or <port>/<protocol> or <port>:<port>/<protocol>",
+            "123 or 123:234 or 123/tcp or 123:234/udp\n"\
+            "If no protocol is specified, tcp is assumed.",
         required=True,
         widget=forms.TextInput,
     )
