@@ -195,7 +195,10 @@ class GmpVScannerInterface():
                 Credentials.HULK_SSH_CRED_UUID.value,
                 22,
                 Credentials.HULK_SMB_CRED_UUID.value,
-                PortList.ALL_IANA_TCP_UDP_UUID.value
+                # Limit port scan to all tcp and udp ports registered with IANA.
+                # This will also minimize probability that defense mechanisms against port scans
+                # are triggered on the host.
+                PortList.ALL_IANA_TCP_UDP_UUID.value,
             )
 
             # create the task
@@ -203,7 +206,7 @@ class GmpVScannerInterface():
             task_uuid = self.__create_task(
                 target_uuid,
                 task_name,
-                ScanConfig.FULL_FAST_UUID.value,
+                ScanConfig.FULL_VERY_DEEP_UUID.value,
                 Scanner.OPENVAS_DEFAULT_SCANNER_UUID.value,
                 False
             )
