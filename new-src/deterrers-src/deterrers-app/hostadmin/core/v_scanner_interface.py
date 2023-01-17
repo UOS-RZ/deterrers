@@ -3,6 +3,7 @@ from enum import Enum
 from datetime import datetime
 import icalendar
 import os
+import time
 
 from gvm.protocols.gmp import Gmp
 from gvm.connections import SSHConnection
@@ -294,6 +295,7 @@ class GmpVScannerInterface():
         if response_status != 201:  # status code docu: https://hulk.rz.uos.de/manual/en/gmp.html#status-codes
             raise RuntimeError(f"Scan task '{task_name}' could not be created! Status: {response_status}")
         task_uuid = response.xpath('@id')[0]
+        time.sleep(10.)
         return task_uuid
 
     def __create_target(

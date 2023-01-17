@@ -21,13 +21,18 @@ class HostFWContract(Enum):
     NFTABLES =  'nftables'
     EMPTY =     ''
 
-class IntraSubnetContract(Enum):
+class CustomRuleSubnetContract(Enum):
     ANY = {'name' : 'Any', 'range' : 'any'}
     RZ_BACKBONE = {'name' : 'Uni RZ-Backbone', 'range' : '131.173.16.0/22'}
     VM_BACKBONE = {'name' : 'Uni VM-Backbone', 'range' : '131.173.22.0/23'}
 
     def display(self):
         return f"{self.value['name']} ({self.value['range']})"
+
+class CustomRuleProtocolContract(Enum):
+    TCP = "tcp"
+    UDP = "udp"
+    ANY = "any"
 
 
 class MyHost():
@@ -58,8 +63,9 @@ class MyHost():
         self.fw = fw
         # list of dictionaries of form: 
         # {
-        #     'allow_srcs' : <list[IntraSubnetContract.value]>,
+        #     'allow_srcs' : <list[CustomRuleSubnetContract.value]>,
         #     'allow_ports' : <list[str]>,
+        #     'allow_proto' : CustomRuleProtocolContract.value
         #     'id' : <UUID>
         # }
         self.custom_rules = rules
