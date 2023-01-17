@@ -15,7 +15,7 @@ from .core.ipam_api_interface import ProteusIPAMInterface
 from .core.v_scanner_interface import GmpVScannerInterface
 from .core.fw_interface import PaloAltoInterface, AddressGroups
 from .core.risk_assessor import compute_risk_of_network_exposure
-from .core.host import MyHost, HostStatusContract, HostServiceContract, HostFWContract, IntraSubnetContract
+from .core.host import MyHost, HostStatusContract, HostServiceContract, HostFWContract, CustomRuleSubnetContract
 
 from myuser.models import MyUser
 
@@ -73,13 +73,15 @@ def host_detail_view(request, ip):
         if request.method == 'POST':
             form = AddHostRulesForm(request.POST)
             if form.is_valid():
-                subnets = [IntraSubnetContract[subnet_enum_name].value for subnet_enum_name in form.cleaned_data['subnets']]
+                subnets = [CustomRuleSubnetContract[subnet_enum_name].value for subnet_enum_name in form.cleaned_data['subnets']]
                 ports = form.cleaned_data['ports']
+                proto = form.cleaned_data['protocol']
                 # update the actual model instance
                 host.custom_rules.append(
                     {
                         'allow_srcs' : subnets,
                         'allow_ports' : list(ports),
+                        'allow_proto' : proto,
                         'id' : str(uuid.uuid4())
                     }
                 )
@@ -97,8 +99,9 @@ def host_detail_view(request, ip):
         'hostadmin' : hostadmin,
         'host_detail' : host,
         'host_rules' : [
-                {'allow_srcs': [IntraSubnetContract(s_v).display() for s_v in rule['allow_srcs']],
+                {'allow_srcs': [CustomRuleSubnetContract(s_v).display() for s_v in rule['allow_srcs']],
                 'allow_ports' : rule['allow_ports'],
+                'allow_proto' : rule['allow_proto'],
                 'id' : rule['id']}
             for rule in host.custom_rules],
         'form' : form,

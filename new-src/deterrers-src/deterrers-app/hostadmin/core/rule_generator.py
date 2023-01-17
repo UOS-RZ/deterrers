@@ -1,7 +1,7 @@
 import os
 
 
-from .host import HostFWContract, HostServiceContract, IntraSubnetContract
+from .host import HostFWContract, HostServiceContract, CustomRuleSubnetContract
 
 from django.conf import settings
 
@@ -57,11 +57,12 @@ ufw default allow outgoing
     for n, c_rule in enumerate(custom_rules):
         allow_srcs = c_rule['allow_srcs']
         allow_ports = c_rule['allow_ports']
+        allow_proto = c_rule['allow_proto']
         rule_config += f"""
 # set custom rule no. {n}"""
         for src in allow_srcs:
             rule_config += f"""
-ufw allow from {src['range']} to any port {','.join(allow_ports)} comment 'Custom DETERRERS rule no. {n}' """
+ufw allow proto {allow_proto} from {src['range']} to any port {','.join(allow_ports)} comment 'Custom DETERRERS rule no. {n}' """
 
     # postamble is the same for every service profile
     POSTAMBLE = """
@@ -90,8 +91,9 @@ def generate_rule(fw : HostFWContract, service_profile : HostServiceContract, cu
         service_profile (HostServiceContract): Service profile.
         custom_rules (list[dict]): List of dicts specifying custom rules in following form:
         {
-            'allow_srcs' : <list[IntraSubnetContract.value]>,
+            'allow_srcs' : <list[CustomRuleSubnetContract.value]>,
             'allow_ports' : <list[str]>,
+            'allow_proto' : CustomRuleProtocolContract.value
             'id' : <UUID>
         }
     """

@@ -1,6 +1,6 @@
 from django import forms
 
-from .core.host import HostServiceContract, HostFWContract, IntraSubnetContract
+from .core.host import HostServiceContract, HostFWContract, CustomRuleSubnetContract, CustomRuleProtocolContract
 
 
 class ChangeHostDetailForm(forms.Form):
@@ -31,8 +31,7 @@ class AddHostRulesForm(forms.Form):
 
     class PortsField(forms.CharField):
         def to_python(self, value) -> list[str]:
-            # port specification may have the form <port>, <port>:<port>, <port>/<protocol>, <port>:<port>/<protocol>
-            # if no protocl is given, tcp is assumed
+            # port specification may have the form <port>, <port>:<port>
             # if two ports are given, they are interpreted as a port range
             if not value:
                 return []
@@ -40,10 +39,8 @@ class AddHostRulesForm(forms.Form):
                 port_entries = []
                 # iterate over all custom port specifications
                 for p_str in value.split(','):
-                    # split port specification into port range and protocol
-                    p_str = p_str.split('/')
                     # check validity of port range
-                    port_range = p_str[0].split(':')
+                    port_range = p_str.split(':')
                     assert len(port_range) in (1, 2)
                     for port in port_range:
                         # check that each number is a valid port
@@ -53,21 +50,13 @@ class AddHostRulesForm(forms.Form):
                     if len(port_range) == 2:
                         # check that, if range is specified, the second port number is bigger than the first one
                         assert int(port_range[1]) > int(port_range[0])
-                    # (re)attach protocol to port range
-                    if len(p_str) == 1:
-                        port_spec = ':'.join(port_range) + "/tcp"
-                    elif len(p_str) == 2:
-                        # check that protocol is valid
-                        assert p_str[1] in ("tcp", "udp")
-                        port_spec = '/'.join(p_str)
-                    else:
-                        raise Exception()
-                    port_entries.append(port_spec)
+                    port_entries.append(p_str)
             except Exception:
                 raise forms.ValidationError("Invalid format for port list.", code="ports_invalid")
             return port_entries
 
-    SUBNET_CHOICES = [(sub.name, sub.display()) for sub in IntraSubnetContract]
+    SUBNET_CHOICES = [(sub.name, sub.display()) for sub in CustomRuleSubnetContract]
+    PROTOCOL_CHOICES = [(proto.value, proto.value) for proto in CustomRuleProtocolContract]
 
     subnets = forms.MultipleChoiceField(
         choices=SUBNET_CHOICES,
@@ -80,11 +69,18 @@ class AddHostRulesForm(forms.Form):
 
     ports = PortsField(
         label='Ports:',
-        help_text='Allow incoming traffic on these ports. Following forms are allowed seperated by commas:\n' \
-            "123 or 123:234 or 123/tcp or 123:234/udp\n"\
-            "If no protocol is specified, tcp is assumed.",
+        help_text='Allow incoming traffic on these ports.\n' \
+            'Multiple ports must be seperated by commas. Port ranges can be specified with a collon.',
         required=True,
         widget=forms.TextInput,
+    )
+
+    protocol = forms.ChoiceField(
+        choices=PROTOCOL_CHOICES,
+        label="Protocol:",
+        help_text="Allow traffic of this protocol.",
+        required=True,
+        initial=CustomRuleProtocolContract.ANY.value
     )
 
 
