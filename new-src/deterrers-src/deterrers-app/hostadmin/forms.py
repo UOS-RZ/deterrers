@@ -30,19 +30,38 @@ class ChangeHostDetailForm(forms.Form):
 class AddHostRulesForm(forms.Form):
 
     class PortsField(forms.CharField):
-        def to_python(self, value) -> list[int]:
+        def to_python(self, value) -> list[str]:
+            # port specification may have the form <port>, <port>:<port>, <port>/<protocol>, <port>:<port>/<protocol>
+            # if no protocl is given, tcp is assumed
+            # if two ports are given, they are interpreted as a port range
             if not value:
                 return []
             try:
-                ports = []
+                port_entries = []
+                # iterate over all custom port specifications
                 for p_str in value.split(','):
-                    port = int(p_str)
-                    assert(port >= 0)
-                    assert(port < 65536)
-                    ports.append(port)
+                    # split port specification into port range and protocol
+                    p_str = p_str.split('/')
+                    # check validity of port range
+                    port_range = p_str[0].split(':')
+                    assert len(port_range) in (1, 2)
+                    for port in port_range:
+                        port = int(port)
+                        assert port >= 0
+                        assert port < 65536
+                    if len(port_range) == 2:
+                        assert int(port_range[1]) > int(port_range[0])
+                    # (re)attach protocol to port range
+                    if len(p_str) == 1:
+                        port_spec = port_range + "/tcp"
+                    elif len(p_str) == 2:
+                       port_spec = '/'.join(p_str)
+                    else:
+                        raise Exception()
+                    port_entries.append(port_spec)
             except Exception:
                 raise forms.ValidationError("Invalid format for port list.", code="ports_invalid")
-            return ports
+            return port_entries
 
     SUBNET_CHOICES = [(sub.name, sub.display()) for sub in IntraSubnetContract]
 
@@ -57,7 +76,8 @@ class AddHostRulesForm(forms.Form):
 
     ports = PortsField(
         label='Ports:',
-        help_text='Allow incoming traffic on these ports. Please provide list of numbers seperated by commas.',
+        help_text='Allow incoming traffic on these ports. Following forms are allowed seperated by commas:\n' \
+            "<port> or <port>:<port> or <port>/<protocol> or <port>:<port>/<protocol>",
         required=True,
         widget=forms.TextInput,
     )

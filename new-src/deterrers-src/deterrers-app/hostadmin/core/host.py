@@ -59,7 +59,7 @@ class MyHost():
         # list of dictionaries of form: 
         # {
         #     'allow_srcs' : <list[IntraSubnetContract.value]>,
-        #     'allow_ports' : <list[int]>,
+        #     'allow_ports' : <list[str]>,
         #     'id' : <UUID>
         # }
         self.custom_rules = rules
