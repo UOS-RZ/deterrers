@@ -1,6 +1,15 @@
 {% extends "base_generic.html" %}
 
+{% load django_bootstrap5 %}
+{% block sidebar %}
+  <a href="{% url 'about' %}">About</a>
+{% endblock %}
+
 {% block content %}
   <p>Logged out!</p>
-  <a href="{% url 'login'%}">Click here to login again.</a>
+  {% comment %} <a href="{% url 'login'%}">Click here to login again.</a> {% endcomment %}
+  <form method="get" action="{% url 'login' %}">
+    {% csrf_token %}
+    {% bootstrap_button button_type="submit" content="Click here to login again" button_class="btn btn-primary btn-lg" %}
+  </form>
 {% endblock %}
