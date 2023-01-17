@@ -64,7 +64,8 @@ class GmpVScannerInterface():
             port=self.scanner_port,
             timeout=self.TIMEOUT,
             # vulnerability scanner must have been added to a known_hosts-file before application was started
-            known_hosts_file=os.environ['MICRO_SERVICE']+'/known_hosts')
+            # known_hosts_file=os.environ['MICRO_SERVICE']+'/known_hosts'
+        )
         self.gmp = Gmp(connection=connection, transform=transform)
 
     def __enter__(self):
@@ -107,7 +108,7 @@ class GmpVScannerInterface():
             3. Start the scan task.
             4. Create a scan alert.
             5. Add the alert to the task.
-        Scans all TCP and UDP ports standardized by IANA in 'Full and Fast' mode.
+        Scans all TCP and UDP ports standardized by IANA in 'Full and Deep' mode.
 
         Args:
             host_ip (str): Host IP address of the scanned host.
@@ -171,7 +172,7 @@ class GmpVScannerInterface():
             3. Start the scan task.
             4. Create a scan alert.
             5. Add the alert to the task.
-        Scans all TCP and UDP ports in 'Full and Fast' mode.
+        Scans all IANA registered TCP and UDP ports in 'Full and Deep' mode.
 
         Args:
             host_ip (str): Host IP address of the scanned host.
@@ -374,6 +375,10 @@ class GmpVScannerInterface():
         response =  self.gmp.modify_alert(
             alert_id=alert_uuid,
             name=name,
+            condition=AlertCondition.ALWAYS,
+            event=AlertEvent.TASK_RUN_STATUS_CHANGED,
+            event_data={'status' : 'Done'},
+            method=AlertMethod.HTTP_GET,
             method_data=method_data,
             comment=comment
         )
@@ -550,7 +555,7 @@ class GmpVScannerInterface():
             self.gmp.modify_task(task_id=task_uuid, alert_ids=[alert_uuid])
 
 
-    def clean_up_scan_objects(self, target_uuid : str, task_uuid : str, report_uuid : str, alert_uuid : str):
+    def clean_up_scan_objects(self, target_uuid : str, task_uuid : str, report_uuid : str, alert_uuid : str|list[str]):
         """
         Deletes all objects that are created during creation of a scan.
 
@@ -583,7 +588,11 @@ class GmpVScannerInterface():
                 logger.error("Couldn't delete target! Error: %s", repr(err))
         if alert_uuid:
             try:
-                self.gmp.delete_alert(alert_uuid, ultimate=True)
+                if type(alert_uuid) is str:
+                    self.gmp.delete_alert(alert_uuid, ultimate=True)
+                elif type(alert_uuid) is list:
+                    for a_uuid in alert_uuid:
+                        self.gmp.delete_alert(a_uuid, ultimate=True)
             except GvmError as err:
                 logger.error("Couldn't delete alert! Error: %s", repr(err))
 
@@ -711,10 +720,10 @@ class GmpVScannerInterface():
 #     with GmpVScannerInterface(username, password, '172.17.207.232') as interf:
 #         test_host_ip = "131.173.22.184"
 
-#         target_uuid, task_uuid, report_uuid, alert_uuid = interf.create_scan(test_host_ip, test_host_ip)
+#         target_uuid, task_uuid, report_uuid, alert_uuid = interf.create_registration_scan(test_host_ip, "172.17.22.27")
 #         input("Enter anything to delete everything: ")
 #         interf.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
-        # input("Enter anything to delete everything: ")
+#         input("Enter anything to delete everything: ")
         # try:
         #     interf.clean_up_all_history()
         # except Exception as err:
