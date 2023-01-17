@@ -108,7 +108,7 @@ class GmpVScannerInterface():
             3. Start the scan task.
             4. Create a scan alert.
             5. Add the alert to the task.
-        Scans all TCP and UDP ports standardized by IANA in 'Full and Deep' mode.
+        Scans all TCP and UDP ports standardized by IANA in 'Full and Fast Ultimate' mode.
 
         Args:
             host_ip (str): Host IP address of the scanned host.
@@ -140,7 +140,7 @@ class GmpVScannerInterface():
             task_uuid = self.__create_task(
                 target_uuid,
                 task_name,
-                ScanConfig.FULL_VERY_DEEP_UUID.value,
+                ScanConfig.FULL_FAST_ULTIMATE_UUID.value,
                 Scanner.OPENVAS_DEFAULT_SCANNER_UUID.value,
                 False
             )
@@ -172,7 +172,7 @@ class GmpVScannerInterface():
             3. Start the scan task.
             4. Create a scan alert.
             5. Add the alert to the task.
-        Scans all IANA registered TCP and UDP ports in 'Full and Deep' mode.
+        Scans all IANA registered TCP and UDP ports in 'Full and Fast Ultimate' mode.
 
         Args:
             host_ip (str): Host IP address of the scanned host.
@@ -207,7 +207,7 @@ class GmpVScannerInterface():
             task_uuid = self.__create_task(
                 target_uuid,
                 task_name,
-                ScanConfig.FULL_VERY_DEEP_UUID.value,
+                ScanConfig.FULL_FAST_ULTIMATE_UUID.value,
                 Scanner.OPENVAS_DEFAULT_SCANNER_UUID.value,
                 False
             )
