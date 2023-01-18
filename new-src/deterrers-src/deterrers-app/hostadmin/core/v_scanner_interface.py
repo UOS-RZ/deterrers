@@ -65,7 +65,7 @@ class GmpVScannerInterface():
             port=self.scanner_port,
             timeout=self.TIMEOUT,
             # vulnerability scanner must have been added to a known_hosts-file before application was started
-            known_hosts_file=os.environ['MICRO_SERVICE']+'/known_hosts'
+            known_hosts_file=os.environ.get('MICRO_SERVICE', '')+'/known_hosts'
         )
         self.gmp = Gmp(connection=connection, transform=transform)
 
@@ -94,11 +94,6 @@ class GmpVScannerInterface():
     def __exit__(self, exc_type, exc_value, traceback):
         logger.debug("End session with vulnerability scanner.")
         self.gmp.__exit__(exc_type, exc_value, traceback)
-
-
-    def get_gmp_version(self):
-        response = self.gmp.get_version()
-        pretty_print(response)
 
 
     def create_scan(self, host_ip : str, deterrers_url : str):
@@ -133,28 +128,27 @@ class GmpVScannerInterface():
                 Credentials.HULK_SSH_CRED_UUID.value,
                 22,
                 Credentials.HULK_SMB_CRED_UUID.value,
-                PortList.ALL_IANA_TCP_UDP_UUID.value
+                PortList.ALL_IANA_TCP_UUID.value
             )
+
+            # create/get an alert that sends the report back to the server
+            alert_uuid = self.__create_http_alert(host_ip)
+            # alert_uuid = self.__create_email_alert(host_ip, task_uuid, target_uuid, report_uuid, "hulk@rz.uos.de", "nwintering@uos.de")
 
             # create the task
             task_name = f"DETERRERS - Scan host {host_ip}"
             task_uuid = self.__create_task(
                 target_uuid,
                 task_name,
-                ScanConfig.FULL_FAST_ULTIMATE_UUID.value,
+                ScanConfig.FULL_VERY_DEEP_UUID.value,
                 Scanner.OPENVAS_DEFAULT_SCANNER_UUID.value,
-                False
+                [alert_uuid,],
             )
+
             # start task
             report_uuid = self.__start_task(task_uuid, task_name)
 
-            # create/get an alert that sends the report back to the server
-            # TODO: change back to HTTP GET method (see above)
-            alert_uuid = [self.__create_http_alert(host_ip, deterrers_url, target_uuid, task_uuid, report_uuid)]
-            alert_uuid.append(self.__create_email_alert(host_ip, task_uuid, target_uuid, report_uuid, "hulk@rz.uos.de", "nwintering@uos.de"))
-
-            # modify task to set the alert
-            self.gmp.modify_task(task_id=task_uuid, alert_ids=alert_uuid)
+            self.__modify_http_alert_data(host_ip, deterrers_url, target_uuid, task_uuid, report_uuid, alert_uuid)
 
             return target_uuid, task_uuid, report_uuid, alert_uuid
 
@@ -200,33 +194,33 @@ class GmpVScannerInterface():
                 # Limit port scan to all tcp and udp ports registered with IANA.
                 # This will also minimize probability that defense mechanisms against port scans
                 # are triggered on the host.
-                PortList.ALL_IANA_TCP_UDP_UUID.value,
+                PortList.ALL_IANA_TCP_UUID.value,
             )
+
+            # create/get an alert that sends the report back to the server
+            alert_uuid = self.__create_http_alert(host_ip)
+            # alert_uuid = self.__create_email_alert(host_ip, task_uuid, target_uuid, report_uuid, "hulk@rz.uos.de", "nwintering@uos.de")
 
             # create the task
             task_name = f"DETERRERS - Scan host {host_ip}"
             task_uuid = self.__create_task(
                 target_uuid,
                 task_name,
-                ScanConfig.FULL_FAST_ULTIMATE_UUID.value,
+                ScanConfig.FULL_VERY_DEEP_UUID.value,
                 Scanner.OPENVAS_DEFAULT_SCANNER_UUID.value,
-                False
+                [alert_uuid,],
             )
+
             # start task
             report_uuid = self.__start_task(task_uuid, task_name)
 
-            # create/get an alert that sends the report back to the server
-            # TODO: change back to HTTP GET method (see above)
-            alert_uuid = [self.__create_http_alert(host_ip, deterrers_url, target_uuid, task_uuid, report_uuid)]
-            alert_uuid.append( self.__create_email_alert(host_ip, task_uuid, target_uuid, report_uuid, "hulk@rz.uos.de", "nwintering@uos.de"))
-
-            # modify task to set the alert
-            self.gmp.modify_task(task_id=task_uuid, alert_ids=alert_uuid)
+            # modify alert to hold relevant uuids
+            self.__modify_http_alert_data(host_ip, deterrers_url, target_uuid, task_uuid, report_uuid, alert_uuid)
 
             return target_uuid, task_uuid, report_uuid, alert_uuid
 
         except Exception as err:
-            logger.error("Error while creating a registration scan for host %s. Error: %s", host_ip, repr(err))
+            logger.error("Error while creating a registration scan for host %s. Error: %s", host_ip, str(err))
             self.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
             
         return None, None, None, None
@@ -263,6 +257,7 @@ class GmpVScannerInterface():
         task_name : str,
         scan_config_uuid : str,
         scanner_uuid : str,
+        alert_uuids : list[str]|None = None,
         alterable : bool = False,
         schedule_uuid : str|None  = None) -> str:
         """
@@ -273,6 +268,7 @@ class GmpVScannerInterface():
             task_name (str): Name to give the task.
             scan_config_uuid (str): UUID of the ScanConfiguration.
             scanner_uuid (str): UUID of the scanner.
+            alert_uuidss (list[str]|None): List of UUIDs of alerts. Defaults to None.
             alterable (bool, optional): Whether to create the task as alterable. Defaults to False.
             schedule_uuid (str|None, optional): UUID of the schedule. Defaults to None.
 
@@ -288,6 +284,7 @@ class GmpVScannerInterface():
             config_id=scan_config_uuid,
             target_id=target_uuid,
             scanner_id=scanner_uuid,
+            alert_ids=alert_uuids,
             alterable=alterable,
             schedule_id=schedule_uuid
         )
@@ -295,7 +292,6 @@ class GmpVScannerInterface():
         if response_status != 201:  # status code docu: https://hulk.rz.uos.de/manual/en/gmp.html#status-codes
             raise RuntimeError(f"Scan task '{task_name}' could not be created! Status: {response_status}")
         task_uuid = response.xpath('@id')[0]
-        time.sleep(10.)
         return task_uuid
 
     def __create_target(
@@ -334,7 +330,7 @@ class GmpVScannerInterface():
         return target_uuid
 
 
-    def __create_http_alert(self, host_ip : str, deterrers_url : str, target_uuid : str, task_uuid : str, report_uuid : str):
+    def __create_http_alert(self, host_ip : str):
         """
         Creates an alert that issues a HTTP GET request to the DETERRERS server with all relevant0
         UUIDs as query parameters.
@@ -354,10 +350,8 @@ class GmpVScannerInterface():
         """
         # set alert to issue a HTTP GET request with relevant Uuuids as query params
         name = f"DETERRERS - Alert for {host_ip}"
-        comment = f"Auto-generated by DETERRERS for task {task_uuid} of {host_ip} - {datetime.now()}"
-        method_data = {
-            "URL" : f"{deterrers_url}?host_ip={host_ip}&target_uuid={target_uuid}&task_uuid={task_uuid}&report_uuid={report_uuid}"
-        }
+        comment = f"Auto-generated by DETERRERS for {host_ip} - {datetime.now()}"
+        method_data = {"URL" : ""}
         response = self.gmp.create_alert(
             name=name,
             condition=AlertCondition.ALWAYS,
@@ -371,25 +365,48 @@ class GmpVScannerInterface():
         if response_status != 201:
             raise RuntimeError(f"Couldn't create HTTP GET alert. Status: {response_status}")
         alert_uuid = response.xpath('@id')[0]
+
+        return alert_uuid
+
+    def __modify_http_alert_data(self, host_ip, deterrers_url, target_uuid, task_uuid, report_uuid, alert_uuid : str):
+        """
+        TODO: docu
+
+        Args:
+            alert_uuid (str): _description_
+
+        Raises:
+            RuntimeError: _description_
+        """
+        response = self.gmp.get_alert(alert_uuid)
+        response_status = int(response.xpath('@status')[0])
+        if response_status != 200:
+            raise RuntimeError(f"Alert with id '{alert_uuid}' does not exist!")
+        name = response.xpath('//alert/name')[0].text
+        condition = response.xpath('//alert/condition')[0].text
+        event = response.xpath('//alert/event')[0].text
+        event_data = {response.xpath('//alert/event/data/name')[0].text : response.xpath('//alert/event/data')[0].text}
+        method = response.xpath('//alert/method')[0].text
+        
+        comment = response.xpath('//alert/comment')[0].text
         # modify the alert so that its id is present in the url parameters
         # only possible after creation because id is not known earlier
-        method_data["URL"] = method_data["URL"] + f"&alert_uuid={alert_uuid}"
         response =  self.gmp.modify_alert(
             alert_id=alert_uuid,
             name=name,
-            condition=AlertCondition.ALWAYS,
-            event=AlertEvent.TASK_RUN_STATUS_CHANGED,
-            event_data={'status' : 'Done'},
-            method=AlertMethod.HTTP_GET,
-            method_data=method_data,
+            condition=AlertCondition(condition),
+            event=AlertEvent(event),
+            event_data=event_data,
+            method=AlertMethod(method),
+            method_data = {
+                "URL" : f"{deterrers_url}?host_ip={host_ip}&target_uuid={target_uuid}&task_uuid={task_uuid}&report_uuid={report_uuid}&alert_uuid={alert_uuid}"
+            },
             comment=comment
         )
         response_status = int(response.xpath('@status')[0])
         if response_status != 200:
             raise RuntimeError(f"Couldn't modify HTTP GET alert. Status: {response_status}")
-
-        return alert_uuid
-
+        
 
     def __create_email_alert(
         self,
@@ -531,30 +548,24 @@ class GmpVScannerInterface():
                 Credentials.HULK_SSH_CRED_UUID.value,
                 22,
                 Credentials.HULK_SMB_CRED_UUID.value,
-                PortList.ALL_IANA_TCP_UDP_UUID.value
+                PortList.ALL_IANA_TCP_UUID.value
             )
             schedule_uuid = self.__create_schedule(
                 f"Schedule for {self.PERIODIC_TASK_NAME}",
                 "weekly"
             )
+            alert_uuid = self.__create_http_alert(host_ip)
             task_uuid = self.__create_task(
                 target_uuid,
                 self.PERIODIC_TASK_NAME,
                 ScanConfig.FULL_FAST_UUID.value,
                 Scanner.OPENVAS_DEFAULT_SCANNER_UUID.value,
+                [alert_uuid,],
                 True,
                 schedule_uuid
             )
             report_uuid = self.__start_task(task_uuid, self.PERIODIC_TASK_NAME)
-            alert_uuid = self.__create_http_alert(
-                host_ip,
-                deterrers_url,
-                target_uuid,
-                task_uuid,
-                report_uuid
-            )
-            # modify task to set the alert
-            self.gmp.modify_task(task_id=task_uuid, alert_ids=[alert_uuid])
+            self.__modify_http_alert_data(host_ip, deterrers_url, target_uuid, task_uuid, report_uuid, alert_uuid)
 
 
     def clean_up_scan_objects(self, target_uuid : str, task_uuid : str, report_uuid : str, alert_uuid : str|list[str]):
