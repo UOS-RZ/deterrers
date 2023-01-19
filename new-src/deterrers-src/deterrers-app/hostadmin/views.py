@@ -356,7 +356,7 @@ def scan_host(request, ip):
 
 @require_http_methods(['GET', ])
 def v_scanner_registration_alert(request):
-    logger.info("Received notification from Greenbone Securtiy Manager that a scan completed.")
+    logger.info("Received notification from Greenbone Securtiy Manager that a registration completed.")
 
     try:
         host_ip = request.GET['host_ip']
@@ -375,8 +375,8 @@ def v_scanner_registration_alert(request):
             passed_scan = True
 
             if passed_scan:
+                logger.info(f"Host {host_ip} passed the registration scan and will be set online!")
                 own_url = request.get_host() + reverse('v_scanner_periodic_alert')
-                logger.debug("HTTP Alert URL is %s", own_url)
                 scanner.add_host_to_periodic_scan(host_ip=host_ip, deterrers_url=own_url)
                 # get the service profile of this host
                 with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
@@ -396,6 +396,7 @@ def v_scanner_registration_alert(request):
                     if not ipam.update_host_info(host):
                         logger.error("v_scanner_registration_alert() could not update host status to 'O'!")
             else:
+                logger.info(f"Host {host_ip} did not pass the registration and will be blocked.")
                 with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
                     host = ipam.get_host_info_from_ip(host_ip)
                     # change the perimeter firewall configuration so that host is blocked
@@ -408,7 +409,7 @@ def v_scanner_registration_alert(request):
             scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
 
     except Exception as err:
-        logger.error(repr(err))
+        logger.error(str(err))
         return HttpResponse("Error!", status=500)
 
     return HttpResponse("Success!", status=200)

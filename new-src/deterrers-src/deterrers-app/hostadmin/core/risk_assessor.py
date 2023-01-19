@@ -19,4 +19,4 @@ def compute_risk_of_network_exposure(vuls : list[dict]):
                 }
     """
     # TODO: implement
-    pass
+    return None
