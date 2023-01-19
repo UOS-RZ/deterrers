@@ -206,7 +206,7 @@ class GmpVScannerInterface():
             task_uuid = self.__create_task(
                 target_uuid,
                 task_name,
-                ScanConfig.FULL_VERY_DEEP_UUID.value,
+                ScanConfig.FULL_FAST_UUID.value, #TODO change back
                 Scanner.OPENVAS_DEFAULT_SCANNER_UUID.value,
                 [alert_uuid,],
             )
@@ -514,6 +514,8 @@ class GmpVScannerInterface():
             task_xml = response.xpath('//task')[0]
             task_uuid = task_xml.attrib['id']
             old_target_uuid = task_xml.xpath('//target/@id')[0]
+
+            # TODO: if task is running, stop it before modification
 
             # 1. clone target
             response = self.gmp.clone_target(old_target_uuid)

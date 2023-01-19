@@ -42,6 +42,7 @@ table, th, td {
     border-collapse: collapse;
     padding: 10px;
 } 
+
 tr:hover {background-color: rgb(57, 96, 96);}
 
 .btn-primary {
@@ -50,7 +51,12 @@ tr:hover {background-color: rgb(57, 96, 96);}
     
 }
 
-.btn.btn-primary:disabled {
+.btn-primary:disabled {
     background-color: rgb(231, 170, 13);
+    border-color: rgb(0, 0, 0);
+}
+
+.btn-primary:hover {
+    background-color: rgb(135, 99, 8);
     border-color: rgb(0, 0, 0);
 }
