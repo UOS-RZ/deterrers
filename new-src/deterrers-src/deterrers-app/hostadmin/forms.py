@@ -58,13 +58,12 @@ class AddHostRulesForm(forms.Form):
     SUBNET_CHOICES = [(sub.name, sub.display()) for sub in CustomRuleSubnetContract]
     PROTOCOL_CHOICES = [(proto.value, proto.value) for proto in CustomRuleProtocolContract]
 
-    subnets = forms.MultipleChoiceField(
+    subnet = forms.ChoiceField(
         choices=SUBNET_CHOICES,
         label="Allow from:",
-        help_text="Allow incoming traffic from these networks.",
+        help_text="Allow incoming traffic from this network.",
         required=True,
-        initial='',
-        widget=forms.CheckboxSelectMultiple(),
+        widget=forms.Select(),
     )
 
     ports = PortsField(
@@ -80,7 +79,6 @@ class AddHostRulesForm(forms.Form):
         label="Protocol:",
         help_text="Allow traffic of this protocol.",
         required=True,
-        initial=CustomRuleProtocolContract.ANY.value
     )
 
 

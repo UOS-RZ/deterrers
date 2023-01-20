@@ -44,7 +44,7 @@
                 <form action="{{request.path}}rule/delete/{{rule.id}}/" method="post">
                     {% csrf_token %}
                     <tr>
-                        <td>{{rule.allow_srcs|join:", "}}</td>
+                        <td>{{rule.allow_src}}</td>
                         <td>{{rule.allow_ports|join:", "}}</td>
                         <td>{{rule.allow_proto}}</td>
                         <td>{% bootstrap_button button_type="submit" content="Delete" %}</td>
@@ -57,7 +57,7 @@
                     {% csrf_token %}
                     <tr>
                         <td>
-                            {% bootstrap_field form.subnets show_label=False %}
+                            {% bootstrap_field form.subnet show_label=False %}
                         </td>
                         <td>
                             {% bootstrap_field form.ports show_label=False %}

@@ -1,8 +1,9 @@
 import logging
 import uuid
+import io
 
 from django.contrib.auth.decorators import login_required
-from django.http import Http404, HttpResponseRedirect, HttpResponse
+from django.http import Http404, HttpResponseRedirect, HttpResponse, FileResponse
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
@@ -15,6 +16,7 @@ from .core.ipam_api_interface import ProteusIPAMInterface
 from .core.v_scanner_interface import GmpVScannerInterface
 from .core.fw_interface import PaloAltoInterface, AddressGroups
 from .core.risk_assessor import compute_risk_of_network_exposure
+from .core.rule_generator import generate_rule
 from .core.host import MyHost, HostStatusContract, HostServiceContract, HostFWContract, CustomRuleSubnetContract
 
 from myuser.models import MyUser
@@ -56,8 +58,6 @@ def host_detail_view(request, ip):
     Returns:
         HTTPResponse: Rendered HTML page.
     """
-    ip = ip.replace('_', '.')
-
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
@@ -73,13 +73,13 @@ def host_detail_view(request, ip):
         if request.method == 'POST':
             form = AddHostRulesForm(request.POST)
             if form.is_valid():
-                subnets = [CustomRuleSubnetContract[subnet_enum_name].value for subnet_enum_name in form.cleaned_data['subnets']]
+                subnet = CustomRuleSubnetContract[form.cleaned_data['subnet']].value
                 ports = form.cleaned_data['ports']
                 proto = form.cleaned_data['protocol']
                 # update the actual model instance
                 host.custom_rules.append(
                     {
-                        'allow_srcs' : subnets,
+                        'allow_src' : subnet,
                         'allow_ports' : list(ports),
                         'allow_proto' : proto,
                         'id' : str(uuid.uuid4())
@@ -99,7 +99,7 @@ def host_detail_view(request, ip):
         'hostadmin' : hostadmin,
         'host_detail' : host,
         'host_rules' : [
-                {'allow_srcs': [CustomRuleSubnetContract(s_v).display() for s_v in rule['allow_srcs']],
+                {'allow_src': CustomRuleSubnetContract(rule['allow_src']).display(),
                 'allow_ports' : rule['allow_ports'],
                 'allow_proto' : rule['allow_proto'],
                 'id' : rule['id']}
@@ -158,34 +158,6 @@ def __get_available_actions(host : MyHost) -> tuple[bool, bool, bool]:
             can_scan = False
     return can_update, can_register, can_scan
 
-@login_required
-@require_http_methods(['POST',])
-def delete_host_rule(request, ip : str, rule_id : uuid.UUID):
-    ip = ip.replace('_', '.')
-
-    hostadmin = get_object_or_404(MyUser, username=request.user.username)
-
-    with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
-        host = ipam.get_host_info_from_ip(ip) # TODO: could be changed to get_host_info_from_id() for better performance
-        # check if host is valid
-        if not host or not host.is_valid():
-            raise Http404()
-        # check if user is admin of this host
-        if not hostadmin.username in host.admin_ids:
-            raise Http404()
-
-        # delete rule from host
-        for rule in host.custom_rules:
-            if uuid.UUID(rule['id']) == rule_id:
-                host.custom_rules.remove(rule)
-                break
-        ret = ipam.update_host_info(host)
-        if not ret:
-            logger.error("Host could not be updated! Try again later...")
-
-    return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
-    
-
 
 @login_required
 @require_http_methods(['GET',])
@@ -236,7 +208,6 @@ def update_host_detail(request, ip):
     Returns:
         HTTPResponse: Rendered HTML page.
     """
-    ip = ip.replace('_', '.')
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
@@ -264,8 +235,6 @@ def update_host_detail(request, ip):
                 
                 ret = ipam.update_host_info(host)
                 if ret:
-                    # TODO: compute new FW rules if data has changed
-
                     # redirect to a new URL:
                     return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
                 
@@ -286,10 +255,26 @@ def update_host_detail(request, ip):
     return render(request, 'update_host_detail.html', context=context)
 
 
+############################################ Host Actions ########################################
+
 @login_required
 @require_http_methods(['POST', ])
 def register_host(request, ip):
-    ip = ip.replace('_', '.')
+    """
+    TODO: docu
+
+    Args:
+        request (_type_): _description_
+        ip (_type_): _description_
+
+    Raises:
+        Http404: _description_
+        Http404: _description_
+        Http404: _description_
+
+    Returns:
+        _type_: _description_
+    """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
@@ -323,7 +308,21 @@ def register_host(request, ip):
 @login_required
 @require_http_methods(['POST', ])
 def scan_host(request, ip):
-    ip = ip.replace('_', '.')
+    """
+    TODO: docu
+
+    Args:
+        request (_type_): _description_
+        ip (_type_): _description_
+
+    Raises:
+        Http404: _description_
+        Http404: _description_
+        Http404: _description_
+
+    Returns:
+        _type_: _description_
+    """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
@@ -353,6 +352,74 @@ def scan_host(request, ip):
     # redirect to a new URL:
     return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
 
+
+@login_required
+@require_http_methods(['POST',])
+def delete_host_rule(request, ip : str, rule_id : uuid.UUID):
+    """
+    TODO: docu
+
+    Args:
+        request (_type_): _description_
+        ip (str): _description_
+        rule_id (uuid.UUID): _description_
+
+    Raises:
+        Http404: _description_
+        Http404: _description_
+
+    Returns:
+        _type_: _description_
+    """
+    hostadmin = get_object_or_404(MyUser, username=request.user.username)
+
+    with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        host = ipam.get_host_info_from_ip(ip) # TODO: could be changed to get_host_info_from_id() for better performance
+        # check if host is valid
+        if not host or not host.is_valid():
+            raise Http404()
+        # check if user is admin of this host
+        if not hostadmin.username in host.admin_ids:
+            raise Http404()
+
+        # delete rule from host
+        for rule in host.custom_rules:
+            if uuid.UUID(rule['id']) == rule_id:
+                host.custom_rules.remove(rule)
+                break
+        ret = ipam.update_host_info(host)
+        if not ret:
+            logger.error("Host could not be updated! Try again later...")
+
+    return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
+
+
+@login_required
+@require_http_methods(['GET',])
+def get_fw_config(request, ip : str):
+    # TODO: https://docs.djangoproject.com/en/4.1/ref/request-response/#fileresponse-objects
+    logger.info(f"Generate fw config script for host {ip}")
+    hostadmin = get_object_or_404(MyUser, username=request.user.username)
+    with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        host = ipam.get_host_info_from_ip(ip) # TODO: could be changed to get_host_info_from_id() for better performance
+        # check if host is valid
+        if not host or not host.is_valid():
+            raise Http404()
+        # check if user is admin of this host
+        if not hostadmin.username in host.admin_ids:
+            raise Http404()
+
+    script = generate_rule(host.fw, host.service_profile, host.custom_rules)
+    if script:
+        f_temp = io.BytesIO(bytes(script, 'utf-8'))
+        f_response = FileResponse(f_temp, as_attachment=True, filename='fw_config.sh')
+        # f_temp.close() # not closing io.BytesIO is probably fine because it is only an objet in RAM and will be released by GC
+        return f_response
+    
+    return Http404()
+
+
+############################## Vulnerability Scanner alerts ######################################
 
 @require_http_methods(['GET', ])
 def v_scanner_registration_alert(request):
@@ -394,7 +461,7 @@ def v_scanner_registration_alert(request):
                                 raise RuntimeError(f"Unknown service profile: {host.service_profile}")
                     host.status = HostStatusContract.ONLINE
                     if not ipam.update_host_info(host):
-                        logger.error("v_scanner_registration_alert() could not update host status to 'O'!")
+                        logger.error("v_scanner_registration_alert() could not update host status to 'Online'!")
             else:
                 logger.info(f"Host {host_ip} did not pass the registration and will be blocked.")
                 with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
@@ -404,7 +471,7 @@ def v_scanner_registration_alert(request):
                         fw.remove_addr_obj_from_addr_grps(host_ip, {AddressGroups.HTTP, AddressGroups.SSH, AddressGroups.OPEN})
                     host.status = HostStatusContract.BLOCKED
                     if not ipam.update_host_info(host):
-                        logger.error("v_scanner_registration_alert() could not update host status to 'B'!")
+                        logger.error("v_scanner_registration_alert() could not update host status to 'Blocked'!")
 
             scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
 
@@ -417,14 +484,9 @@ def v_scanner_registration_alert(request):
 @require_http_methods(['GET', ])
 def v_scanner_scan_alert(request):
     # TODO
-    pass
+    logger.warn("Not implemented yet!")
 
 @require_http_methods(['GET',])
 def v_scanner_periodic_alert(request):
     # TODO
-    pass
-
-@require_http_methods(['GET',])
-def get_fw_config(request):
-    # TODO: https://docs.djangoproject.com/en/4.1/ref/request-response/#fileresponse-objects
-    pass
+    logger.warn("Not implemented yet!")

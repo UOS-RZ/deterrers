@@ -22,7 +22,7 @@ class HostFWContract(Enum):
     EMPTY =     ''
 
 class CustomRuleSubnetContract(Enum):
-    ANY = {'name' : 'Any', 'range' : 'any'}
+    ANY = {'name' : 'Any', 'range' : '0.0.0.0/0'}
     RZ_BACKBONE = {'name' : 'Uni RZ-Backbone', 'range' : '131.173.16.0/22'}
     VM_BACKBONE = {'name' : 'Uni VM-Backbone', 'range' : '131.173.22.0/23'}
 
@@ -32,7 +32,7 @@ class CustomRuleSubnetContract(Enum):
 class CustomRuleProtocolContract(Enum):
     TCP = "tcp"
     UDP = "udp"
-    ANY = "any"
+    # ANY = "any" # cannot be modelled with firewalld, so we do not support it in the meantime
 
 
 class MyHost():
@@ -63,7 +63,7 @@ class MyHost():
         self.fw = fw
         # list of dictionaries of form: 
         # {
-        #     'allow_srcs' : <list[CustomRuleSubnetContract.value]>,
+        #     'allow_src' : <CustomRuleSubnetContract.value>,
         #     'allow_ports' : <list[str]>,
         #     'allow_proto' : CustomRuleProtocolContract.value
         #     'id' : <UUID>
