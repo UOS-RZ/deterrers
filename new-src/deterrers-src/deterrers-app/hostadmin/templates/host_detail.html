@@ -5,30 +5,35 @@
 {% block title %} <title>Host Status: {{host_detail.ip_addr}} ({{host_detail.name}})</title> {% endblock %}
 
 {% block content %}
-<h1> Details on Host: {{host_detail.ip_addr}} ({{host_detail.name}}) </h1>
-<table style="width:100%">
-    <thead>
-        <tr>
-            <th>IP Address</th>
-            <th>Name</th>
-            <th>Internet Service Profile</th>
-            <th>Host-based Firewall</th>
-            <th>Status</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td>{{host_detail.ip_addr}}</td>
-            <td>{{host_detail.name}}</td>
-            <td>{{host_detail.get_service_profile_display}}</td>
-            <td>{{host_detail.get_fw_display}}</td>
-            <td>{{host_detail.get_status_display}}</td>
-        </tr>
-    </tbody>
-</table>
+<div id="host_details">
+    <h2> Host Details: </h2>
+    <br>
+    <p>
+        <table style="width:100%">
+            <thead>
+                <tr>
+                    <th>IP Address</th>
+                    <th>Name</th>
+                    <th>Internet Service Profile</th>
+                    <th>Host-based Firewall</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{host_detail.ip_addr}}</td>
+                    <td>{{host_detail.name}}</td>
+                    <td>{{host_detail.get_service_profile_display}}</td>
+                    <td>{{host_detail.get_fw_display}}</td>
+                    <td>{{host_detail.get_status_display}}</td>
+                </tr>
+            </tbody>
+        </table>
+    </p>
+</div>
 <hr>
 <div id="host_rules">
-    <h2> Additional Firewall Rules: </h2>
+    <h2> Additional Custom Firewall Rules: </h2>
     <p>
         <table style="width:100%">
             <thead>
@@ -83,44 +88,59 @@
 <hr>
 <div id="host_actions">
     <h2> Available Actions: </h2>
+    <br>
     <p>
-        <form action="{{request.path}}update/" method="get">
-            <div class="d-grid gap-2 col-6 mx-auto">
-                {% csrf_token %}
-                {% if can_update %}
-                    {% bootstrap_button name="update_btn" button_type="submit" content="Edit Host Details" button_class="btn btn-primary btn-lg" %}
-                {% else %}
-                    {% bootstrap_button name="update_btn" button_type="submit" content="Edit Host Details" button_class="btn btn-primary btn-lg" disabled=True %}
-                {% endif %}
-            </div>
-        </form>
-    </p>
-        
-    <p>
-        <form action="{{request.path}}register/" method="post">
-            <div class="d-grid gap-2 col-6 mx-auto">
-                {% csrf_token %}
-                {% if can_register %}
-                    {% bootstrap_button name="register_btn" button_type="submit" content="Register" button_class="btn btn-primary btn-lg" %}
-                {% else %}
-                    {% bootstrap_button name="register_btn" button_type="submit" content="Register" button_class="btn btn-primary btn-lg" disabled=True %}
-                {% endif %}
-            </div>
-        </form>
-    </p>
+        <p>
+            <form action="{{request.path}}update/" method="get">
+                <div class="d-grid gap-2 col-6 mx-auto">
+                    {% csrf_token %}
+                    {% if can_update %}
+                        {% bootstrap_button name="update_btn" button_type="submit" content="Edit Host Details" button_class="btn btn-primary btn-lg" %}
+                    {% else %}
+                        {% bootstrap_button name="update_btn" button_type="submit" content="Edit Host Details" button_class="btn btn-primary btn-lg" disabled=True %}
+                    {% endif %}
+                </div>
+            </form>
+        </p>
+            
+        <p>
+            <form action="{{request.path}}register/" method="post">
+                <div class="d-grid gap-2 col-6 mx-auto">
+                    {% csrf_token %}
+                    {% if can_register %}
+                        {% bootstrap_button name="register_btn" button_type="submit" content="Register" button_class="btn btn-primary btn-lg" %}
+                    {% else %}
+                        {% bootstrap_button name="register_btn" button_type="submit" content="Register" button_class="btn btn-primary btn-lg" disabled=True %}
+                    {% endif %}
+                </div>
+            </form>
+        </p>
 
-    <p>
-        <form action="{{request.path}}scan/" method="post">
-            <div class="d-grid gap-2 col-6 mx-auto">
-                {% csrf_token %}
-                {% if can_scan %}
-                    {% bootstrap_button name="scan_btn" button_type="submit" content="(Repeat) Scan" button_class="btn btn-primary btn-lg" %}
-                {% else %}
-                    {% bootstrap_button name="scan_btn" button_type="submit" content="(Repeat) Scan" button_class="btn btn-primary btn-lg" disabled=True %}
-                {% endif %}
-            </div>
-        </form>
-    </p>
+        <p>
+            <form action="{{request.path}}scan/" method="post">
+                <div class="d-grid gap-2 col-6 mx-auto">
+                    {% csrf_token %}
+                    {% if can_scan %}
+                        {% bootstrap_button name="scan_btn" button_type="submit" content="(Repeat) Scan" button_class="btn btn-primary btn-lg" %}
+                    {% else %}
+                        {% bootstrap_button name="scan_btn" button_type="submit" content="(Repeat) Scan" button_class="btn btn-primary btn-lg" disabled=True %}
+                    {% endif %}
+                </div>
+            </form>
+        </p>
+
+        <p>
+            <form action="{{request.path}}get-fw-config/" method="get">
+                <div class="d-grid gap-2 col-6 mx-auto">
+                    {% csrf_token %}
+                    {% if can_download_config %}
+                        {% bootstrap_button name="fw_config_btn" button_type="submit" content="Download Firewall Configuration Script" button_class="btn btn-primary btn-lg" %}
+                    {% else %}
+                        {% bootstrap_button name="fw_config_btn" button_type="submit" content="Download Firewall Configuration Script" button_class="btn btn-primary btn-lg" disabled=True %}
+                    {% endif %}
+                </div>
+            </form>
+        </p>
 
         {% comment %} <form action="" method="get">
             {% csrf_token %}
@@ -142,5 +162,7 @@
                 {% bootstrap_button id="scan_btn" button_type="submit" content="(Repeat) Scan" button_class="btn btn-primary" size="lg" formaction="{{request.path}}scan/" disabled=True %}
             {% endif %}
         </form> {% endcomment %}
+    </p>
 </div>
+
 {% endblock %}

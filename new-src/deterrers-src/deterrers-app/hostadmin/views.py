@@ -108,10 +108,11 @@ def host_detail_view(request, ip):
     }
 
     # pass flags for available actions into context
-    can_update, can_register, can_scan = __get_available_actions(host)
+    can_update, can_register, can_scan, can_download_config = __get_available_actions(host)
     context['can_update'] = can_update
     context['can_register'] = can_register
     context['can_scan'] = can_scan
+    context['can_download_config'] = can_download_config
 
     return render(request, 'host_detail.html', context)
 
@@ -131,32 +132,43 @@ def __get_available_actions(host : MyHost) -> tuple[bool, bool, bool]:
             if host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY:
                 can_register = True
                 can_scan = True
+                can_download_config = True
             else:
                 can_register = False
                 can_scan = False
+                can_download_config = False
         case HostStatusContract.UNDER_REVIEW:
             can_update = False
             can_register = False
             can_scan = False
+            if host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY:
+                can_download_config = True
+            else:
+                can_download_config = False
         case HostStatusContract.BLOCKED:
             can_update = True
             can_register = False
             if host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY:
                 can_scan = True
+                can_download_config = True
             else:
                 can_scan = False
+                can_download_config = False
         case HostStatusContract.ONLINE:
             can_update = True
             can_register = False
             if host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY:
                 can_scan = True
+                can_download_config = True
             else:
                 can_scan = False
+                can_download_config = True
         case _:
             can_update = False
             can_register = False
             can_scan = False
-    return can_update, can_register, can_scan
+            can_download_config = False
+    return can_update, can_register, can_scan, can_download_config
 
 
 @login_required
@@ -220,7 +232,7 @@ def update_host_detail(request, ip):
             raise Http404()
 
         # check if this host can be changed at the moment or whether there are already processes running for it
-        can_update, _, _ = __get_available_actions(host)
+        can_update, _, _, _ = __get_available_actions(host)
         if not can_update:
             raise Http404()
 
@@ -285,7 +297,7 @@ def register_host(request, ip):
         if not hostadmin.username in host.admin_ids:
             raise Http404()
         # check if this host can be registered
-        _, can_register, _ = __get_available_actions(host)
+        _, can_register, _, _ = __get_available_actions(host)
         if not can_register:
             raise Http404()
 
@@ -333,7 +345,7 @@ def scan_host(request, ip):
         if not hostadmin.username in host.admin_ids:
             raise Http404()
         # check if this host can be scanned at the moment or whether there are already processes running for it
-        _, _, can_scan = __get_available_actions(host)
+        _, _, can_scan, _ = __get_available_actions(host)
         if not can_scan:
             raise Http404()
 
