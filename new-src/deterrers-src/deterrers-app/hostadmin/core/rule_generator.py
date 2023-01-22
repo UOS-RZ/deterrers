@@ -20,6 +20,9 @@ def __generate_ufw__script(service_profile : HostServiceContract, custom_rules :
 # disable the host-based firewall before making any changes
 ufw disable
 
+# delete all previous configurations so old settings can be overwritten
+echo 'y' | ufw reset
+
 """
 
     # first configure the rules derived from the service profile
@@ -93,6 +96,9 @@ f"""#!/bin/bash
 systemctl enable firewalld
 systemctl start firewalld
 
+# delete custum zone if it exists so previous configurations can be overwritten
+firewall-cmd --permanent --delete-zone={CUSTOM_ZONE}
+
 # create custom zone
 firewall-cmd --permanent --new-zone={CUSTOM_ZONE}
 
@@ -134,6 +140,7 @@ firewall-cmd --zone={CUSTOM_ZONE} --set-target=ACCEPT
         allow_src = c_rule['allow_src']
         allow_ports = c_rule['allow_ports']
         allow_proto = c_rule['allow_proto']
+        allow_family = "ipv4" # TODO: for IPv6 support this needs to be changed
         rule_config += \
 f"""
 # set custom rule no. {n}"""
@@ -141,7 +148,7 @@ f"""
             port = port.replace(':', '-') # firewalld uses 'x-y'-notation for port ranges
             rule_config += \
 f"""
-firewall-cmd --add-rich-rule='rule source address={allow_src} port port={port} protocol={allow_proto}  accept' """
+firewall-cmd --add-rich-rule='rule familiy={allow_family} source address={allow_src['range']} port port={port} protocol={allow_proto}  accept' """
 
 
     POSTAMBLE = \
@@ -161,8 +168,12 @@ firewall-cmd --reload
 def __generate_nftables__script(service_profile : HostServiceContract, custom_rules : list[dict]) -> str|None:
     FILE_PATH = "/etc/nftables/deterrers_rules.nft"
     PREAMBLE = \
-"""#!/bin/bash
+f"""#!/bin/bash
 # This script should be run with sudo permissions!
+
+# create the config file
+mkdir -p /etc/nftables/
+touch {FILE_PATH}
 
 # create a config file that specifies the custom rule set
 echo '
@@ -170,14 +181,14 @@ echo '
 flush ruleset
 
 # table type inet stands for Iv4 and IPv6
-table inet deterrers-ruleset {
+table inet deterrers-ruleset {{
     # create a table named input-chain which will hold rules for incoming traffic
-    chain input-chain {
+    chain input-chain {{
         # accept packets to localhost
         iif lo accept
 
         # accept packets of existing connections
-        ct state { established, related } accept
+        ct state {{ established, related }} accept
 """
 
     # first configure the rules derived from the service profile
@@ -205,7 +216,7 @@ table inet deterrers-ruleset {
             rule_config += \
 """
         # allow all packets that do not match a rule in this chain
-        type deterrers-ruleset hook input priority 0; policy allow;
+        type filter hook input priority 0; policy allow;
 """
         case _:
             logger.error("Service profile %s not supported by rule generator!", str(service_profile))
@@ -223,7 +234,7 @@ f"""
             port = port.replace(':', '-') # nftables uses 'x-y'-notation for port ranges
             rule_config += \
 f"""
-        saddr {allow_src} {allow_proto} dport {port} accept"""
+        ip saddr {allow_src['range']} {allow_proto} dport {port} accept"""
 
     POST_AMBLE = \
 f"""
@@ -238,7 +249,7 @@ nft -f {FILE_PATH}
 echo '
 
 include "{FILE_PATH}"
-' >> /etc/sysconfig/nftables.conf
+' >> /etc/nftables.conf
 
 # enable nftables at system start and restart
 systemctl enable nftables.service
