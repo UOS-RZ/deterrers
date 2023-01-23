@@ -3,6 +3,7 @@ import requests
 from lxml import etree
 from enum import Enum
 import time
+from threading import Thread
 
 
 logger = logging.getLogger(__name__)
@@ -207,8 +208,7 @@ firewall! Status code: {response.status_code}. Status: {data.get('@status')}")
                 raise RuntimeError(f"Could not update Address Group {addr_grp_name.value}. \
 Status code: {response.status_code}. Status: {data.get('@status')}")
         # commit changes
-        if not self.__commit_changes():
-            raise RuntimeError("Could not commit changes!")
+        Thread(target=self.__commit_changes, daemon=True).start()
 
 
     def remove_addr_obj_from_addr_grps(self, ip_addr : str, addr_grps : set[AddressGroups]):
@@ -252,8 +252,7 @@ firewall! Status code: {response.status_code}. Status: {data.get('@status')}")
                 put_addr_grp_url, json=put_addr_grp_payload, headers=self.header, timeout=self.TIMEOUT
             )
         # commit changes
-        if not self.__commit_changes():
-            raise RuntimeError("Could not commit changes!")
+        Thread(target=self.__commit_changes, daemon=True).start()
 
 
     def __commit_changes(self):
