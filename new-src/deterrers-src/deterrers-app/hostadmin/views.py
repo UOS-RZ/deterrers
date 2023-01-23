@@ -1,6 +1,7 @@
 import logging
 import uuid
 import io
+from threading import Thread
 
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponseRedirect, HttpResponse, FileResponse
@@ -437,59 +438,61 @@ def get_fw_config(request, ip : str):
 def v_scanner_registration_alert(request):
     logger.info("Received notification from Greenbone Securtiy Manager that a registration completed.")
 
-    try:
-        host_ip = request.GET['host_ip']
-        report_uuid = request.GET['report_uuid']
-        task_uuid = request.GET['task_uuid']
-        target_uuid = request.GET['target_uuid']
-        alert_uuid = request.GET['alert_uuid']
-        with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
-            report_xml = scanner.get_report_xml(report_uuid)
-            scan_start, results = scanner.extract_report_data(report_xml)
+    def proc_registration_alert(request):
+        try:
+            host_ip = request.GET['host_ip']
+            report_uuid = request.GET['report_uuid']
+            task_uuid = request.GET['task_uuid']
+            target_uuid = request.GET['target_uuid']
+            alert_uuid = request.GET['alert_uuid']
+            with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
+                report_xml = scanner.get_report_xml(report_uuid)
+                scan_start, results = scanner.extract_report_data(report_xml)
 
-            # TODO: get HTML report and send via e-mail to admin
+                # TODO: get HTML report and send via e-mail to admin
 
-            # TODO: Risk assessment
-            risk = compute_risk_of_network_exposure(results)
-            passed_scan = True
+                # TODO: Risk assessment
+                risk = compute_risk_of_network_exposure(results)
+                passed_scan = True
 
-            if passed_scan:
-                logger.info(f"Host {host_ip} passed the registration scan and will be set online!")
-                own_url = request.get_host() + reverse('v_scanner_periodic_alert')
-                scanner.add_host_to_periodic_scan(host_ip=host_ip, deterrers_url=own_url)
-                # get the service profile of this host
-                with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
-                    host = ipam.get_host_info_from_ip(host_ip)
-                    # change the perimeter firewall configuration so that only hosts service profile is allowed
-                    with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
-                        match host.service_profile:
-                            case HostServiceContract.HTTP:
-                                fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.HTTP,})
-                            case HostServiceContract.SSH:
-                                fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.SSH,})
-                            case HostServiceContract.MULTIPURPOSE:
-                                fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.OPEN,})
-                            case _:
-                                raise RuntimeError(f"Unknown service profile: {host.service_profile}")
-                    host.status = HostStatusContract.ONLINE
-                    if not ipam.update_host_info(host):
-                        logger.error("v_scanner_registration_alert() could not update host status to 'Online'!")
-            else:
-                logger.info(f"Host {host_ip} did not pass the registration and will be blocked.")
-                with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
-                    host = ipam.get_host_info_from_ip(host_ip)
-                    # change the perimeter firewall configuration so that host is blocked
-                    with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
-                        fw.remove_addr_obj_from_addr_grps(host_ip, {AddressGroups.HTTP, AddressGroups.SSH, AddressGroups.OPEN})
-                    host.status = HostStatusContract.BLOCKED
-                    if not ipam.update_host_info(host):
-                        logger.error("v_scanner_registration_alert() could not update host status to 'Blocked'!")
+                if passed_scan:
+                    logger.info(f"Host {host_ip} passed the registration scan and will be set online!")
+                    own_url = request.get_host() + reverse('v_scanner_periodic_alert')
+                    scanner.add_host_to_periodic_scan(host_ip=host_ip, deterrers_url=own_url)
+                    # get the service profile of this host
+                    with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+                        host = ipam.get_host_info_from_ip(host_ip)
+                        # change the perimeter firewall configuration so that only hosts service profile is allowed
+                        with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
+                            match host.service_profile:
+                                case HostServiceContract.HTTP:
+                                    fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.HTTP,})
+                                case HostServiceContract.SSH:
+                                    fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.SSH,})
+                                case HostServiceContract.MULTIPURPOSE:
+                                    fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.OPEN,})
+                                case _:
+                                    raise RuntimeError(f"Unknown service profile: {host.service_profile}")
+                        host.status = HostStatusContract.ONLINE
+                        if not ipam.update_host_info(host):
+                            logger.error("v_scanner_registration_alert() could not update host status to 'Online'!")
+                else:
+                    logger.info(f"Host {host_ip} did not pass the registration and will be blocked.")
+                    with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+                        host = ipam.get_host_info_from_ip(host_ip)
+                        # change the perimeter firewall configuration so that host is blocked
+                        with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
+                            fw.remove_addr_obj_from_addr_grps(host_ip, {AddressGroups.HTTP, AddressGroups.SSH, AddressGroups.OPEN})
+                        host.status = HostStatusContract.BLOCKED
+                        if not ipam.update_host_info(host):
+                            logger.error("v_scanner_registration_alert() could not update host status to 'Blocked'!")
 
-            scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
+                scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
+        except Exception as err:
+            logger.error(str(err))
 
-    except Exception as err:
-        logger.error(str(err))
-        return HttpResponse("Error!", status=500)
+    t = Thread(target=proc_registration_alert, args=[request], daemon=True)
+    t.start()
 
     return HttpResponse("Success!", status=200)
 
