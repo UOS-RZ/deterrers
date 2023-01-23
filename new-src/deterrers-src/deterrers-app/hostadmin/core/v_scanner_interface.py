@@ -382,23 +382,24 @@ class GmpVScannerInterface():
         name = response.xpath('//alert/name')[0].text
         condition = response.xpath('//alert/condition')[0].text
         event = response.xpath('//alert/event')[0].text
-        event_data = {response.xpath('//alert/event/data/name')[0].text : response.xpath('//alert/event/data')[0].text}
+        event_data = {'status' : 'Done'} # {response.xpath('//alert/event/data/name')[0].text : response.xpath('//alert/event/data')[0].text} # TODO: Quick-fix; find real error why 'response.xpath('//alert/event/data')[0].text' does not return 'Done'
         method = response.xpath('//alert/method')[0].text
         
         comment = response.xpath('//alert/comment')[0].text
         # modify the alert so that its id is present in the url parameters
         # only possible after creation because id is not known earlier
+        # NOTE: all fields need to be reset because API is buggy
         response =  self.gmp.modify_alert(
             alert_id=alert_uuid,
-            # name=name,
-            # condition=AlertCondition(condition),
-            # event=AlertEvent(event),
-            # event_data=event_data,
-            # method=AlertMethod(method),
+            name=name,
+            condition=AlertCondition(condition),
+            event=AlertEvent(event),
+            event_data=event_data,
+            method=AlertMethod(method),
             method_data = {
                 "URL" : f"{deterrers_url}?host_ip={host_ip}&target_uuid={target_uuid}&task_uuid={task_uuid}&report_uuid={report_uuid}&alert_uuid={alert_uuid}"
             },
-            # comment=comment
+            comment=comment
         )
         response_status = int(response.xpath('@status')[0])
         if response_status != 200:
