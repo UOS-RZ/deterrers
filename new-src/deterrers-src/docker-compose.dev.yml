@@ -1,17 +1,39 @@
 version: "3"
 
 services:
+
+  vpn:
+    image: dperson/openvpn-client
+    cap_add:
+      - net_admin
+    networks:
+      - default
+    restart: unless-stopped
+    security_opt:
+      - label:disable
+    ports:
+      - 80:80
+    volumes:
+      - /dev/net/tun:/dev/net/tun
+      - ./vpn:/vpn
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+    entrypoint: ["/sbin/tini", "--", "/usr/bin/openvpn.sh", "-d"]
+
   web:
+    depends_on:
+      - vpn
+    network_mode: "service:vpn"
     build: 
       context: ./deterrers-app
       dockerfile: Dockerfile
-    command: python manage.py runserver 0.0.0.0:8000
+    command: python manage.py runserver 0.0.0.0:80
     volumes:
       - .:/microservice:rw # map data and files from parent directory in host to microservice directory in docker containe
       - static_volume:/home/app/microservice/static
       - ./db:/home/app/microservice/db
-    ports:
-      - 80:8000
+    # ports:
+    #   - 80:80
     env_file:
       - ./.env.dev
     image: deterrers-application
@@ -19,3 +41,6 @@ services:
 
 volumes:
  static_volume:
+
+networks:
+  default:
