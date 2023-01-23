@@ -130,40 +130,24 @@ def __get_available_actions(host : MyHost) -> tuple[bool, bool, bool]:
     match host.status:
         case HostStatusContract.UNREGISTERED:
             can_update = True
-            if host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY:
-                can_register = True
-                can_scan = True
-                can_download_config = True
-            else:
-                can_register = False
-                can_scan = False
-                can_download_config = False
+            can_register = True
+            can_scan = True
+            can_download_config = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
         case HostStatusContract.UNDER_REVIEW:
-            can_update = False
-            can_register = False
-            can_scan = False
-            if host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY:
-                can_download_config = True
-            else:
-                can_download_config = False
-        case HostStatusContract.BLOCKED:
             can_update = True
             can_register = False
-            if host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY:
-                can_scan = True
-                can_download_config = True
-            else:
-                can_scan = False
-                can_download_config = False
+            can_scan = False
+            can_download_config = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
+        case HostStatusContract.BLOCKED:
+            can_update = True
+            can_register = True
+            can_scan = True
+            can_download_config = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
         case HostStatusContract.ONLINE:
             can_update = True
             can_register = False
-            if host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY:
-                can_scan = True
-                can_download_config = True
-            else:
-                can_scan = False
-                can_download_config = True
+            can_scan = True
+            can_download_config = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
         case _:
             can_update = False
             can_register = False
@@ -410,7 +394,20 @@ def delete_host_rule(request, ip : str, rule_id : uuid.UUID):
 @login_required
 @require_http_methods(['GET',])
 def get_fw_config(request, ip : str):
-    # TODO: https://docs.djangoproject.com/en/4.1/ref/request-response/#fileresponse-objects
+    """
+    TODO: docu
+
+    Args:
+        request (_type_): _description_
+        ip (str): _description_
+
+    Raises:
+        Http404: _description_
+        Http404: _description_
+
+    Returns:
+        _type_: _description_
+    """
     logger.info(f"Generate fw config script for host {ip}")
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
