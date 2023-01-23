@@ -1,6 +1,6 @@
 import logging
 from enum import Enum
-from datetime import datetime
+from datetime import datetime, timedelta
 import icalendar
 import os
 import time
@@ -382,7 +382,7 @@ class GmpVScannerInterface():
         name = response.xpath('//alert/name')[0].text
         condition = response.xpath('//alert/condition')[0].text
         event = response.xpath('//alert/event')[0].text
-        event_data = {'status' : 'Done'} # {response.xpath('//alert/event/data/name')[0].text : response.xpath('//alert/event/data')[0].text} # TODO: Quick-fix; find real error why 'response.xpath('//alert/event/data')[0].text' does not return 'Done'
+        event_data = {'status' : 'Done'} # {response.xpath('//alert/event/data/name')[0].text : response.xpath('//alert/event/data')[0].text} # TODO: Quick-fixed; find real error why 'response.xpath('//alert/event/data')[0].text' does not return 'Done'
         method = response.xpath('//alert/method')[0].text
         
         comment = response.xpath('//alert/comment')[0].text
@@ -471,7 +471,7 @@ class GmpVScannerInterface():
         cal.add('version', '2.0')
 
         event = icalendar.Event()
-        event.add("dtstart", now)
+        event.add("dtstart", now + timedelta(hours=12))
         event.add('rrule', {'freq': freq})
 
         cal.add_component(event)
