@@ -130,6 +130,19 @@
         </p>
 
         <p>
+            <form action="{{request.path}}block/" method="post">
+                <div class="d-grid gap-2 col-6 mx-auto">
+                    {% csrf_token %}
+                    {% if can_block %}
+                        {% bootstrap_button name="block_btn" button_type="submit" content="Block" button_class="btn btn-primary btn-lg" %}
+                    {% else %}
+                        {% bootstrap_button name="block_btn" button_type="submit" content="Block" button_class="btn btn-primary btn-lg" disabled=True %}
+                    {% endif %}
+                </div>
+            </form>
+        </p>
+
+        <p>
             <form action="{{request.path}}get-fw-config/" method="get">
                 <div class="d-grid gap-2 col-6 mx-auto">
                     {% csrf_token %}

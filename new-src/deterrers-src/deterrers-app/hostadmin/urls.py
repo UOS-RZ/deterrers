@@ -18,6 +18,7 @@ urlpatterns = [
     path('host/<esc_ip:ip>/update/', views.update_host_detail, name='update_host_detail'),
     path('host/<esc_ip:ip>/register/', views.register_host, name='register_host'),
     path('host/<esc_ip:ip>/scan/', views.scan_host, name='scan_host'),
+    path('host/<esc_ip:ip>/block/', views.block_host, name='block_host'),
     path('host/<esc_ip:ip>/get-fw-config/', views.get_fw_config, name='get_fw_config'),
     path('hosts/', views.hosts_list_view, name='hosts_list'),
     path('overview/', views.hostadmin_overview_view, name='hostadmin_overview'),
