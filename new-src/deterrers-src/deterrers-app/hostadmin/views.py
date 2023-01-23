@@ -456,7 +456,7 @@ def v_scanner_registration_alert(request):
                 passed_scan = True
 
                 if passed_scan:
-                    logger.info(f"Host {host_ip} passed the registration scan and will be set online!")
+                    logger.info("Host %s passed the registration scan and will be set online!", host_ip)
                     own_url = request.get_host() + reverse('v_scanner_periodic_alert')
                     scanner.add_host_to_periodic_scan(host_ip=host_ip, deterrers_url=own_url)
                     # get the service profile of this host
@@ -477,7 +477,7 @@ def v_scanner_registration_alert(request):
                         if not ipam.update_host_info(host):
                             logger.error("v_scanner_registration_alert() could not update host status to 'Online'!")
                 else:
-                    logger.info(f"Host {host_ip} did not pass the registration and will be blocked.")
+                    logger.info("Host %s did not pass the registration and will be blocked.", host_ip)
                     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
                         host = ipam.get_host_info_from_ip(host_ip)
                         # change the perimeter firewall configuration so that host is blocked
