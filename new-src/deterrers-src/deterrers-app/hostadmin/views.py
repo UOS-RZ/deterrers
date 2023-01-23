@@ -535,6 +535,7 @@ def v_scanner_registration_alert(request):
         except Exception as err:
             logger.error(str(err))
 
+    # run as daemon because v_scanner needs a response before scan objects can be cleaned up
     t = Thread(target=proc_registration_alert, args=[request], daemon=True)
     t.start()
 
