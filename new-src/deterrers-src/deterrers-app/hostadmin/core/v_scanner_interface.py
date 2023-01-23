@@ -390,15 +390,15 @@ class GmpVScannerInterface():
         # only possible after creation because id is not known earlier
         response =  self.gmp.modify_alert(
             alert_id=alert_uuid,
-            name=name,
-            condition=AlertCondition(condition),
-            event=AlertEvent(event),
-            event_data=event_data,
-            method=AlertMethod(method),
+            # name=name,
+            # condition=AlertCondition(condition),
+            # event=AlertEvent(event),
+            # event_data=event_data,
+            # method=AlertMethod(method),
             method_data = {
                 "URL" : f"{deterrers_url}?host_ip={host_ip}&target_uuid={target_uuid}&task_uuid={task_uuid}&report_uuid={report_uuid}&alert_uuid={alert_uuid}"
             },
-            comment=comment
+            # comment=comment
         )
         response_status = int(response.xpath('@status')[0])
         if response_status != 200:
@@ -557,10 +557,10 @@ class GmpVScannerInterface():
                 PortList.ALL_IANA_TCP_UUID.value
             )
             schedule_uuid = self.__create_schedule(
-                f"Schedule for task '{self.PERIODIC_TASK_NAME}'",
+                f"Schedule for task '{self.PERIODIC_TASK_NAME}' | {datetime.now()}",
                 "weekly"
             )
-            alert_uuid = self.__create_http_alert(f"Alert for task '{self.PERIODIC_TASK_NAME}'")
+            alert_uuid = self.__create_http_alert(f"Alert for task '{self.PERIODIC_TASK_NAME}' | {datetime.now()}")
             task_uuid = self.__create_task(
                 target_uuid,
                 self.PERIODIC_TASK_NAME,
