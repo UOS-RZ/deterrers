@@ -582,7 +582,7 @@ class GmpVScannerInterface():
             target_uuid (str): Tragte ID.
             task_uuid (str): Task ID.
             report_uuid (str): Report ID.
-            alert_uuid (str): Alert ID.
+            alert_uuid (str|list[str]): Alert ID.
         """
         logger.debug("Start clean up of scan!")
         if task_uuid:
@@ -590,21 +590,25 @@ class GmpVScannerInterface():
                 self.gmp.stop_task(task_id=task_uuid)
             except GvmError as err:
                 logger.error("Couldn't stop task! Error: %s", repr(err))
+                self.gmp.authenticate(self.username, self.password)
         if report_uuid:
             try:
                 self.gmp.delete_report(report_uuid)
             except GvmError as err:
                 logger.error("Couldn't delete report! Error: %s", repr(err))
+                self.gmp.authenticate(self.username, self.password)
         if task_uuid:
             try:
                 self.gmp.delete_task(task_uuid, ultimate=True)
             except GvmError as err:
                 logger.error("Couldn't delete task! Error: %s", repr(err))
+                self.gmp.authenticate(self.username, self.password)
         if target_uuid:
             try:
                 self.gmp.delete_target(target_id=target_uuid, ultimate=True)
             except GvmError as err:
                 logger.error("Couldn't delete target! Error: %s", repr(err))
+                self.gmp.authenticate(self.username, self.password)
         if alert_uuid:
             try:
                 if type(alert_uuid) is str:
@@ -614,6 +618,7 @@ class GmpVScannerInterface():
                         self.gmp.delete_alert(a_uuid, ultimate=True)
             except GvmError as err:
                 logger.error("Couldn't delete alert! Error: %s", repr(err))
+                self.gmp.authenticate(self.username, self.password)
 
 
     def clean_up_all_history(self):
