@@ -599,7 +599,8 @@ class GmpVScannerInterface():
                     True,
                     schedule_uuid
                 )
-                report_uuid = self.__start_task(task_uuid, self.PERIODIC_TASK_NAME)
+                # report_uuid = self.__start_task(task_uuid, self.PERIODIC_TASK_NAME)
+                report_uuid = ""
                 self.__modify_http_alert_data(host_ip, deterrers_url, target_uuid, task_uuid, report_uuid, alert_uuid)
 
         except GmpAPIError:
