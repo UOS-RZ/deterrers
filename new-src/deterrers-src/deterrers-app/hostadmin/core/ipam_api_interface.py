@@ -34,9 +34,9 @@ class ProteusIPAMInterface():
             # set http header
             self.header = {'Authorization': token, 'Content-Type': 'application/json'}
         except requests.exceptions.ConnectTimeout:
-            logger.error('Connection to %s timed out!', login_url)
+            logger.exception('Connection to %s timed out!', login_url)
         except requests.exceptions.ConnectionError:
-            logger.error('Could not establish connection to "%s"!', login_url)
+            logger.exception('Could not establish connection to "%s"!', login_url)
 
         return self
 
@@ -47,9 +47,9 @@ class ProteusIPAMInterface():
             # logout from BlueCat
             response = requests.get(logout_url, headers = self.header, timeout=self.TIMEOUT)
         except requests.exceptions.ConnectTimeout:
-            logger.error('Connection to %s timed out!', logout_url)
+            logger.exception('Connection to %s timed out!', logout_url)
         except requests.exceptions.ConnectionError:
-            logger.error('Could not estaplish connection to "%s"!', logout_url)
+            logger.exception('Could not estaplish connection to "%s"!', logout_url)
     
     def __parse_ipam_host_entity(self, entity):
         
@@ -148,8 +148,8 @@ class ProteusIPAMInterface():
                     if data['id'] == tag_group_id:
                         tagged_admins.append(tag_name)
 
-        except Exception as err:
-            logger.error("Caught an exception in ProteusIPAMInterface.__get_tagged_admins(): %s", str(err))
+        except Exception:
+            logger.exception("Caught an exception in ProteusIPAMInterface.__get_tagged_admins()!")
 
         return tagged_admins
 
@@ -234,11 +234,11 @@ class ProteusIPAMInterface():
             if my_host.is_valid():
                 return my_host
         except requests.exceptions.ConnectTimeout:
-            logger.error('Connection to %s timed out!', self.main_url)
+            logger.exception('Connection to %s timed out!', self.main_url)
         except requests.exceptions.ConnectionError:
-            logger.error('Could not estaplish connection to "%s"!', self.main_url)
-        except Exception as err:
-            logger.error("Caught an exception in ProteusIPAMInterface.get_host_info_from_ip(): %s", str(err))
+            logger.exception('Could not estaplish connection to "%s"!', self.main_url)
+        except Exception:
+            logger.exception("Caught an exception in ProteusIPAMInterface.get_host_info_from_ip()!")
         
         return None
 
@@ -277,11 +277,11 @@ class ProteusIPAMInterface():
                 return my_host
 
         except requests.exceptions.ConnectTimeout:
-            logger.error('Connection to %s timed out!', self.main_url)
+            logger.exception('Connection to %s timed out!', self.main_url)
         except requests.exceptions.ConnectionError:
-            logger.error('Could not estaplish connection to "%s"!', self.main_url)
-        except Exception as err:
-            logger.error("Caught an exception in ProteusIPAMInterface.get_host_info_from_id(): %s", str(err))
+            logger.exception('Could not estaplish connection to "%s"!', self.main_url)
+        except Exception:
+            logger.exception("Caught an exception in ProteusIPAMInterface.get_host_info_from_id()!")
 
         return None
         
@@ -368,11 +368,11 @@ class ProteusIPAMInterface():
                 break
 
         except requests.exceptions.ConnectTimeout:
-            logger.error('Connection to %s timed out!', self.main_url)
+            logger.exception('Connection to %s timed out!', self.main_url)
         except requests.exceptions.ConnectionError:
-            logger.error('Could not estaplish connection to "%s"!', self.main_url)
-        except Exception as err:
-            logger.error("Caught an exception in ProteusIPAMInterface.get_hosts_of_admin(): %s", str(err))
+            logger.exception('Could not estaplish connection to "%s"!', self.main_url)
+        except Exception:
+            logger.exception("Caught an exception in ProteusIPAMInterface.get_hosts_of_admin()!")
 
         return hosts
 
@@ -405,11 +405,11 @@ deterrers_rules={json.dumps(host.custom_rules)}|'}
                     return True
                     
             except requests.exceptions.ConnectTimeout:
-                logger.error('Connection to %s timed out!', self.main_url)
+                logger.exception('Connection to %s timed out!', self.main_url)
             except requests.exceptions.ConnectionError:
-                logger.error('Could not estaplish connection to "%s"!', self.main_url)
-            except Exception as err:
-                logger.error("Caught an exception in ProteusIPAMInterface.update_host_info(): %s", str(err))
+                logger.exception('Could not estaplish connection to "%s"!', self.main_url)
+            except Exception:
+                logger.exception("Caught an exception in ProteusIPAMInterface.update_host_info()!")
         else:
             logger.error("Host not valid: %s", str(host))
 
