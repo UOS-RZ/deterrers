@@ -24,6 +24,73 @@ from myuser.models import MyUser
 
 logger = logging.getLogger(__name__)
 
+
+
+
+def __block_host(host_ip : str) -> bool:
+    """
+    TODO: docu
+
+    Args:
+        host_ip (str): _description_
+    """
+    with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        host = ipam.get_host_info_from_ip(host_ip)
+        # change the perimeter firewall configuration so that host is blocked
+        with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
+            if not fw.remove_addr_obj_from_addr_grps(host_ip, {AddressGroups.HTTP, AddressGroups.SSH, AddressGroups.OPEN}):
+                return False
+        host.status = HostStatusContract.BLOCKED
+        if not ipam.update_host_info(host):
+            return False
+        
+    return True
+
+
+def __get_available_actions(host : MyHost) -> dict:
+    """
+    Compute which actions can be perfomed on a host.
+
+    Args:
+        host (MyHost): Host instance.
+
+    Returns:
+        dict: Returns a dictionary of boolean flags indicating available actions.
+    """
+    flags = {}
+    match host.status:
+        case HostStatusContract.UNREGISTERED:
+            flags['can_update'] = True
+            flags['can_register'] = True
+            flags['can_scan'] = True
+            flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
+            flags['can_block'] = False
+        case HostStatusContract.UNDER_REVIEW:
+            flags['can_update'] = True
+            flags['can_register'] = False
+            flags['can_scan'] = False
+            flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
+            flags['can_block'] = False
+        case HostStatusContract.BLOCKED:
+            flags['can_update'] = True
+            flags['can_register'] = True
+            flags['can_scan'] = True
+            flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
+            flags['can_block'] = False
+        case HostStatusContract.ONLINE:
+            flags['can_update'] = True
+            flags['can_register'] = False
+            flags['can_scan'] = True
+            flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
+            flags['can_block'] = True
+        case _:
+            flags['can_update'] = False
+            flags['can_register'] = False
+            flags['can_scan'] = False
+            flags['can_download_config'] = False
+            flags['can_block'] = False
+    return flags
+
 # Create your views here.
 
 @require_http_methods(['GET',])
@@ -114,50 +181,6 @@ def host_detail_view(request, ip):
         context[k] = f
 
     return render(request, 'host_detail.html', context)
-
-def __get_available_actions(host : MyHost) -> dict:
-    """
-    Compute which actions can be perfomed on a host.
-
-    Args:
-        host (MyHost): Host instance.
-
-    Returns:
-        dict: Returns a dictionary of boolean flags indicating available actions.
-    """
-    flags = {}
-    match host.status:
-        case HostStatusContract.UNREGISTERED:
-            flags['can_update'] = True
-            flags['can_register'] = True
-            flags['can_scan'] = True
-            flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
-            flags['can_block'] = False
-        case HostStatusContract.UNDER_REVIEW:
-            flags['can_update'] = True
-            flags['can_register'] = False
-            flags['can_scan'] = False
-            flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
-            flags['can_block'] = False
-        case HostStatusContract.BLOCKED:
-            flags['can_update'] = True
-            flags['can_register'] = True
-            flags['can_scan'] = True
-            flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
-            flags['can_block'] = False
-        case HostStatusContract.ONLINE:
-            flags['can_update'] = True
-            flags['can_register'] = False
-            flags['can_scan'] = True
-            flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
-            flags['can_block'] = True
-        case _:
-            flags['can_update'] = False
-            flags['can_register'] = False
-            flags['can_scan'] = False
-            flags['can_download_config'] = False
-            flags['can_block'] = False
-    return flags
 
 
 @login_required
@@ -287,6 +310,9 @@ def register_host(request, ip):
         # check if this host can be registered
         if not __get_available_actions(host).get('can_register'):
             raise Http404()
+        if not host.is_valid():
+            messages.error(request, "Host is not valid!")
+            return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
 
         # create an initial scan of the host
         with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
@@ -297,8 +323,9 @@ def register_host(request, ip):
                 host.status = HostStatusContract.UNDER_REVIEW
                 if not ipam.update_host_info(host):
                     scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
-                    messages.error(request, "Registration was aborted due to unknown reasons. Please notify the DETERRERS admin.")
-                    logger.error("register_host() could not update the state of host %s", host.ip_addr)
+                    messages.error(request, "Registration was aborted due to unknown reasons. Try again later...")
+            else:
+                messages.error(request, "Not possible to start registration at the moment! Try again later...")
 
     # redirect to a new URL:
     return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
@@ -334,6 +361,9 @@ def scan_host(request, ip):
         # check if this host can be scanned at the moment or whether there are already processes running for it
         if not __get_available_actions(host).get('can_scan'):
             raise Http404()
+        if not host.is_valid():
+            messages.error(request, "Host is not valid!")
+            return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
 
         # create an initial scan of the host
         with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
@@ -344,28 +374,12 @@ def scan_host(request, ip):
                 host.status = HostStatusContract.UNDER_REVIEW
                 if not ipam.update_host_info(host):
                     scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
-                    messages.error(request, "Scan was aborted due to unknown reasons. Please notify the DETERRERS admin.")
-                    logger.error("scan_host() could not update the state of host %s", host.ip_addr)
+                    messages.error(request, "Scan was aborted due to unknown reasons. Try again later...")
+            else:
+                messages.error(request, "Not possible to start scan at the moment! Try again later...")
 
     # redirect to a new URL:
     return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
-
-
-def __block_host(host_ip : str):
-    """
-    TODO: docu
-
-    Args:
-        host_ip (str): _description_
-    """
-    with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
-        host = ipam.get_host_info_from_ip(host_ip)
-        # change the perimeter firewall configuration so that host is blocked
-        with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
-            fw.remove_addr_obj_from_addr_grps(host_ip, {AddressGroups.HTTP, AddressGroups.SSH, AddressGroups.OPEN})
-        host.status = HostStatusContract.BLOCKED
-        if not ipam.update_host_info(host):
-            logger.error("__block_host() could not update host status to 'Blocked'!")
 
 @login_required
 @require_http_methods(['POST', ])
@@ -398,7 +412,8 @@ def block_host(request, ip : str):
     if not __get_available_actions(host).get('can_block'):
         raise Http404()
 
-    __block_host(ip)
+    if not __block_host(ip):
+        messages.error(request, "Couldn't block host!")
 
     # redirect to a new URL:
     return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
@@ -427,7 +442,7 @@ def delete_host_rule(request, ip : str, rule_id : uuid.UUID):
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
         host = ipam.get_host_info_from_ip(ip) # TODO: could be changed to get_host_info_from_id() for better performance
         # check if host is valid
-        if not host or not host.is_valid():
+        if not host:
             raise Http404()
         # check if user is admin of this host
         if not hostadmin.username in host.admin_ids:
@@ -438,9 +453,8 @@ def delete_host_rule(request, ip : str, rule_id : uuid.UUID):
             if uuid.UUID(rule['id']) == rule_id:
                 host.custom_rules.remove(rule)
                 break
-        ret = ipam.update_host_info(host)
-        if not ret:
-            logger.error("Host could not be updated! Try again later...")
+        if not ipam.update_host_info(host):
+            messages.error(request, "Host could not be updated! Try again later...")
 
     return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
 
@@ -462,16 +476,20 @@ def get_fw_config(request, ip : str):
     Returns:
         _type_: _description_
     """
-    logger.info(f"Generate fw config script for host {ip}")
+    logger.info("Generate fw config script for host %s", ip)
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
         host = ipam.get_host_info_from_ip(ip) # TODO: could be changed to get_host_info_from_id() for better performance
         # check if host is valid
-        if not host or not host.is_valid():
+        if not host:
             raise Http404()
         # check if user is admin of this host
         if not hostadmin.username in host.admin_ids:
             raise Http404()
+        if not host.is_valid():
+            messages.error(request, "Host is not valid!")
+            return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
+
 
     script = generate_rule(host.fw, host.service_profile, host.custom_rules)
     if script:
@@ -499,6 +517,8 @@ def v_scanner_registration_alert(request):
             with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
                 report_xml = scanner.get_report_xml(report_uuid)
                 scan_start, results = scanner.extract_report_data(report_xml)
+                if results is None:
+                    return
 
                 # TODO: get HTML report and send via e-mail to admin
 
@@ -509,7 +529,8 @@ def v_scanner_registration_alert(request):
                 if passed_scan:
                     logger.info("Host %s passed the registration scan and will be set online!", host_ip)
                     own_url = request.get_host() + reverse('v_scanner_periodic_alert')
-                    scanner.add_host_to_periodic_scan(host_ip=host_ip, deterrers_url=own_url)
+                    if not scanner.add_host_to_periodic_scan(host_ip=host_ip, deterrers_url=own_url):
+                        raise RuntimeError(f"Couldn't add host {host_ip} to periodic scan!")
                     # get the service profile of this host
                     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
                         host = ipam.get_host_info_from_ip(host_ip)
@@ -517,23 +538,26 @@ def v_scanner_registration_alert(request):
                         with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
                             match host.service_profile:
                                 case HostServiceContract.HTTP:
-                                    fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.HTTP,})
+                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.HTTP,})
                                 case HostServiceContract.SSH:
-                                    fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.SSH,})
+                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.SSH,})
                                 case HostServiceContract.MULTIPURPOSE:
-                                    fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.OPEN,})
+                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.OPEN,})
                                 case _:
                                     raise RuntimeError(f"Unknown service profile: {host.service_profile}")
+                            if not suc:
+                                raise RuntimeError(f"Couldn't update firewall configuration!")
                         host.status = HostStatusContract.ONLINE
                         if not ipam.update_host_info(host):
-                            logger.error("v_scanner_registration_alert() could not update host status to 'Online'!")
+                            raise RuntimeError("Couldn't update host information!")
                 else:
                     logger.info("Host %s did not pass the registration and will be blocked.", host_ip)
-                    __block_host(host_ip)
+                    if not __block_host(host_ip):
+                        raise RuntimeError("Couldn't block host")
 
                 scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
-        except Exception as err:
-            logger.error(str(err))
+        except Exception:
+            logger.exception("Processing registration alert failed!")
 
     # run as daemon because v_scanner needs a response before scan objects can be cleaned up
     t = Thread(target=proc_registration_alert, args=[request], daemon=True)
