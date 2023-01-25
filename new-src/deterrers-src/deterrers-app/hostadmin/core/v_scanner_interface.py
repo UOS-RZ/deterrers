@@ -534,8 +534,7 @@ class GmpVScannerInterface():
                 task_uuid = task_xml.attrib['id']
                 old_target_uuid = task_xml.xpath('//target/@id')[0]
                 # stop task in case it is running
-                pretty_print(task_xml)
-                running = (task_xml.xpath('//task/status') == 'Running')
+                running = (task_xml.xpath('//task/status')[0].text == 'Running')
                 if running:
                     response = self.gmp.stop_task(task_uuid)
                     response_status = int(response.xpath('@status')[0])
