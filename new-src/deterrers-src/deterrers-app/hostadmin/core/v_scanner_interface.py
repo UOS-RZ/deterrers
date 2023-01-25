@@ -534,12 +534,14 @@ class GmpVScannerInterface():
                 task_uuid = task_xml.attrib['id']
                 old_target_uuid = task_xml.xpath('//target/@id')[0]
                 # stop task in case it is running
-                try:
+                pretty_print(task_xml)
+                running = (task_xml.xpath('//task/status') == 'Running')
+                if running:
                     response = self.gmp.stop_task(task_uuid)
                     response_status = int(response.xpath('@status')[0])
                     assert response_status != 200
                     stopped = True # TODO: check response whether task was actually running
-                except GvmError:
+                else:
                     stopped = False
 
                 # 1. clone target
