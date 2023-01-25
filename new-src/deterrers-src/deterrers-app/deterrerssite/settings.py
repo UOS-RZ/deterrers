@@ -33,7 +33,14 @@ DEBUG = os.environ.get('DJANGO_DEBUG', '') != 'False'
 # For example: 'DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]'
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost 127.0.0.1 0.0.0.0 [::1]").split(" ")
 
-# CSRF_TRUSTED_ORIGINS = ['https://*.mydomain.com','https://*.127.0.0.1','http://*.127.0.0.1'] # TODO: change in production
+CSRF_TRUSTED_ORIGINS = [
+    'https://vm305.rz.uos.de',
+    'http://vm305.rz.uos.de',
+    'https://vm305.rz.uni-osnabrueck.de',
+    'http://vm305.rz.uni-osnabrueck.de',
+    'https://*.127.0.0.1',
+    'http://*.127.0.0.1'
+]
 
 # more extensive logging
 LOGGING = {
@@ -43,16 +50,24 @@ LOGGING = {
         "console": {
             "class": "logging.StreamHandler",
         },
+        "web_app_log_file": {
+            "class": "logging.FileHandler",
+            "filename": f"/home/{os.environ.get('MICRO_SERVICE')}/logs/deterrers-app.log",
+        },
     },
     "loggers": {
         "django_python3_ldap": {
             "handlers": ["console"],
+            "level": 'WARNING', # os.environ.get('LOG_LEVEL', 'WARNING'),
+        },
+        "deterrers-app!": {
+            "handlers": ["web_app_log_file"],
             "level": os.environ.get('LOG_LEVEL', 'INFO'),
         },
     },
     'root': {
         'handlers': ['console'],
-        'level': os.environ.get('LOG_LEVEL', 'INFO'),
+        'level': 'WARNING', # os.environ.get('LOG_LEVEL', 'INFO'),
     },
 }
 

@@ -45,6 +45,7 @@ services:
       - .:/microservice:rw # map data and files from parent directory in host to microservice directory in docker containe
       - static_volume:/home/app/microservice/static
       - ./db:/home/app/microservice/db
+      - ./logs:/home/app/microservice/logs
     # expose:
     #   - 8000
     restart: "on-failure"
