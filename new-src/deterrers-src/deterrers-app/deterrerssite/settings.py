@@ -46,13 +46,21 @@ CSRF_TRUSTED_ORIGINS = [
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+    },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
+            "formatter": "verbose",
         },
         "web_app_log_file": {
             "class": "logging.FileHandler",
             "filename": f"/{os.environ.get('MICRO_SERVICE')}/logs/deterrers-app.log",
+            "formatter": "verbose",
         },
     },
     "loggers": {
