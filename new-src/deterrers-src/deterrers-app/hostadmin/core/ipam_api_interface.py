@@ -89,7 +89,7 @@ class ProteusIPAMInterface():
                 rules = json.loads(props['deterrers_rules'])
             except KeyError:
                 rules = []
-        except KeyError:
+        except (KeyError, AttributeError):
             ip = ''
             mac = ''
             status = None
@@ -98,7 +98,7 @@ class ProteusIPAMInterface():
             rules = []
         return host_id, name, ip, mac, status, service_profile, fw, rules
 
-    def __get_tagged_admins(self, host_id):
+    def __get_tagged_admins(self, host_id : int) -> list:
         """
         Queries the Proteus IPAM system for all tagged admins (max. 100) of a certain host.
 
