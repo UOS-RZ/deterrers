@@ -629,7 +629,7 @@ class GmpVScannerInterface():
                 self.gmp.stop_task(task_id=task_uuid)
             except GvmError as err:
                 logger.warn("Couldn't stop task! Error: %s", str(err))
-                self.gmp.authenticate(self.username, self.password)
+                self.gmp.authenticate(self.username, self.password) # TODO: instead of reauthentication, we could check beforehand if the task is running
         if report_uuid:
             try:
                 self.gmp.delete_report(report_uuid)
