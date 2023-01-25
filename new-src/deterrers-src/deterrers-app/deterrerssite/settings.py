@@ -59,7 +59,7 @@ LOGGING = {
         },
         "web_app_log_file": {
             "class": "logging.FileHandler",
-            "filename": os.path.join(os.environ.get('MICRO_SERVICE', BASE_DIR), "/logs/deterrers-app.log"),
+            "filename": os.path.join(os.environ.get('MICRO_SERVICE', BASE_DIR), "logs/deterrers-app.log"),
             "formatter": "verbose",
         },
     },
