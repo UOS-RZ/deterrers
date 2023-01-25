@@ -52,7 +52,7 @@ LOGGING = {
         },
         "web_app_log_file": {
             "class": "logging.FileHandler",
-            "filename": f"/home/{os.environ.get('MICRO_SERVICE')}/logs/deterrers-app.log",
+            "filename": f"/{os.environ.get('MICRO_SERVICE')}/logs/deterrers-app.log",
         },
     },
     "loggers": {
