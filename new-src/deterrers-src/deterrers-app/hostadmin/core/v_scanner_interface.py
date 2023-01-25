@@ -546,7 +546,7 @@ class GmpVScannerInterface():
                 # 1. clone target
                 response = self.gmp.clone_target(old_target_uuid)
                 response_status = int(response.xpath('@status')[0])
-                if response_status != 200:
+                if response_status != 201:
                     raise GmpAPIError(f"Couldn't clone target {old_target_uuid}! Status: {response_status}")
                 new_target_uuid = response.xpath('@id')[0]
                 # 2. modify new target with new host added to old host-list
