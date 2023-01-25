@@ -64,19 +64,20 @@ LOGGING = {
         },
     },
     "loggers": {
+        "django": {
+            "handlers": ["web_app_log_file", "console"],
+            "level": os.environ.get('LOG_LEVEL', 'INFO'),
+            'propagate': True,
+        },
         "django_python3_ldap": {
             "handlers": ["console"],
             "level": 'WARNING', # os.environ.get('LOG_LEVEL', 'WARNING'),
         },
-        "deterrers-app!": {
-            "handlers": ["web_app_log_file"],
-            "level": os.environ.get('LOG_LEVEL', 'INFO'),
-        },
     },
-    'root': {
-        'handlers': ['console'],
-        'level': 'WARNING', # os.environ.get('LOG_LEVEL', 'INFO'),
-    },
+    # 'root': {
+    #     'handlers': ['console'],
+    #     'level': 'WARNING', # os.environ.get('LOG_LEVEL', 'INFO'),
+    # },
 }
 
 
