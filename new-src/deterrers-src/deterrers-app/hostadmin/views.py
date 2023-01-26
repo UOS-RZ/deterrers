@@ -98,17 +98,6 @@ def about_view(request):
     context = {}
     return render(request, 'about.html', context)
 
-@login_required
-@require_http_methods(['GET',])
-def hostadmin_overview_view(request):
-    """
-    TODO: Implement overview page for host admins to view general information
-    """
-    hostadmin_inst = get_object_or_404(MyUser, username=request.user.username)
-    context = {
-        'hostadmin' : hostadmin_inst
-    }
-    return render(request, 'overview.html', context)
 
 @login_required
 @require_http_methods(['GET', 'POST'])

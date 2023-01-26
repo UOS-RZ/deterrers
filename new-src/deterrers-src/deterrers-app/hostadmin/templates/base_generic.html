@@ -25,8 +25,8 @@
 				{% if user.is_authenticated %}
 				<p>
 					User: <strong>{{ user.get_username }} </strong>
-					<a href="{% url 'hostadmin_overview' %}">Overview</a>
-					<a href="{% url 'hosts_list' %}">All my hosts</a>
+					<!-- <a href="{% url 'hostadmin_overview' %}">Overview</a> -->
+					<a href="{% url 'hosts_list' %}">Overview</a>
 					<a href="{% url 'logout' %}">Logout</a>
 				</p>
 				{% else %}
