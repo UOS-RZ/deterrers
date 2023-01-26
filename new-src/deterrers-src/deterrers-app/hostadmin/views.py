@@ -11,6 +11,7 @@ from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.conf import settings
 from django.contrib import messages
+from django.core.mail import EmailMultiAlternatives
 
 from .forms import ChangeHostDetailForm, AddHostRulesForm
 from .core.ipam_api_interface import ProteusIPAMInterface
@@ -527,6 +528,17 @@ def v_scanner_registration_alert(request):
                     return
 
                 # TODO: get HTML report and send via e-mail to admin
+                report_html = scanner.get_report_html(report_uuid)
+                email = EmailMultiAlternatives(
+                    subject="DETERRERS - Vulnerability Scanner report",
+                    body="String body in case e-mail server does not support HTML", # TODO
+                    to=["nwintering@uos.de"], # TODO
+                )
+                email.attach_alternative(str(report_html), 'text/html')
+                try:
+                    email.send()
+                except Exception:
+                    logger.exception("Couldn't send e-mail!")
 
                 # TODO: Risk assessment
                 risk = compute_risk_of_network_exposure(results)
