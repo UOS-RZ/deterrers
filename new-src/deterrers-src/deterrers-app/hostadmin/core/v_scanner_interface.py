@@ -2,6 +2,7 @@ import logging
 from enum import Enum
 from datetime import datetime, timedelta
 import icalendar
+from base64 import b64decode
 import os
 import time
 
@@ -36,6 +37,10 @@ class Credentials(Enum):
     HULK_SSH_CRED_UUID = "22bdc0be-827c-4566-9b1d-2679cf85cb65"
     HULK_SMB_CRED_UUID = "13c917aa-e0cc-4027-b249-068ed0f6f4a0"
 
+class ReportFormat(Enum):
+    XML_UUID = "5057e5cc-b825-11e4-9d0e-28d24461215b"
+    HTML_UUID = "ffa123c9-a2d2-409e-bbbb-a6c1385dbeaa"
+
 
 # TODO: implement for Open Scanner Protocol https://python-gvm.readthedocs.io/en/latest/usage.html#using-osp
 
@@ -68,7 +73,7 @@ class GmpVScannerInterface():
             port=self.scanner_port,
             timeout=self.TIMEOUT,
             # vulnerability scanner must have been added to a known_hosts-file before application was started
-            known_hosts_file=os.environ.get('MICRO_SERVICE', '')+'/known_hosts'
+            # known_hosts_file=os.environ.get('MICRO_SERVICE', '')+'/known_hosts'
         )
         self.gmp = Gmp(connection=connection, transform=transform)
 
@@ -728,7 +733,7 @@ class GmpVScannerInterface():
         """
         rep_filter = "status=Done apply_overrides=0 rows=-1 min_qod=70 first=1"
         try:
-            response = self.gmp.get_report(report_uuid, filter_string=rep_filter, ignore_pagination=True)
+            response = self.gmp.get_report(report_uuid, filter_string=rep_filter, ignore_pagination=True, details=True)
             response_status = int(response.xpath('@status')[0])
             if response_status != 200:
                 raise GmpAPIError(f"Couldn't query report {report_uuid}!")
@@ -739,6 +744,31 @@ class GmpVScannerInterface():
             logger.exception("Get report as XML failed.")
 
         return None
+
+    def get_report_html(self, report_uuid : str):
+        """
+        Query the HTML report for some report UUID.
+
+        Args:
+            report_uuid (str): UUID of the report.
+
+        Returns:
+            _type_: HTML bytes object of the report.
+        """
+        rep_filter = "status=Done apply_overrides=0 rows=-1 min_qod=70 first=1"
+        try:
+            response = self.gmp.get_report(report_uuid, filter_string=rep_filter, report_format_id=ReportFormat.HTML_UUID.value, details=True, ignore_pagination=True)
+            response = response.find("report")
+            response = response.find("report_format").tail
+            # HTML reports are send base64 encoded
+            response = b64decode(response)
+            return response
+        except GvmError:
+            logger.exception("Couldn't fetch report with ID '%s' from GSM!", report_uuid)
+        except GmpAPIError:
+            logger.exception("Get report as HTML failed.")
+        return None
+
 
     def extract_report_data(self, report) -> tuple:
         """

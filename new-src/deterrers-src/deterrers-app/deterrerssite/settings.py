@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 import os
 from pathlib import Path
 
+DOMAIN_NAME = os.environ.get('DOMAIN_NAME', 'vm305.rz.uos.de')
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -109,6 +111,17 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# TODO: Add e-mail support to website, until then e-mails will be printed to console by following line
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' # 'django.core.mail.backends.smtp.EmailBackend'
+DEFAULT_FROM_EMAIL = f'noreply@{DOMAIN_NAME}'
+EMAIL_HOST = os.environ.get('SMTP_URL', 'localhost')
+EMAIL_PORT = os.environ.get('SMTP_PORT', 25)
+EMAIL_HOST_USER = os.environ.get('SMTP_USERNAME', '')
+EMAIL_HOST_PASSWORD = os.environ.get('SMTP_PASSWORD', '')
+# EMAIL_USE_SSL = False
+EMAIL_USE_TLS = True
+
+
 ROOT_URLCONF = 'deterrerssite.urls'
 
 TEMPLATES = [
@@ -187,9 +200,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Redirect to home URL after login (Default redirects to /accounts/profile/)
 LOGIN_REDIRECT_URL = '/'
-
-# TODO: Add e-mail support to website, until then e-mails will be printed to console by following line
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 AUTH_USER_MODEL = 'myuser.MyUser'
 
