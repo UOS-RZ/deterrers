@@ -32,7 +32,7 @@ class CustomRuleSubnetContract(Enum):
 class CustomRuleProtocolContract(Enum):
     TCP = "tcp"
     UDP = "udp"
-    # ANY = "any" # cannot be modelled with firewalld, so we do not support it in the meantime
+    # ANY = "any" # cannot be modelled with firewalld and nftables, so we do not support it in the meantime
 
 
 class MyHost():

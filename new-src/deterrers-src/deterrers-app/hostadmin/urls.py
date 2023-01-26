@@ -21,7 +21,6 @@ urlpatterns = [
     path('host/<esc_ip:ip>/block/', views.block_host, name='block_host'),
     path('host/<esc_ip:ip>/get-fw-config/', views.get_fw_config, name='get_fw_config'),
     path('hosts/', views.hosts_list_view, name='hosts_list'),
-    path('overview/', views.hostadmin_overview_view, name='hostadmin_overview'),
     path('', views.about_view, name='about'),
     path('greenbone-registration-alert/', views.v_scanner_registration_alert, name='v_scanner_registration_alert'),
     path('greenbone-scan-alert/', views.v_scanner_scan_alert, name='v_scanner_scan_alert'),
