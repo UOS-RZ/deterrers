@@ -189,7 +189,14 @@ def hosts_list_view(request):
     """
     Function view for showing all hosts that are administrated by the current hostadmin.
     Paginated to 20 entries per page.
+
+    Args:
+        request (_type_): Request object.
+
+    Returns:
+        HttpResponse: Rendered HTML page.
     """
+
     PAGINATE = 20
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
@@ -217,7 +224,7 @@ def hosts_list_view(request):
 
 @login_required
 @require_http_methods(['GET', 'POST'])
-def update_host_detail(request, ip):
+def update_host_detail(request, ip : str):
     """
     View function for processing of the form for updating host information.
     Only available to logged in users.
@@ -284,19 +291,17 @@ def update_host_detail(request, ip):
 @require_http_methods(['POST', ])
 def register_host(request, ip):
     """
-    TODO: docu
+    Processes requests for performing a registration on a host.
 
     Args:
-        request (_type_): _description_
-        ip (_type_): _description_
+        request (_type_): Request object.
+        ip (str): IP address of the host.
 
     Raises:
-        Http404: _description_
-        Http404: _description_
-        Http404: _description_
+        Http404: Raised if host or hostadmin do not exist or if some permission is denied.
 
     Returns:
-        _type_: _description_
+        HttpResponseRedirect: Redirect to the detail page of the host.
     """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     
@@ -312,20 +317,19 @@ def register_host(request, ip):
             raise Http404()
         if not host.is_valid():
             messages.error(request, "Host is not valid!")
-            return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
-
-        # create an initial scan of the host
-        with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
-            own_url = request.get_host() + reverse('v_scanner_registration_alert')
-            target_uuid, task_uuid, report_uuid, alert_uuid = scanner.create_registration_scan(ip, own_url)
-            if target_uuid and task_uuid and report_uuid and alert_uuid:
-                # update state in IPAM
-                host.status = HostStatusContract.UNDER_REVIEW
-                if not ipam.update_host_info(host):
-                    scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
-                    messages.error(request, "Registration was aborted due to unknown reasons. Try again later...")
-            else:
-                messages.error(request, "Not possible to start registration at the moment! Try again later...")
+        else:
+            # create an initial scan of the host
+            with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
+                own_url = request.get_host() + reverse('v_scanner_registration_alert')
+                target_uuid, task_uuid, report_uuid, alert_uuid = scanner.create_registration_scan(ip, own_url)
+                if target_uuid and task_uuid and report_uuid and alert_uuid:
+                    # update state in IPAM
+                    host.status = HostStatusContract.UNDER_REVIEW
+                    if not ipam.update_host_info(host):
+                        scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
+                        messages.error(request, "Registration was aborted due to unknown reasons. Try again later...")
+                else:
+                    messages.error(request, "Not possible to start registration at the moment! Try again later...")
 
     # redirect to a new URL:
     return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
@@ -333,21 +337,19 @@ def register_host(request, ip):
 
 @login_required
 @require_http_methods(['POST', ])
-def scan_host(request, ip):
+def scan_host(request, ip : str):
     """
-    TODO: docu
+    Processes requests for performing an ordinary scan on a host.
 
     Args:
-        request (_type_): _description_
-        ip (_type_): _description_
+        request (_type_): Request object.
+        ip (str): IP address of the host.
 
     Raises:
-        Http404: _description_
-        Http404: _description_
-        Http404: _description_
+        Http404: Raised if host or hostadmin do not exist or if some permission is denied.
 
     Returns:
-        _type_: _description_
+        HttpResponseRedirect: Redirect to the detail page of the host.
     """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     
@@ -363,20 +365,19 @@ def scan_host(request, ip):
             raise Http404()
         if not host.is_valid():
             messages.error(request, "Host is not valid!")
-            return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
-
-        # create an initial scan of the host
-        with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
-            own_url = request.get_host() + reverse('v_scanner_scan_alert')
-            target_uuid, task_uuid, report_uuid, alert_uuid = scanner.create_scan(ip, own_url)
-            if target_uuid and task_uuid and report_uuid and alert_uuid:
-                # update state in IPAM
-                host.status = HostStatusContract.UNDER_REVIEW
-                if not ipam.update_host_info(host):
-                    scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
-                    messages.error(request, "Scan was aborted due to unknown reasons. Try again later...")
-            else:
-                messages.error(request, "Not possible to start scan at the moment! Try again later...")
+        else:
+            # create an initial scan of the host
+            with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
+                own_url = request.get_host() + reverse('v_scanner_scan_alert')
+                target_uuid, task_uuid, report_uuid, alert_uuid = scanner.create_scan(ip, own_url)
+                if target_uuid and task_uuid and report_uuid and alert_uuid:
+                    # update state in IPAM
+                    host.status = HostStatusContract.UNDER_REVIEW
+                    if not ipam.update_host_info(host):
+                        scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
+                        messages.error(request, "Scan was aborted due to unknown reasons. Try again later...")
+                else:
+                    messages.error(request, "Not possible to start scan at the moment! Try again later...")
 
     # redirect to a new URL:
     return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
@@ -385,19 +386,17 @@ def scan_host(request, ip):
 @require_http_methods(['POST', ])
 def block_host(request, ip : str):
     """
-    TODO: docu
+    Processes requests for blocking a certain host.
 
     Args:
-        request (_type_): _description_
-        ip (str): _description_
+        request (_type_): Request object.
+        ip (str): IP address of the host.
 
     Raises:
-        Http404: _description_
-        Http404: _description_
-        Http404: _description_
+        Http404: Raised if host or hostadmin do not exist or if some permission is denied.
 
     Returns:
-        _type_: _description_
+        HttpResponseRedirect: Redirect to the detail page of the host.
     """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     
@@ -423,19 +422,18 @@ def block_host(request, ip : str):
 @require_http_methods(['POST',])
 def delete_host_rule(request, ip : str, rule_id : uuid.UUID):
     """
-    TODO: docu
+    Processes requests for deleting a custom firewall rule.
 
     Args:
-        request (_type_): _description_
-        ip (str): _description_
-        rule_id (uuid.UUID): _description_
+        request (_type_): Request object.
+        ip (str): IP address of the host.
+        rule_id (uuid.UUID): UUID of the rule that is to be deleted.
 
     Raises:
-        Http404: _description_
-        Http404: _description_
+        Http404: Raised if host or hostadmin do not exist or if some permission is denied.
 
     Returns:
-        _type_: _description_
+        HttpResponseRedirect: Redirect to the detail page of the host.
     """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
@@ -463,18 +461,17 @@ def delete_host_rule(request, ip : str, rule_id : uuid.UUID):
 @require_http_methods(['GET',])
 def get_fw_config(request, ip : str):
     """
-    TODO: docu
+    Processes requests of configuration scripts for host-based firewalls.
 
     Args:
-        request (_type_): _description_
-        ip (str): _description_
+        request (_type_): Request objects.
+        ip (str): IP address of a host.
 
     Raises:
-        Http404: _description_
-        Http404: _description_
+        Http404: Raised if host or hostadmin do not exist or if some permission is denied.
 
     Returns:
-        _type_: _description_
+        FileResponse: Returns the firewall configuration script for the queried host as file.
     """
     logger.info("Generate fw config script for host %s", ip)
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
@@ -505,9 +502,29 @@ def get_fw_config(request, ip : str):
 
 @require_http_methods(['GET', ])
 def v_scanner_registration_alert(request):
-    logger.info("Received notification from Greenbone Securtiy Manager that a registration completed.")
+    """
+    Processes the alert send by the v-scanner when a registration scan has completed.
+    The scan report will be assessed and an HTML report will be send to the admin.
+    In case the risk assessment finds no high risks, the host is added to the target list of
+    the periodic scan in the v-scanner and it is set online in the perimeter firewall.
+    Otherwise, the host will be blocked (even though it probably is already in blocked state).
+
+    Args:
+        request (_type_): Request object.
+
+    Returns:
+        HTTPResponse: Always returns response with status 200 because processing of the alert
+            happens independently in daemon thread.
+    """
+    logger.info("Received notification from v-scanner that a registration completed.")
 
     def proc_registration_alert(request):
+        """
+        Inner function for processing the registration alert in a daemon thread.
+
+        Args:
+            request (_type_): Request object.
+        """
         try:
             host_ip = request.GET['host_ip']
             report_uuid = request.GET['report_uuid']
@@ -567,9 +584,58 @@ def v_scanner_registration_alert(request):
 
 @require_http_methods(['GET', ])
 def v_scanner_scan_alert(request):
-    # TODO
-    logger.warn("Not implemented yet!")
-    raise Http404()
+    """
+    Processes the alert send by the v-scanner when an ordinary scan has completed.
+    The scan report will be assessed and an HTML report will be send to the admin.
+
+    Args:
+        request (_type_): Request object.
+
+    Returns:
+        HTTPResponse: Always returns response with status 200 because processing of the alert
+            happens independently in daemon thread.
+    """
+    logger.info("Received notification from v-scanner that an ordinary scan completed.")
+
+    def proc_scan_alert(request):
+        """
+        Inner function for processing the scan alert in a daemon thread.
+
+        Args:
+            request (_type_): Request object.
+        """
+        try:
+            host_ip = request.GET['host_ip']
+            report_uuid = request.GET['report_uuid']
+            task_uuid = request.GET['task_uuid']
+            target_uuid = request.GET['target_uuid']
+            alert_uuid = request.GET['alert_uuid']
+            with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
+                report_xml = scanner.get_report_xml(report_uuid)
+                scan_start, results = scanner.extract_report_data(report_xml)
+                if results is None:
+                    return
+
+                # TODO: get HTML report and send via e-mail to admin
+
+                # TODO: Risk assessment
+                risk = compute_risk_of_network_exposure(results)
+                passed_scan = True
+
+                if passed_scan:
+                    logger.info("Host %s passed the scan and will be set online!", host_ip)
+                else:
+                    logger.info("Host %s did not pass the registration and will be blocked.", host_ip)
+
+                scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
+        except Exception:
+            logger.exception("Processing scan alert failed!")
+
+    # run as daemon because v_scanner needs a response before scan objects can be cleaned up
+    t = Thread(target=proc_scan_alert, args=[request], daemon=True)
+    t.start()
+
+    return HttpResponse("Success!", status=200)
 
 @require_http_methods(['GET',])
 def v_scanner_periodic_alert(request):
