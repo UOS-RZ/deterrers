@@ -92,6 +92,20 @@ def __get_available_actions(host : MyHost) -> dict:
             flags['can_block'] = False
     return flags
 
+def __send_report_email(report_html : str, subject : str, str_body : str, to : list):
+    # TODO: docu
+    email = EmailMultiAlternatives(
+                subject=subject,
+                body=str_body,
+                to=to,
+            )
+    email.attach_alternative(report_html, 'text/html')
+    try:
+        email.send()
+    except Exception:
+        logger.exception("Couldn't send e-mail!")
+
+
 # Create your views here.
 
 @require_http_methods(['GET',])
@@ -527,18 +541,14 @@ def v_scanner_registration_alert(request):
                 if results is None:
                     return
 
-                # TODO: get HTML report and send via e-mail to admin
+                # get HTML report and send via e-mail to admin
                 report_html = scanner.get_report_html(report_uuid)
-                email = EmailMultiAlternatives(
-                    subject="DETERRERS - Vulnerability Scanner report",
-                    body="String body in case e-mail server does not support HTML", # TODO
-                    to=["nwintering@uos.de"], # TODO
+                __send_report_email(
+                    str(report_html),
+                    "DETERRERS - Vulnerability Scanner report",
+                    "String body in case e-mail server does not support HTML", # TODO
+                    ["nwintering@uos.de"], # TODO
                 )
-                email.attach_alternative(str(report_html), 'text/html')
-                try:
-                    email.send()
-                except Exception:
-                    logger.exception("Couldn't send e-mail!")
 
                 # TODO: Risk assessment
                 risk = compute_risk_of_network_exposure(results)
@@ -617,7 +627,14 @@ def v_scanner_scan_alert(request):
                 if results is None:
                     return
 
-                # TODO: get HTML report and send via e-mail to admin
+                # get HTML report and send via e-mail to admin
+                report_html = scanner.get_report_html(report_uuid)
+                __send_report_email(
+                    str(report_html),
+                    "DETERRERS - Vulnerability Scanner report",
+                    "String body in case e-mail server does not support HTML", # TODO
+                    ["nwintering@uos.de"], # TODO
+                )
 
                 # TODO: Risk assessment
                 risk = compute_risk_of_network_exposure(results)
