@@ -647,14 +647,15 @@ def v_scanner_scan_alert(request):
                 else:
                     logger.info("Host %s did not pass the scan.", host_ip)
 
+                # reset hosts status
+                with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+                    host = ipam.get_host_info_from_ip(host_ip)
+                    with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
+                        host.status = fw.get_host_status(host.ip_addr)
+                    if not ipam.update_host_info(host):
+                        raise RuntimeError("Couldn't update host information!")
+
                 scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
-            # reset hosts status
-            with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
-                host = ipam.get_host_info_from_ip(host_ip)
-                with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
-                    host.status = fw.get_host_status(host.ip_addr)
-                if not ipam.update_host_info(host):
-                    raise RuntimeError("Couldn't update host information!")
                 
         except Exception:
             logger.exception("Processing scan alert failed!")
