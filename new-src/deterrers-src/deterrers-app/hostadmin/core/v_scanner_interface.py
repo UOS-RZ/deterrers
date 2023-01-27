@@ -419,7 +419,7 @@ class GmpVScannerInterface():
             task_uuid = self.__create_task(
                 target_uuid,
                 task_name,
-                ScanConfig.FULL_VERY_DEEP_UUID.value,
+                ScanConfig.FULL_FAST_UUID.value, # TODO: change back
                 Scanner.OPENVAS_DEFAULT_SCANNER_UUID.value,
                 [alert_uuid,],
             )
