@@ -753,7 +753,7 @@ class GmpVScannerInterface():
             report_uuid (str): UUID of the report.
 
         Returns:
-            _type_: HTML bytes object of the report.
+            _type_: HTML string of the report.
         """
         rep_filter = "status=Done apply_overrides=0 rows=-1 min_qod=70 first=1"
         try:
@@ -761,7 +761,7 @@ class GmpVScannerInterface():
             response = response.find("report")
             response = response.find("report_format").tail
             # HTML reports are send base64 encoded
-            response = b64decode(response)
+            response = b64decode(response).decode('utf-8')
             return response
         except GvmError:
             logger.exception("Couldn't fetch report with ID '%s' from GSM!", report_uuid)
