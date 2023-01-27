@@ -73,7 +73,7 @@ class GmpVScannerInterface():
             port=self.scanner_port,
             timeout=self.TIMEOUT,
             # vulnerability scanner must have been added to a known_hosts-file before application was started
-            # known_hosts_file=os.environ.get('MICRO_SERVICE', '')+'/known_hosts'
+            known_hosts_file=os.environ.get('MICRO_SERVICE', '')+'/known_hosts'
         )
         self.gmp = Gmp(connection=connection, transform=transform)
 
