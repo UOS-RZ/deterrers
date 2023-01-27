@@ -94,7 +94,7 @@ def __get_available_actions(host : MyHost) -> dict:
             flags['can_block'] = False
     return flags
 
-def __send_report_email(report_html : str, subject : str, str_body : str, to : list):
+def __send_report_email(report_html : bytes, subject : str, str_body : str, to : list):
     # TODO: docu
     email = EmailMultiAlternatives(
                 subject=subject,
@@ -546,7 +546,7 @@ def v_scanner_registration_alert(request):
                 # get HTML report and send via e-mail to admin
                 report_html = scanner.get_report_html(report_uuid)
                 __send_report_email(
-                    str(report_html),
+                    report_html,
                     "DETERRERS - Vulnerability Scanner report",
                     "String body in case e-mail server does not support HTML", # TODO
                     ["nwintering@uos.de"], # TODO
@@ -632,7 +632,7 @@ def v_scanner_scan_alert(request):
                 # get HTML report and send via e-mail to admin
                 report_html = scanner.get_report_html(report_uuid)
                 __send_report_email(
-                    str(report_html),
+                    report_html,
                     "DETERRERS - Vulnerability Scanner report",
                     "String body in case e-mail server does not support HTML", # TODO
                     ["nwintering@uos.de"], # TODO
@@ -643,11 +643,19 @@ def v_scanner_scan_alert(request):
                 passed_scan = True
 
                 if passed_scan:
-                    logger.info("Host %s passed the scan and will be set online!", host_ip)
+                    logger.info("Host %s passed the scan!", host_ip)
                 else:
-                    logger.info("Host %s did not pass the registration and will be blocked.", host_ip)
+                    logger.info("Host %s did not pass the scan.", host_ip)
 
                 scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
+            # reset hosts status
+            with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+                host = ipam.get_host_info_from_ip(host_ip)
+                with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
+                    host.status = fw.get_host_status(host.ip_addr)
+                if not ipam.update_host_info(host):
+                    raise RuntimeError("Couldn't update host information!")
+                
         except Exception:
             logger.exception("Processing scan alert failed!")
 
