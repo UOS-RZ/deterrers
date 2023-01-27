@@ -44,6 +44,8 @@ def __block_host(host_ip : str) -> bool:
         host.status = HostStatusContract.BLOCKED
         if not ipam.update_host_info(host):
             return False
+    
+    # TODO: remove from periodic scan
         
     return True
 
