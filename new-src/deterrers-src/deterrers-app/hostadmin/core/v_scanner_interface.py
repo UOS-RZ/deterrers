@@ -473,7 +473,7 @@ class GmpVScannerInterface():
                 # Limit port scan to all tcp and udp ports registered with IANA.
                 # This will also minimize probability that defense mechanisms against port scans
                 # are triggered on the host.
-                PortList.ALL_IANA_TCP_UUID.value,
+                PortList.ALL_IANA_TCP_UUID.value, # TODO change to ALL_TCP_Nmap_1000_UDP
             )
 
             # create/get an alert that sends the report back to the server
