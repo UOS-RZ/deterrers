@@ -16,7 +16,7 @@ from django.core.mail import EmailMultiAlternatives
 from .forms import ChangeHostDetailForm, AddHostRulesForm
 from .core.ipam_api_interface import ProteusIPAMInterface
 from .core.v_scanner_interface import GmpVScannerInterface
-from .core.fw_interface import PaloAltoInterface, AddressGroups
+from .core.fw_interface import PaloAltoInterface, AddressGroup
 from .core.risk_assessor import compute_risk_of_network_exposure
 from .core.rule_generator import generate_rule
 from .core.host import MyHost, HostStatusContract, HostServiceContract, HostFWContract, CustomRuleSubnetContract
@@ -39,7 +39,7 @@ def __block_host(host_ip : str) -> bool:
         host = ipam.get_host_info_from_ip(host_ip)
         # change the perimeter firewall configuration so that host is blocked
         with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
-            if not fw.remove_addr_obj_from_addr_grps(host_ip, {AddressGroups.HTTP, AddressGroups.SSH, AddressGroups.OPEN}):
+            if not fw.remove_addr_obj_from_addr_grps(host_ip, {AddressGroup.HTTP, AddressGroup.SSH, AddressGroup.OPEN}):
                 return False
         host.status = HostStatusContract.BLOCKED
         if not ipam.update_host_info(host):
@@ -568,11 +568,11 @@ def v_scanner_registration_alert(request):
                         with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
                             match host.service_profile:
                                 case HostServiceContract.HTTP:
-                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.HTTP,})
+                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroup.HTTP,})
                                 case HostServiceContract.SSH:
-                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.SSH,})
+                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroup.SSH,})
                                 case HostServiceContract.MULTIPURPOSE:
-                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.OPEN,})
+                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroup.OPEN,})
                                 case _:
                                     raise RuntimeError(f"Unknown service profile: {host.service_profile}")
                             if not suc:
