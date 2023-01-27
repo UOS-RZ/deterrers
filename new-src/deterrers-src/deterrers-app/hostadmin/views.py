@@ -94,7 +94,7 @@ def __get_available_actions(host : MyHost) -> dict:
             flags['can_block'] = False
     return flags
 
-def __send_report_email(report_html : bytes, subject : str, str_body : str, to : list):
+def __send_report_email(report_html : str, subject : str, str_body : str, to : list):
     # TODO: docu
     email = EmailMultiAlternatives(
                 subject=subject,
