@@ -2,6 +2,13 @@ from django import forms
 
 from .core.host import HostServiceContract, HostFWContract, CustomRuleSubnetContract, CustomRuleProtocolContract
 
+class HostadminForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        choices = kwargs.pop('choices')
+        super(HostadminForm, self).__init__(*args, **kwargs)
+        self.fields["department"] = forms.ChoiceField(choices=list(enumerate(choices)), required=True, label='Departments:')
+
+
 
 class ChangeHostDetailForm(forms.Form):
     # create lists of tuples in order to make use of the model validation of django

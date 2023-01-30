@@ -414,3 +414,126 @@ deterrers_rules={json.dumps(host.custom_rules)}|'}
             logger.error("Host not valid: %s", str(host))
 
         return False
+
+
+    def get_department_tags(self) -> list:
+        # TODO: docu
+        admin_tag_grps = []
+        try:
+            # get TagGroup_id with getEntitiesByName
+            entitybyname_parameters = f"name={self.TAG_GROUP_NAME}&parentId=0&start=0&type=TagGroup"
+            get_entitiesbyname_url = self.main_url + "getEntityByName?" + entitybyname_parameters
+            response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
+            data = response.json()
+            tag_group_id = data["id"]
+            # get all child tags (this are te department tags)
+            child_tags_parameters = f"count=1000&parentId={tag_group_id}&start=0&type=Tag"
+            get_child_tags_url = self.main_url + "getEntities?" + child_tags_parameters
+            response = requests.get(get_child_tags_url, headers=self.header, timeout=self.TIMEOUT)
+            data = response.json()
+            for tag_entity in data:
+                tag_id = tag_entity['id']
+                tag_name = tag_entity['name']
+                admin_tag_grps.append(tag_name)
+
+        except Exception:
+            logger.exception("Couldn't query department tags from IPAM!")
+            return []
+
+        return admin_tag_grps
+
+    def get_department_to_admin(self, admin_tag_name : str) -> str|None:
+        # TODO: docu
+        try:
+            # get TagGroup_id with getEntitiesByName
+            entitybyname_parameters = f"name={self.TAG_GROUP_NAME}&parentId=0&start=0&type=TagGroup"
+            get_entitiesbyname_url = self.main_url + "getEntityByName?" + entitybyname_parameters
+            response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
+            data = response.json()
+            tag_group_id = data["id"]
+            # get all department tags which themselves hold the actual admin tags
+            get_entities_parameters = f"count=1000&parentId={tag_group_id}&start=0&type=Tag"
+            get_entities_url = self.main_url + "getEntities?" + get_entities_parameters
+            response = requests.get(get_entities_url, headers=self.header, timeout=self.TIMEOUT)
+            data = response.json()
+            for department_tag_entity in data:
+                department_tag_id = department_tag_entity['id']
+                # query whether admin tag exists under this department tag
+                entitybyname_parameters = f"name={admin_tag_name}&parentId={department_tag_id}&start=0&type=Tag"
+                get_entitiesbyname_url = self.main_url + "getEntityByName?" + entitybyname_parameters
+                response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
+                data = response.json()
+                if data['name'] == admin_tag_name:
+                    return department_tag_entity['name']
+        except Exception:
+            logger.exception("Couldn't query parent tag from IPAM!")
+
+        return None
+
+    def create_admin_tag(self, admin_tag_name : str, department_tag_name : str) -> bool:
+        # TODO: docu
+        try:
+            admin_tag_name = self.__escape_user_input(admin_tag_name)
+            # get TagGroup_id with getEntitiesByName
+            entitybyname_parameters = f"name={self.TAG_GROUP_NAME}&parentId=0&start=0&type=TagGroup"
+            get_entitiesbyname_url = self.main_url + "getEntityByName?" + entitybyname_parameters
+            response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
+            data = response.json()
+            tag_group_id = data["id"]
+            # get tag_id of department tag
+            entitybyname_parameters = f"name={department_tag_name}&parentId={tag_group_id}&start=0&type=Tag"
+            get_entitiesbyname_url = self.main_url + "getEntityByName?" + entitybyname_parameters
+            response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
+            data = response.json()
+            department_tag_id = data["id"]
+            # create admin tag under given department tag
+            addtag_params = f"name={admin_tag_name}&parentId={department_tag_id}"
+            addtag_url = self.main_url + "addTag?" + addtag_params
+            response = requests.post(addtag_url, headers=self.header, timeout=self.TIMEOUT)
+            if response.status_code != 200:
+                raise RuntimeError(f"Status code: {response.status_code}")
+
+            return True
+        except Exception:
+            logger.exception("Couldn't create a tag for admin %s!", admin_tag_name)
+
+        return False
+
+    def admin_tag_exists(self, admin_tag_name : str) -> bool|None:
+        # TODO: docu
+        try:
+            # get TagGroup_id with getEntitiesByName
+            entitybyname_parameters = f"name={self.TAG_GROUP_NAME}&parentId=0&start=0&type=TagGroup"
+            get_entitiesbyname_url = self.main_url + "getEntityByName?" + entitybyname_parameters
+            response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
+            data = response.json()
+            tag_group_id = data["id"]
+            # get all department tags which themselves hold the actual admin tags
+            get_entities_parameters = f"count=1000&parentId={tag_group_id}&start=0&type=Tag"
+            get_entities_url = self.main_url + "getEntities?" + get_entities_parameters
+            response = requests.get(get_entities_url, headers=self.header, timeout=self.TIMEOUT)
+            data = response.json()
+            for department_tag_entity in data:
+                department_tag_id = department_tag_entity['id']
+                # query whether admin tag exists under this department tag
+                entitybyname_parameters = f"name={admin_tag_name}&parentId={department_tag_id}&start=0&type=Tag"
+                get_entitiesbyname_url = self.main_url + "getEntityByName?" + entitybyname_parameters
+                response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
+                data = response.json()
+                if data['name'] == admin_tag_name:
+                    return True
+            return False
+
+        except Exception:
+            logger.exception("Couldn't query IPAM whether tag exists!")
+
+        return None
+
+
+
+# if __name__ == "__main__":
+#     username = "deterrers-test"
+#     from getpass import getpass
+#     password = getpass()
+#     with ProteusIPAMInterface(username, password, "proteus-clone.rz.uos.de") as ipam:
+#         print(ipam.get_department_to_admin("nwintering"))
