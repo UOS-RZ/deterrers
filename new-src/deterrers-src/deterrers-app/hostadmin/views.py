@@ -96,12 +96,6 @@ def __get_available_actions(host : MyHost) -> dict:
 
 def __send_report_email(report_html : str, subject : str, str_body : str, to : list):
     # TODO: docu
-    # email = EmailMultiAlternatives(
-    #             subject=subject,
-    #             body=str_body,
-    #             to=to,
-    #         )
-    # email.attach_alternative(report_html, 'text/html')
     email = EmailMessage(
         subject,
         str_body,
@@ -111,7 +105,6 @@ def __send_report_email(report_html : str, subject : str, str_body : str, to : l
     email.attach("report.html", report_html, "text/html")
     try:
         email.send()
-        # send_mail(subject, str_body, None, recipient_list=to, html_message=report_html)
     except Exception:
         logger.exception("Couldn't send e-mail!")
 
@@ -551,15 +544,6 @@ def v_scanner_registration_alert(request):
                 if results is None:
                     return
 
-                # get HTML report and send via e-mail to admin
-                report_html = scanner.get_report_html(report_uuid)
-                __send_report_email(
-                    report_html,
-                    "DETERRERS - Vulnerability Scanner report",
-                    "String body in case e-mail server does not support HTML", # TODO
-                    ["nwintering@uos.de"], # TODO
-                )
-
                 # TODO: Risk assessment
                 risk = compute_risk_of_network_exposure(results)
                 passed_scan = True
@@ -592,6 +576,17 @@ def v_scanner_registration_alert(request):
                     logger.info("Host %s did not pass the registration and will be blocked.", host_ip)
                     if not __block_host(host_ip):
                         raise RuntimeError("Couldn't block host")
+
+                # get HTML report and send via e-mail to admin
+                report_html = scanner.get_report_html(report_uuid)
+                admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids]
+                logger.debug("Admin addresses: %s", str(admin_addresses))
+                __send_report_email(
+                    report_html,
+                    f"DETERRERS - Vulnerability scan report of host {host_ip}",
+                    f"You find the report of the vulnerability scan for host {host_ip} attached to this e-mail.",
+                    ["nwintering@uos.de"], # TODO: change to admin addresses
+                )
 
                 scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
         except Exception:
@@ -637,15 +632,6 @@ def v_scanner_scan_alert(request):
                 if results is None:
                     return
 
-                # get HTML report and send via e-mail to admin
-                report_html = scanner.get_report_html(report_uuid)
-                __send_report_email(
-                    report_html,
-                    "DETERRERS - Vulnerability Scanner report",
-                    "String body in case e-mail server does not support HTML", # TODO
-                    ["nwintering@uos.de"], # TODO
-                )
-
                 # TODO: Risk assessment
                 risk = compute_risk_of_network_exposure(results)
                 passed_scan = True
@@ -663,7 +649,18 @@ def v_scanner_scan_alert(request):
                     if not ipam.update_host_info(host):
                         raise RuntimeError("Couldn't update host information!")
 
-                # scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid) TODO: change back after email test
+                # get HTML report and send via e-mail to admin
+                report_html = scanner.get_report_html(report_uuid)
+                admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids]
+                logger.debug("Admin addresses: %s", str(admin_addresses))
+                __send_report_email(
+                    report_html,
+                    f"DETERRERS - Vulnerability scan report of host {host_ip}",
+                    f"You find the report of the vulnerability scan for host {host_ip} attached to this e-mail.", # TODO
+                    ["nwintering@uos.de", "test_invalid_email_sdfudf33245e@uos.de"], # TODO: change to admin addresses
+                )
+
+                scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
                 
         except Exception:
             logger.exception("Processing scan alert failed!")
