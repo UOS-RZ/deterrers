@@ -104,7 +104,7 @@ def __send_report_email(report_html : str, subject : str, str_body : str, to : l
     email.attach_alternative(report_html, 'text/html')
     try:
         # email.send()
-        send_mail(subject, str_body, recipient_list=to, html_message=report_html)
+        send_mail(subject, str_body, None, recipient_list=to, html_message=report_html)
     except Exception:
         logger.exception("Couldn't send e-mail!")
 
