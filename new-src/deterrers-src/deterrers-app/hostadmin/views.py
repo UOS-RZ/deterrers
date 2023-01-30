@@ -11,7 +11,7 @@ from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.conf import settings
 from django.contrib import messages
-from django.core.mail import EmailMultiAlternatives
+from django.core.mail import EmailMultiAlternatives, send_mail
 
 from .forms import ChangeHostDetailForm, AddHostRulesForm
 from .core.ipam_api_interface import ProteusIPAMInterface
@@ -103,7 +103,8 @@ def __send_report_email(report_html : str, subject : str, str_body : str, to : l
             )
     email.attach_alternative(report_html, 'text/html')
     try:
-        email.send()
+        # email.send()
+        send_mail(subject, str_body, recipient_list=to, html_message=report_html)
     except Exception:
         logger.exception("Couldn't send e-mail!")
 
@@ -655,7 +656,7 @@ def v_scanner_scan_alert(request):
                     if not ipam.update_host_info(host):
                         raise RuntimeError("Couldn't update host information!")
 
-                scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
+                # scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid) TODO: change back after email test
                 
         except Exception:
             logger.exception("Processing scan alert failed!")
