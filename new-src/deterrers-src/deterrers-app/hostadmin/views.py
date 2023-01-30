@@ -11,7 +11,7 @@ from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.conf import settings
 from django.contrib import messages
-from django.core.mail import EmailMultiAlternatives, send_mail
+from django.core.mail import EmailMultiAlternatives, send_mail, EmailMessage
 
 from .forms import ChangeHostDetailForm, AddHostRulesForm
 from .core.ipam_api_interface import ProteusIPAMInterface
@@ -96,15 +96,22 @@ def __get_available_actions(host : MyHost) -> dict:
 
 def __send_report_email(report_html : str, subject : str, str_body : str, to : list):
     # TODO: docu
-    email = EmailMultiAlternatives(
-                subject=subject,
-                body=str_body,
-                to=to,
-            )
-    email.attach_alternative(report_html, 'text/html')
+    # email = EmailMultiAlternatives(
+    #             subject=subject,
+    #             body=str_body,
+    #             to=to,
+    #         )
+    # email.attach_alternative(report_html, 'text/html')
+    email = EmailMessage(
+        subject,
+        str_body,
+        None,
+        to
+    )
+    email.attach("report.html", report_html, "text/html")
     try:
-        # email.send()
-        send_mail(subject, str_body, None, recipient_list=to, html_message=report_html)
+        email.send()
+        # send_mail(subject, str_body, None, recipient_list=to, html_message=report_html)
     except Exception:
         logger.exception("Couldn't send e-mail!")
 
