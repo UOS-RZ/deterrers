@@ -657,7 +657,7 @@ def v_scanner_scan_alert(request):
                     report_html,
                     f"DETERRERS - Vulnerability scan report of host {host_ip}",
                     f"You find the report of the vulnerability scan for host {host_ip} attached to this e-mail.", # TODO
-                    ["nwintering@uos.de", "test_invalid_email_sdfudf33245e@uos.de"], # TODO: change to admin addresses
+                    ["nwintering@uos.de",], # TODO: change to admin addresses
                 )
 
                 scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
