@@ -579,7 +579,7 @@ def v_scanner_registration_alert(request):
 
                 # get HTML report and send via e-mail to admin
                 report_html = scanner.get_report_html(report_uuid)
-                admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids]
+                admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if not admin_id.contains(' ')]
                 logger.debug("Admin addresses: %s", str(admin_addresses))
                 __send_report_email(
                     report_html,
@@ -651,7 +651,7 @@ def v_scanner_scan_alert(request):
 
                 # get HTML report and send via e-mail to admin
                 report_html = scanner.get_report_html(report_uuid)
-                admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids]
+                admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if not admin_id.contains(' ')]
                 logger.debug("Admin addresses: %s", str(admin_addresses))
                 __send_report_email(
                     report_html,
