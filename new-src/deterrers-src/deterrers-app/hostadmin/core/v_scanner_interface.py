@@ -2,6 +2,7 @@ import logging
 from enum import Enum
 from datetime import datetime, timedelta
 import icalendar
+from base64 import b64decode
 import os
 import time
 
@@ -10,7 +11,7 @@ from gvm.connections import SSHConnection
 from gvm.transforms import EtreeCheckCommandTransform
 from gvm.errors import GvmError
 from gvm.xml import pretty_print
-from gvm.protocols.gmpv224 import AlertCondition, AlertEvent, AlertMethod, AliveTest
+from gvm.protocols.gmpv224 import AlertCondition, AlertEvent, AlertMethod, AliveTest, HostsOrdering
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,10 @@ class PortList(Enum):
 class Credentials(Enum):
     HULK_SSH_CRED_UUID = "22bdc0be-827c-4566-9b1d-2679cf85cb65"
     HULK_SMB_CRED_UUID = "13c917aa-e0cc-4027-b249-068ed0f6f4a0"
+
+class ReportFormat(Enum):
+    XML_UUID = "5057e5cc-b825-11e4-9d0e-28d24461215b"
+    HTML_UUID = "ffa123c9-a2d2-409e-bbbb-a6c1385dbeaa"
 
 
 # TODO: implement for Open Scanner Protocol https://python-gvm.readthedocs.io/en/latest/usage.html#using-osp
@@ -132,7 +137,9 @@ class GmpVScannerInterface():
         scanner_uuid : str,
         alert_uuids : list[str]|None = None,
         alterable : bool = False,
-        schedule_uuid : str|None  = None) -> str:
+        schedule_uuid : str|None  = None,
+        hosts_ordering : HostsOrdering = HostsOrdering.RANDOM,
+        max_conc_nvts : int = 16) -> str:
         """
         Create a scan task with given configurations.
 
@@ -144,6 +151,7 @@ class GmpVScannerInterface():
             alert_uuidss (list[str]|None): List of UUIDs of alerts. Defaults to None.
             alterable (bool, optional): Whether to create the task as alterable. Defaults to False.
             schedule_uuid (str|None, optional): UUID of the schedule. Defaults to None.
+            hosts_ordering (HostsOrdering): Enum instance for configuring the ordering of target hosts. Defaults to random.
 
         Raises:
             GmpAPIError: If vulnerability scanner could not create the task.
@@ -159,7 +167,11 @@ class GmpVScannerInterface():
             scanner_id=scanner_uuid,
             alert_ids=alert_uuids,
             alterable=alterable,
-            schedule_id=schedule_uuid
+            schedule_id=schedule_uuid,
+            hosts_ordering=hosts_ordering,
+            preferences={
+                "max_checks" : max_conc_nvts,
+            }
         )
         response_status = int(response.xpath('@status')[0])
         if response_status != 201:  # status code docu: https://hulk.rz.uos.de/manual/en/gmp.html#status-codes
@@ -174,7 +186,8 @@ class GmpVScannerInterface():
         ssh_cred_uuid : str,
         ssh_cred_port : int,
         smb_cred_uuid : str,
-        port_list_uuid : str) -> str:
+        port_list_uuid : str,
+        alive_test : AliveTest = AliveTest.CONSIDER_ALIVE) -> str:
         """
         Create a scan target with given configurations.
 
@@ -185,6 +198,7 @@ class GmpVScannerInterface():
             ssh_cred_port (int): Port to use for SSH.
             smb_cred_uuid (str): UUID of the SMB credential configuration.
             port_list_uuid (str): UUID of the PortList.
+            alive_test (AliveTest): Enum instance for configuring the alive test. Defaults to 'Consider Alive'.
 
         Raises:
             GmpAPIError: If vulnerability scanner could not create the target.
@@ -200,7 +214,7 @@ class GmpVScannerInterface():
             ssh_credential_port=ssh_cred_port,
             smb_credential_id=smb_cred_uuid,
             port_list_id=port_list_uuid,
-            alive_test=AliveTest.CONSIDER_ALIVE
+            alive_test=alive_test
         )
         response_status = int(response.xpath('@status')[0])
         if response_status != 201:  # status code docu: https://hulk.rz.uos.de/manual/en/gmp.html#status-codes
@@ -414,7 +428,7 @@ class GmpVScannerInterface():
             task_uuid = self.__create_task(
                 target_uuid,
                 task_name,
-                ScanConfig.FULL_VERY_DEEP_UUID.value,
+                ScanConfig.FULL_FAST_UUID.value, # TODO: change back
                 Scanner.OPENVAS_DEFAULT_SCANNER_UUID.value,
                 [alert_uuid,],
             )
@@ -468,7 +482,7 @@ class GmpVScannerInterface():
                 # Limit port scan to all tcp and udp ports registered with IANA.
                 # This will also minimize probability that defense mechanisms against port scans
                 # are triggered on the host.
-                PortList.ALL_IANA_TCP_UUID.value,
+                PortList.ALL_IANA_TCP_UUID.value, # TODO change to ALL_TCP_Nmap_1000_UDP
             )
 
             # create/get an alert that sends the report back to the server
@@ -728,7 +742,7 @@ class GmpVScannerInterface():
         """
         rep_filter = "status=Done apply_overrides=0 rows=-1 min_qod=70 first=1"
         try:
-            response = self.gmp.get_report(report_uuid, filter_string=rep_filter, ignore_pagination=True)
+            response = self.gmp.get_report(report_uuid, filter_string=rep_filter, ignore_pagination=True, details=True)
             response_status = int(response.xpath('@status')[0])
             if response_status != 200:
                 raise GmpAPIError(f"Couldn't query report {report_uuid}!")
@@ -739,6 +753,31 @@ class GmpVScannerInterface():
             logger.exception("Get report as XML failed.")
 
         return None
+
+    def get_report_html(self, report_uuid : str):
+        """
+        Query the HTML report for some report UUID.
+
+        Args:
+            report_uuid (str): UUID of the report.
+
+        Returns:
+            _type_: HTML string of the report.
+        """
+        rep_filter = "status=Done apply_overrides=0 rows=-1 min_qod=70 first=1"
+        try:
+            response = self.gmp.get_report(report_uuid, filter_string=rep_filter, report_format_id=ReportFormat.HTML_UUID.value, details=True, ignore_pagination=True)
+            response = response.find("report")
+            response = response.find("report_format").tail
+            # HTML reports are send base64 encoded
+            response = b64decode(response).decode('utf-8')
+            return response
+        except GvmError:
+            logger.exception("Couldn't fetch report with ID '%s' from GSM!", report_uuid)
+        except GmpAPIError:
+            logger.exception("Get report as HTML failed.")
+        return None
+
 
     def extract_report_data(self, report) -> tuple:
         """
