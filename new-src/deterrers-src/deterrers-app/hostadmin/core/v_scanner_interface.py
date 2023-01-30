@@ -11,7 +11,7 @@ from gvm.connections import SSHConnection
 from gvm.transforms import EtreeCheckCommandTransform
 from gvm.errors import GvmError
 from gvm.xml import pretty_print
-from gvm.protocols.gmpv224 import AlertCondition, AlertEvent, AlertMethod, AliveTest
+from gvm.protocols.gmpv224 import AlertCondition, AlertEvent, AlertMethod, AliveTest, HostsOrdering
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +137,9 @@ class GmpVScannerInterface():
         scanner_uuid : str,
         alert_uuids : list[str]|None = None,
         alterable : bool = False,
-        schedule_uuid : str|None  = None) -> str:
+        schedule_uuid : str|None  = None,
+        hosts_ordering : HostsOrdering = HostsOrdering.RANDOM,
+        max_conc_nvts : int = 16) -> str:
         """
         Create a scan task with given configurations.
 
@@ -149,6 +151,7 @@ class GmpVScannerInterface():
             alert_uuidss (list[str]|None): List of UUIDs of alerts. Defaults to None.
             alterable (bool, optional): Whether to create the task as alterable. Defaults to False.
             schedule_uuid (str|None, optional): UUID of the schedule. Defaults to None.
+            hosts_ordering (HostsOrdering): Enum instance for configuring the ordering of target hosts. Defaults to random.
 
         Raises:
             GmpAPIError: If vulnerability scanner could not create the task.
@@ -164,7 +167,11 @@ class GmpVScannerInterface():
             scanner_id=scanner_uuid,
             alert_ids=alert_uuids,
             alterable=alterable,
-            schedule_id=schedule_uuid
+            schedule_id=schedule_uuid,
+            hosts_ordering=hosts_ordering,
+            preferences={
+                "max_checks" : max_conc_nvts,
+            }
         )
         response_status = int(response.xpath('@status')[0])
         if response_status != 201:  # status code docu: https://hulk.rz.uos.de/manual/en/gmp.html#status-codes
@@ -179,7 +186,8 @@ class GmpVScannerInterface():
         ssh_cred_uuid : str,
         ssh_cred_port : int,
         smb_cred_uuid : str,
-        port_list_uuid : str) -> str:
+        port_list_uuid : str,
+        alive_test : AliveTest = AliveTest.CONSIDER_ALIVE) -> str:
         """
         Create a scan target with given configurations.
 
@@ -190,6 +198,7 @@ class GmpVScannerInterface():
             ssh_cred_port (int): Port to use for SSH.
             smb_cred_uuid (str): UUID of the SMB credential configuration.
             port_list_uuid (str): UUID of the PortList.
+            alive_test (AliveTest): Enum instance for configuring the alive test. Defaults to 'Consider Alive'.
 
         Raises:
             GmpAPIError: If vulnerability scanner could not create the target.
@@ -205,7 +214,7 @@ class GmpVScannerInterface():
             ssh_credential_port=ssh_cred_port,
             smb_credential_id=smb_cred_uuid,
             port_list_id=port_list_uuid,
-            alive_test=AliveTest.CONSIDER_ALIVE
+            alive_test=alive_test
         )
         response_status = int(response.xpath('@status')[0])
         if response_status != 201:  # status code docu: https://hulk.rz.uos.de/manual/en/gmp.html#status-codes
