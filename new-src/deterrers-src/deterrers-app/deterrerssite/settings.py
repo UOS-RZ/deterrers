@@ -119,7 +119,7 @@ EMAIL_PORT = os.environ.get('SMTP_PORT', 25)
 EMAIL_HOST_USER = os.environ.get('SMTP_USERNAME', '')
 EMAIL_HOST_PASSWORD = os.environ.get('SMTP_PASSWORD', '')
 # EMAIL_USE_SSL = False
-# EMAIL_USE_TLS = True
+EMAIL_USE_TLS = True
 
 
 ROOT_URLCONF = 'deterrerssite.urls'
