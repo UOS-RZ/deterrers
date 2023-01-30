@@ -5,11 +5,13 @@ from enum import Enum
 import time
 from threading import Thread
 
+from .host import HostStatusContract
+
 
 logger = logging.getLogger(__name__)
 
 
-class AddressGroups(Enum):
+class AddressGroup(Enum):
     """
     Enumeration of the different AddressGroup names which specify the service profiles in the
     firewall configuration.
@@ -165,6 +167,32 @@ class PaloAltoInterface():
 
         return obj_name
 
+    def __get_addr_grp_properties(self, addr_grp_name : AddressGroup) -> dict:
+        """
+        TODO: docu
+
+        Args:
+            addr_grp_name (str): _description_
+
+        Raises:
+            PaloAltoAPIError: _description_
+
+        Returns:
+            dict: _description_
+        """
+        get_addr_grp_params =  f"name={addr_grp_name.value}&location={self.LOCATION}"
+        get_addr_grp_url = self.rest_url + "Objects/AddressGroups?" + get_addr_grp_params
+        response = requests.get(get_addr_grp_url, headers=self.header, timeout=self.TIMEOUT)
+        data = response.json()
+        if response.status_code != 200 \
+                    or data.get('@status') != 'success' \
+                        or int(data.get('result').get('@total-count')) != 1:
+            raise PaloAltoAPIError(f"Could not query Address Group {addr_grp_name.value} \
+from firewall! Status code: {response.status_code}. Status: {data.get('@status')}")
+
+        addr_grp_props = data.get('result').get('entry')[0]
+        return addr_grp_props
+
 
     def __commit_changes(self):
         """
@@ -222,7 +250,7 @@ class PaloAltoInterface():
 
 
 
-    def add_addr_obj_to_addr_grps(self, ip_addr : str, addr_grps : set[AddressGroups]) -> bool:
+    def add_addr_obj_to_addr_grps(self, ip_addr : str, addr_grps : set[AddressGroup]) -> bool:
         """
         Creates an AddressObject for an IP address if necessary and adds it to some AddressGroups.
 
@@ -240,17 +268,7 @@ class PaloAltoInterface():
 
             for addr_grp_name in addr_grps:
                 # get all properties of the address group
-                get_addr_grp_params =  f"name={addr_grp_name.value}&location={self.LOCATION}"
-                get_addr_grp_url = self.rest_url + "Objects/AddressGroups?" + get_addr_grp_params
-                response = requests.get(get_addr_grp_url, headers=self.header, timeout=self.TIMEOUT)
-                data = response.json()
-                if response.status_code != 200 \
-                    or data.get('@status') != 'success' \
-                        or int(data.get('result').get('@total-count')) != 1:
-                    raise PaloAltoAPIError(f"Could not query Address Group {addr_grp_name.value} \
-from firewall! Status code: {response.status_code}. Status: {data.get('@status')}")
-
-                addr_grp_obj = data.get('result').get('entry')[0]
+                addr_grp_obj = self.__get_addr_grp_properties(addr_grp_name)
                 # put the new addr obj into the addr grp
                 put_addr_grp_params = f"name={addr_grp_name.value}&location={self.LOCATION}&input-format=json"
                 put_addr_grp_url = self.rest_url + "Objects/AddressGroups?" + put_addr_grp_params
@@ -281,7 +299,7 @@ Status code: {response.status_code}. Status: {data.get('@status')}")
         return True
 
 
-    def remove_addr_obj_from_addr_grps(self, ip_addr : str, addr_grps : set[AddressGroups]):
+    def remove_addr_obj_from_addr_grps(self, ip_addr : str, addr_grps : set[AddressGroup]):
         """
         Removes an AddressObject from some AddressGroups.
 
@@ -296,17 +314,7 @@ Status code: {response.status_code}. Status: {data.get('@status')}")
             addr_obj_name = self.__get_addr_obj(ip_addr)
             for addr_grp_name in addr_grps:
                 # get all properties of the address group
-                get_addr_grp_params =  f"name={addr_grp_name.value}&location={self.LOCATION}"
-                get_addr_grp_url = self.rest_url + "Objects/AddressGroups?" + get_addr_grp_params
-                response = requests.get(get_addr_grp_url, headers=self.header, timeout=self.TIMEOUT)
-                data = response.json()
-                if response.status_code != 200 \
-                    or data.get('@status') != 'success' \
-                        or int(data.get('result').get('@total-count')) != 1:
-                    raise PaloAltoAPIError(f"Could not query Address Group {addr_grp_name.value} \
-from firewall! Status code: {response.status_code}. Status: {data.get('@status')}")
-
-                addr_grp_obj = data.get('result').get('entry')[0]
+                addr_grp_obj = self.__get_addr_grp_properties(addr_grp_name)
                 # remove addr obj from addr grp
                 put_addr_grp_params = f"name={addr_grp_name.value}&location={self.LOCATION}&input-format=json"
                 put_addr_grp_url = self.rest_url + "Objects/AddressGroups?" + put_addr_grp_params
@@ -330,6 +338,27 @@ from firewall! Status code: {response.status_code}. Status: {data.get('@status')
             return False
         
         return True
+
+    def get_host_status(self, ip_addr : str) -> HostStatusContract:
+        # TODO
+        try:
+            addr_obj_name = self.__get_addr_obj(ip_addr)
+            if not addr_obj_name:
+                # if addr_obj does not exist yet, the host has not been registered
+                return HostStatusContract.UNREGISTERED
+            
+            for addr_grp in AddressGroup:
+                # get all properties of the address group
+                addr_grp_obj = self.__get_addr_grp_properties(addr_grp)
+                if addr_obj_name in addr_grp_obj['static']['member']:
+                    # if addr_obj is member of any addr_grp than it is online
+                    return HostStatusContract.ONLINE
+            # if addr_obj is not member of any addr_grp than it is offline
+            return HostStatusContract.BLOCKED
+
+        except PaloAltoAPIError:
+            logger.exception("Couldn't remove AddressObject from AddressGroups!")
+            return None
 
 
 

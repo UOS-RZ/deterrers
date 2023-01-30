@@ -11,11 +11,12 @@ from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.conf import settings
 from django.contrib import messages
+from django.core.mail import EmailMultiAlternatives, send_mail, EmailMessage
 
 from .forms import ChangeHostDetailForm, AddHostRulesForm
 from .core.ipam_api_interface import ProteusIPAMInterface
 from .core.v_scanner_interface import GmpVScannerInterface
-from .core.fw_interface import PaloAltoInterface, AddressGroups
+from .core.fw_interface import PaloAltoInterface, AddressGroup
 from .core.risk_assessor import compute_risk_of_network_exposure
 from .core.rule_generator import generate_rule
 from .core.host import MyHost, HostStatusContract, HostServiceContract, HostFWContract, CustomRuleSubnetContract
@@ -38,11 +39,13 @@ def __block_host(host_ip : str) -> bool:
         host = ipam.get_host_info_from_ip(host_ip)
         # change the perimeter firewall configuration so that host is blocked
         with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
-            if not fw.remove_addr_obj_from_addr_grps(host_ip, {AddressGroups.HTTP, AddressGroups.SSH, AddressGroups.OPEN}):
+            if not fw.remove_addr_obj_from_addr_grps(host_ip, {AddressGroup.HTTP, AddressGroup.SSH, AddressGroup.OPEN}):
                 return False
         host.status = HostStatusContract.BLOCKED
         if not ipam.update_host_info(host):
             return False
+    
+    # TODO: remove from periodic scan
         
     return True
 
@@ -90,6 +93,21 @@ def __get_available_actions(host : MyHost) -> dict:
             flags['can_download_config'] = False
             flags['can_block'] = False
     return flags
+
+def __send_report_email(report_html : str, subject : str, str_body : str, to : list):
+    # TODO: docu
+    email = EmailMessage(
+        subject,
+        str_body,
+        None,
+        to
+    )
+    email.attach("report.html", report_html, "text/html")
+    try:
+        email.send()
+    except Exception:
+        logger.exception("Couldn't send e-mail!")
+
 
 # Create your views here.
 
@@ -526,8 +544,6 @@ def v_scanner_registration_alert(request):
                 if results is None:
                     return
 
-                # TODO: get HTML report and send via e-mail to admin
-
                 # TODO: Risk assessment
                 risk = compute_risk_of_network_exposure(results)
                 passed_scan = True
@@ -544,11 +560,11 @@ def v_scanner_registration_alert(request):
                         with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
                             match host.service_profile:
                                 case HostServiceContract.HTTP:
-                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.HTTP,})
+                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroup.HTTP,})
                                 case HostServiceContract.SSH:
-                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.SSH,})
+                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroup.SSH,})
                                 case HostServiceContract.MULTIPURPOSE:
-                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroups.OPEN,})
+                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroup.OPEN,})
                                 case _:
                                     raise RuntimeError(f"Unknown service profile: {host.service_profile}")
                             if not suc:
@@ -560,6 +576,17 @@ def v_scanner_registration_alert(request):
                     logger.info("Host %s did not pass the registration and will be blocked.", host_ip)
                     if not __block_host(host_ip):
                         raise RuntimeError("Couldn't block host")
+
+                # get HTML report and send via e-mail to admin
+                report_html = scanner.get_report_html(report_uuid)
+                admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if not admin_id.contains(' ')]
+                logger.debug("Admin addresses: %s", str(admin_addresses))
+                __send_report_email(
+                    report_html,
+                    f"DETERRERS - Vulnerability scan report of host {host_ip}",
+                    f"You find the report of the vulnerability scan for host {host_ip} attached to this e-mail.",
+                    ["nwintering@uos.de"], # TODO: change to admin addresses
+                )
 
                 scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
         except Exception:
@@ -605,18 +632,36 @@ def v_scanner_scan_alert(request):
                 if results is None:
                     return
 
-                # TODO: get HTML report and send via e-mail to admin
-
                 # TODO: Risk assessment
                 risk = compute_risk_of_network_exposure(results)
                 passed_scan = True
 
                 if passed_scan:
-                    logger.info("Host %s passed the scan and will be set online!", host_ip)
+                    logger.info("Host %s passed the scan!", host_ip)
                 else:
-                    logger.info("Host %s did not pass the registration and will be blocked.", host_ip)
+                    logger.info("Host %s did not pass the scan.", host_ip)
+
+                # reset hosts status
+                with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+                    host = ipam.get_host_info_from_ip(host_ip)
+                    with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
+                        host.status = fw.get_host_status(host.ip_addr)
+                    if not ipam.update_host_info(host):
+                        raise RuntimeError("Couldn't update host information!")
+
+                # get HTML report and send via e-mail to admin
+                report_html = scanner.get_report_html(report_uuid)
+                admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if not admin_id.contains(' ')]
+                logger.debug("Admin addresses: %s", str(admin_addresses))
+                __send_report_email(
+                    report_html,
+                    f"DETERRERS - Vulnerability scan report of host {host_ip}",
+                    f"You find the report of the vulnerability scan for host {host_ip} attached to this e-mail.", # TODO
+                    ["nwintering@uos.de",], # TODO: change to admin addresses
+                )
 
                 scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
+                
         except Exception:
             logger.exception("Processing scan alert failed!")
 
