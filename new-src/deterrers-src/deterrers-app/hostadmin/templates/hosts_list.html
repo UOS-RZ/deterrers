@@ -1,5 +1,7 @@
 {% extends "base_generic.html" %}
 
+{% load django_bootstrap5 %}
+
 {% block title %} <title>My Hosts</title> {% endblock %}
 
 {% block content %}
@@ -30,4 +32,13 @@
 		<p>There are no hosts for this administrator.</p>
 	{% endif %}
 
+	<br>
+	<hr>
+
+	<h2>Add new host:</h2>
+	<form method="post" action="{% url 'hosts_list' %}">
+		{% csrf_token %}
+		{% bootstrap_form form %}
+		{% bootstrap_button button_type="submit" content="Add" button_class="btn btn-primary btn-lg" %}
+	  </form>
 {% endblock %}
