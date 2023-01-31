@@ -23,6 +23,7 @@ class ProteusIPAMInterface():
         self.ipam_url = ipam_url
         self.main_url = "http://" + ipam_url + "/Services/REST/v1/" # TODO: change back to https when working with production system
         self.header = ''
+        self.__tag_group_id = None
 
     def __enter__(self):
         login_url = self.main_url + "login?username=" + self.username + "&password=" + self.password
@@ -110,12 +111,7 @@ class ProteusIPAMInterface():
         """
         tagged_admins = []
         try:
-            # get TagGroup_id with getEntitiesByName
-            entitybyname_parameters = f"name={self.TAG_GROUP_NAME}&parentId=0&start=0&type=TagGroup"
-            get_entitiesbyname_url = self.main_url + "getEntityByName?" + entitybyname_parameters
-            response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
-            data = response.json()
-            tag_group_id = data["id"]
+            tag_group_id = self.__get_tag_grp_id()
             # get all tags
             linkedentities_parameters = f"count=100&entityId={host_id}&start=0&type=Tag"
             get_linkedentities_url = self.main_url + "getLinkedEntities?" + linkedentities_parameters
@@ -132,10 +128,7 @@ class ProteusIPAMInterface():
                     # tag is a sub-tag of the Deterrers Host Admins Tag Group
                     tagged_admins.append(tag_name) # add department tag for completeness
                     # get all admin tags that are children of this tag
-                    child_tags_parameters = f"count=1000&parentId={tag_id}&start=0&type=Tag"
-                    get_child_tags_url = self.main_url + "getEntities?" + child_tags_parameters
-                    response = requests.get(get_child_tags_url, headers=self.header, timeout=self.TIMEOUT)
-                    data = response.json()
+                    data = self.__get_child_tags(tag_id)
                     for tag_entity in data:
                         tag_id = tag_entity['id']
                         tag_name = tag_entity['name']
@@ -173,6 +166,58 @@ class ProteusIPAMInterface():
         return input_str
 
 
+    def __get_tag_grp_id(self) -> str:
+        if not self.__tag_group_id:
+            # get TagGroup_id with getEntitiesByName if it has not been queried before
+            entitybyname_parameters = f"name={self.TAG_GROUP_NAME}&parentId=0&start=0&type=TagGroup"
+            get_entitiesbyname_url = self.main_url + "getEntityByName?" + entitybyname_parameters
+            response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
+            data = response.json()
+            self.__tag_group_id = data["id"]
+        return self.__tag_group_id
+
+    def __get_tag_id(self, tag_name : str) -> str:
+        parent_id = self.__get_tag_grp_id()
+        department_tags = self.__get_child_tags(parent_id)
+        for d_tag in department_tags:
+            if d_tag['name'] == tag_name:
+                return d_tag['id']
+            admin_tags = self.__get_child_tags(d_tag['id'])
+            for a_tag in admin_tags:
+                if a_tag.get('name') == tag_name:
+                    return a_tag['id']
+
+
+    def __get_child_tags(self, parent_id : str) -> list[dict]:
+        get_entities_parameters = f"count=1000&parentId={parent_id}&start=0&type=Tag"
+        get_entities_url = self.main_url + "getEntities?" + get_entities_parameters
+        response = requests.get(get_entities_url, headers=self.header, timeout=self.TIMEOUT)
+        data = response.json()
+        return data
+
+
+    def __get_IP4Address(self, ip : str):
+        # get configuration_id with getEntitiesByName
+        entitybyname_parameters = "count=1&name=default&parentId=0&start=0&type=Configuration"
+        get_entitiesbyname_url = self.main_url + "getEntitiesByName?" + entitybyname_parameters
+        response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
+        data = response.json()
+        configuration_id = data[0]["id"]
+
+            # get range_id with IPRangedByIP
+        iprangedbyip_parameters = f"address={ip}&containerId={configuration_id}&type=IP4Network"
+        get_iprandedbyip_url = self.main_url + "getIPRangedByIP?" + iprangedbyip_parameters
+        response = requests.get(get_iprandedbyip_url, headers = self.header, timeout=self.TIMEOUT)
+        data = response.json()
+        range_id = data["id"]
+
+            # get properties of IP
+        get_ip4adress_url = self.main_url + f"getIP4Address?address={ip}&containerId={range_id}"
+        response = requests.get(get_ip4adress_url, headers = self.header, timeout=self.TIMEOUT)
+        data = response.json()
+        return data
+
+
     def get_host_info_from_ip(self, ip : str):
         """
         Queries the Proteus IPAM API for an entity with the given IP and returns an instance of MyHost.
@@ -195,30 +240,11 @@ class ProteusIPAMInterface():
             return None
 
         try:
-            # get configuration_id with getEntitiesByName
-            entitybyname_parameters = "count=1&name=default&parentId=0&start=0&type=Configuration"
-            get_entitiesbyname_url = self.main_url + "getEntitiesByName?" + entitybyname_parameters
-            response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
-            data = response.json()
-            configuration_id = data[0]["id"]
-
-            # get range_id with IPRangedByIP
-            iprangedbyip_parameters = f"address={ip}&containerId={configuration_id}&type=IP4Network"
-            get_iprandedbyip_url = self.main_url + "getIPRangedByIP?" + iprangedbyip_parameters
-            response = requests.get(get_iprandedbyip_url, headers = self.header, timeout=self.TIMEOUT)
-            data = response.json()
-            range_id = data["id"]
-
-            # get properties of IP
-            get_ip4adress_url = self.main_url + f"getIP4Address?address={ip}&containerId={range_id}"
-            response = requests.get(get_ip4adress_url, headers = self.header, timeout=self.TIMEOUT)
-            data = response.json()
-
+            data = self.__get_IP4Address(ip)
             host_id, name, ip, mac, status, service, fw, rules = self.__parse_ipam_host_entity(data)
 
             # get all tagged admins
             tagged_admins = self.__get_tagged_admins(host_id)
-
 
             my_host = MyHost(
                 ip=ip,
@@ -334,18 +360,9 @@ class ProteusIPAMInterface():
 
         hosts  = []
         try:
-            # get TagGroup_id with getEntitiesByName
-            entitybyname_parameters = f"name={self.TAG_GROUP_NAME}&parentId=0&start=0&type=TagGroup"
-            get_entitiesbyname_url = self.main_url + "getEntityByName?" + entitybyname_parameters
-            response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
-            data = response.json()
-            tag_group_id = data["id"]
-
+            tag_group_id = self.__get_tag_grp_id()
             # get all parent tags (department tags) which themselves hold the actual admin tags
-            child_tags_parameters = f"count=1000&parentId={tag_group_id}&start=0&type=Tag"
-            get_child_tags_url = self.main_url + "getEntities?" + child_tags_parameters
-            response = requests.get(get_child_tags_url, headers=self.header, timeout=self.TIMEOUT)
-            data = response.json()
+            data = self.__get_child_tags(tag_group_id)
             for tag_entity in data:
                 parent_tag_id = tag_entity['id']
                 # query whether the admin is a sub-tag of this tag
@@ -378,7 +395,7 @@ class ProteusIPAMInterface():
 
     def update_host_info(self, host : MyHost) -> bool:
         """
-        Updates host information (only service profile and firewall fields) in the Proteus IPAM system.
+        Updates host information in the Proteus IPAM system.
 
         Args:
             host (MyHost): Host instance that holds all the latest information.
@@ -414,3 +431,115 @@ deterrers_rules={json.dumps(host.custom_rules)}|'}
             logger.error("Host not valid: %s", str(host))
 
         return False
+
+
+    def get_department_tag_names(self) -> list:
+        # TODO: docu
+        admin_tag_grps = []
+        try:
+            tag_group_id = self.__get_tag_grp_id()
+            data = self.__get_child_tags(tag_group_id)
+            for tag_entity in data:
+                tag_name = tag_entity['name']
+                admin_tag_grps.append(tag_name)
+        except Exception:
+            logger.exception("Couldn't query department tags from IPAM!")
+            return []
+
+        return admin_tag_grps
+
+    def get_department_to_admin(self, admin_tag_name : str) -> str|None:
+        # TODO: docu
+        try:
+            tag_group_id = self.__get_tag_grp_id()
+            # get all department tags which themselves hold the actual admin tags
+            data = self.__get_child_tags(tag_group_id)
+            for department_tag_entity in data:
+                department_tag_id = department_tag_entity['id']
+                # query whether admin tag exists under this department tag
+                entitybyname_parameters = f"name={admin_tag_name}&parentId={department_tag_id}&start=0&type=Tag"
+                get_entitiesbyname_url = self.main_url + "getEntityByName?" + entitybyname_parameters
+                response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
+                data = response.json()
+                if data['name'] == admin_tag_name:
+                    return department_tag_entity['name']
+        except Exception:
+            logger.exception("Couldn't query parent tag from IPAM!")
+
+        return None
+
+    def create_admin_tag(self, admin_tag_name : str, department_tag_name : str) -> bool:
+        # TODO: docu
+        try:
+            admin_tag_name = self.__escape_user_input(admin_tag_name)
+            tag_group_id = self.__get_tag_grp_id()
+            # get tag_id of department tag
+            entitybyname_parameters = f"name={department_tag_name}&parentId={tag_group_id}&start=0&type=Tag"
+            get_entitiesbyname_url = self.main_url + "getEntityByName?" + entitybyname_parameters
+            response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
+            data = response.json()
+            department_tag_id = data["id"]
+            # create admin tag under given department tag
+            addtag_params = f"name={admin_tag_name}&parentId={department_tag_id}"
+            addtag_url = self.main_url + "addTag?" + addtag_params
+            response = requests.post(addtag_url, headers=self.header, timeout=self.TIMEOUT)
+            if response.status_code != 200:
+                raise RuntimeError(f"Status code: {response.status_code}")
+
+            return True
+        except Exception:
+            logger.exception("Couldn't create a tag for admin %s!", admin_tag_name)
+
+        return False
+
+    def admin_tag_exists(self, admin_tag_name : str) -> bool|None:
+        # TODO: docu
+        try:
+            tag_group_id = self.__get_tag_grp_id()
+            # get all department tags which themselves hold the actual admin tags
+            data = self.__get_child_tags(tag_group_id)
+            for department_tag_entity in data:
+                department_tag_id = department_tag_entity['id']
+                # query whether admin tag exists under this department tag
+                entitybyname_parameters = f"name={admin_tag_name}&parentId={department_tag_id}&start=0&type=Tag"
+                get_entitiesbyname_url = self.main_url + "getEntityByName?" + entitybyname_parameters
+                response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
+                data = response.json()
+                if data['name'] == admin_tag_name:
+                    return True
+            return False
+
+        except Exception:
+            logger.exception("Couldn't query IPAM whether tag exists!")
+
+        return None
+
+    def add_tag_to_host(self, tag_name : str, host_ip : str) -> bool:
+        # TODO: docu
+        try:
+            # get IPv4Address object
+            data = self.__get_IP4Address(host_ip)
+            host_id = data['id']
+
+            # get tag object
+            tag_id = self.__get_tag_id(tag_name)
+
+            # link tag to host
+            linkentities_params = f"entity1Id={host_id}&entity2Id={tag_id}"
+            linkentities_url = self.main_url + "linkEntities?" + linkentities_params
+            response = requests.put(linkentities_url, headers=self.header, timeout=self.TIMEOUT)
+            if response.status_code == 200:
+                return True
+        except Exception:
+            logger.exception("Couldn't add tag to host!")
+
+        return False
+
+
+
+# if __name__ == "__main__":
+#     username = "deterrers-test"
+#     from getpass import getpass
+#     password = getpass()
+#     with ProteusIPAMInterface(username, password, "proteus-clone.rz.uos.de") as ipam:
+#         ipam.add_tag_to_host("FB Test", "131.173.22.2")

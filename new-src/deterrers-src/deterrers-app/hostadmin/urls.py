@@ -13,6 +13,7 @@ class IPPathConverter:
 register_converter(IPPathConverter, 'esc_ip')
 
 urlpatterns = [
+    path('init/', views.hostadmin_init_view, name='hostadmin_init'),
     path('host/<esc_ip:ip>/', views.host_detail_view, name='host_detail'),
     path('host/<esc_ip:ip>/rule/delete/<uuid:rule_id>/', views.delete_host_rule, name='delete_rule'),
     path('host/<esc_ip:ip>/update/', views.update_host_detail, name='update_host_detail'),

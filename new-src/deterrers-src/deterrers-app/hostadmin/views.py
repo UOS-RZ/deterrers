@@ -11,9 +11,9 @@ from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.conf import settings
 from django.contrib import messages
-from django.core.mail import EmailMultiAlternatives, send_mail, EmailMessage
+from django.core.mail import EmailMessage
 
-from .forms import ChangeHostDetailForm, AddHostRulesForm
+from .forms import ChangeHostDetailForm, AddHostRulesForm, HostadminForm, AddHostForm
 from .core.ipam_api_interface import ProteusIPAMInterface
 from .core.v_scanner_interface import GmpVScannerInterface
 from .core.fw_interface import PaloAltoInterface, AddressGroup
@@ -191,11 +191,11 @@ def host_detail_view(request, ip):
 
 
 @login_required
-@require_http_methods(['GET',])
+@require_http_methods(['GET', 'POST'])
 def hosts_list_view(request):
     """
-    Function view for showing all hosts that are administrated by the current hostadmin.
-    Paginated to 20 entries per page.
+    Function view for adding new hosts and showing all hosts that are administrated by the current
+    hostadmin. Paginated to 20 entries per page.
 
     Args:
         request (_type_): Request object.
@@ -208,11 +208,29 @@ def hosts_list_view(request):
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        if not ipam.admin_tag_exists(hostadmin.username):
+            return HttpResponseRedirect(reverse('hostadmin_init'))
+
+        tag_choices = [hostadmin.username, ipam.get_department_to_admin(hostadmin.username)]
+        if request.method == 'POST':
+            form = AddHostForm(request.POST, choices=request.POST['admin_tag'])
+            if form.is_valid():
+                for k, v in list(enumerate(tag_choices)):
+                    if form.cleaned_data['admin_tag'] == str(k):
+                        tag_name = v
+                        break
+                host_ip = form.cleaned_data['ip_addr']
+
+                if ipam.add_tag_to_host(tag_name, host_ip):
+                    return HttpResponseRedirect(reverse('hosts_list'))
+            form.add_error(None, "Couldn't add host! Try again later...")
+        else:
+            form = AddHostForm(choices=tag_choices)
+        
         hosts_list = ipam.get_hosts_of_admin(hostadmin.username)
 
     paginator = Paginator(hosts_list, PAGINATE)
     page = request.GET.get('page', 1)
-
     try:
         hosts_list = paginator.page(page)
     except PageNotAnInteger:
@@ -224,9 +242,41 @@ def hosts_list_view(request):
         'hostadmin' : hostadmin,
         'hosts_list' : hosts_list,
         'is_paginated' : True,
-        'page_obj' : hosts_list
+        'page_obj' : hosts_list,
+        'form' : form,
     }
     return render(request, 'hosts_list.html', context)
+
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def hostadmin_init_view(request):
+    # TODO: docu
+    hostadmin = get_object_or_404(MyUser, username=request.user.username)
+    with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        if ipam.admin_tag_exists(hostadmin.username):
+            return HttpResponseRedirect(reverse('hosts_list'))
+
+        department_choices = ipam.get_department_tag_names()
+        # do processing based on whether this is GET or POST request
+        if request.method == 'POST':
+            # TODO: handle form
+            form = HostadminForm(request.POST, choices=request.POST['department'])
+            if form.is_valid():
+                for k, v in list(enumerate(department_choices)):
+                    if form.cleaned_data['department'] == str(k):
+                        department = v
+                        break
+                if ipam.create_admin_tag(hostadmin.username, department):
+                    return HttpResponseRedirect(reverse('hosts_list'))
+        else:
+            form = HostadminForm(choices=department_choices)
+            context = {
+                'form' : form,
+            }
+            return render(request, 'hostadmin_init.html', context)
+
+    return HttpResponse("Error", status=500)
 
 
 @login_required
