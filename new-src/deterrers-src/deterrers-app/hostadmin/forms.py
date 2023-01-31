@@ -9,6 +9,25 @@ class HostadminForm(forms.Form):
         self.fields["department"] = forms.ChoiceField(choices=list(enumerate(choices)), required=True, label='Departments:')
 
 
+class AddHostForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        choices = kwargs.pop('choices')
+        super(AddHostForm, self).__init__(*args, **kwargs)
+        self.fields["admin_tag"] = forms.ChoiceField(
+            choices=list(enumerate(choices)), 
+            required=True, 
+            label='Admin(s):', 
+            help_text="Are you the only admin or should other admins from your department have the same acces as you."
+        )
+
+    ip_addr = forms.GenericIPAddressField(
+        protocol='IPv4',
+        unpack_ipv4=False,
+        label='IP Address',
+        help_text='IPv4 Address of the host.',
+        required=True,
+    )
+
 
 class ChangeHostDetailForm(forms.Form):
     # create lists of tuples in order to make use of the model validation of django
