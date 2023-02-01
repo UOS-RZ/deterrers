@@ -19,7 +19,7 @@ from .core.v_scanner_interface import GmpVScannerInterface
 from .core.fw_interface import PaloAltoInterface, AddressGroup
 from .core.risk_assessor import compute_risk_of_network_exposure
 from .core.rule_generator import generate_rule
-from .core.host import MyHost, HostStatusContract, HostServiceContract, HostFWContract, CustomRuleSubnetContract, CustomRuleProtocolContract
+from .core.host import MyHost, HostStatusContract, HostServiceContract, HostFWContract, HostBasedRuleSubnetContract, HostBasedRuleProtocolContract
 
 from myuser.models import MyUser
 
@@ -148,18 +148,11 @@ def host_detail_view(request, ip):
         if request.method == 'POST':
             form = AddHostRulesForm(request.POST)
             if form.is_valid():
-                subnet = CustomRuleSubnetContract[form.cleaned_data['subnet']].value
+                subnet = HostBasedRuleSubnetContract[form.cleaned_data['subnet']].value
                 ports = form.cleaned_data['ports']
                 proto = form.cleaned_data['protocol']
                 # update the actual model instance
-                host.custom_rules.append(
-                    {
-                        'allow_src' : subnet,
-                        'allow_ports' : list(ports),
-                        'allow_proto' : proto,
-                        'id' : str(uuid.uuid4())
-                    }
-                )
+                host.add_host_based_rule(subnet, ports, proto)
                 
                 ret = ipam.update_host_info(host)
                 if not ret:
@@ -174,11 +167,11 @@ def host_detail_view(request, ip):
         'hostadmin' : hostadmin,
         'host_detail' : host,
         'host_rules' : [
-                {'allow_src': CustomRuleSubnetContract(rule['allow_src']).display(),
+                {'allow_src': HostBasedRuleSubnetContract(rule['allow_src']).display(),
                 'allow_ports' : rule['allow_ports'],
                 'allow_proto' : rule['allow_proto'],
                 'id' : rule['id']}
-            for rule in host.custom_rules],
+            for rule in host.host_based_rules],
         'form' : form,
     }
 
@@ -320,44 +313,17 @@ def update_host_detail(request, ip : str):
                 host.service_profile = HostServiceContract(form.cleaned_data['service_profile'])
                 host.fw = HostFWContract(form.cleaned_data['fw'])
                 # always allow SSH standard port 22 over TCP and UDP
-                host.custom_rules.append(
-                    {
-                        'allow_src' : CustomRuleSubnetContract.ANY.value,
-                        'allow_ports' : [22],
-                        'allow_proto' : CustomRuleProtocolContract.TCP.value,
-                        'id' : str(uuid.uuid4())
-                    }
-                )
-                host.custom_rules.append(
-                    {
-                        'allow_src' : CustomRuleSubnetContract.ANY.value,
-                        'allow_ports' : [22],
-                        'allow_proto' : CustomRuleProtocolContract.UDP.value,
-                        'id' : str(uuid.uuid4())
-                    }
-                )
+                host.add_host_based_rule(HostBasedRuleSubnetContract.ANY.value, ['22'], HostBasedRuleProtocolContract.TCP.value)
+                host.add_host_based_rule(HostBasedRuleSubnetContract.ANY.value, ['22'], HostBasedRuleProtocolContract.UDP.value)
+
                 match host.service_profile:
                     case HostServiceContract.SSH:
                         # since SSH rules have already been added do nothing else
                         pass
                     case HostServiceContract.HTTP:
                         # allow HTTP and HTTPS standard ports 80 and 443 over TCP
-                        host.custom_rules.append(
-                            {
-                                'allow_src' : CustomRuleSubnetContract.ANY.value,
-                                'allow_ports' : [80],
-                                'allow_proto' : CustomRuleProtocolContract.TCP.value,
-                                'id' : str(uuid.uuid4())
-                            }
-                        )
-                        host.custom_rules.append(
-                            {
-                                'allow_src' : CustomRuleSubnetContract.ANY.value,
-                                'allow_ports' : [443],
-                                'allow_proto' : CustomRuleProtocolContract.TCP.value,
-                                'id' : str(uuid.uuid4())
-                            }
-                        )
+                        host.add_host_based_rule(HostBasedRuleSubnetContract.ANY.value, ['80'], HostBasedRuleProtocolContract.TCP.value)
+                        host.add_host_based_rule(HostBasedRuleSubnetContract.ANY.value, ['443'], HostBasedRuleProtocolContract.TCP.value)
                     case HostServiceContract.MULTIPURPOSE:
                         # allow nothing else; users are expected to configure their own rules
                         messages.info(request, f"Please make sure to configure custom rules for your desired services when choosing the {HostServiceContract.MULTIPURPOSE.value} profile!")
@@ -548,9 +514,9 @@ def delete_host_rule(request, ip : str, rule_id : uuid.UUID):
             raise Http404()
 
         # delete rule from host
-        for rule in host.custom_rules:
+        for rule in host.host_based_rules:
             if uuid.UUID(rule['id']) == rule_id:
-                host.custom_rules.remove(rule)
+                host.host_based_rules.remove(rule)
                 break
         if not ipam.update_host_info(host):
             messages.error(request, "Host could not be updated! Try again later...")
@@ -589,7 +555,7 @@ def get_fw_config(request, ip : str):
             return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
 
 
-    script = generate_rule(host.fw, host.custom_rules)
+    script = generate_rule(host.fw, host.host_based_rules)
     if script:
         f_temp = io.BytesIO(bytes(script, 'utf-8'))
         f_response = FileResponse(f_temp, as_attachment=True, filename='fw_config.sh')

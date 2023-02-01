@@ -13,36 +13,51 @@
     <p>
         <ol>
             <li>Login.</li>
-            <li>Visit your overview page.</li>
-                <ul>
-                    <li>On first visit you will be asked to choose your department.</li>
-                </ul> 
+            <li>Visit your overview page. On first visit you will be asked to choose your department.</li>
             <li>Add new hosts. You can either choose yourself as the admin or your whole department.</li>
             <li>Choose a host from the list. The list contains all hosts you or your department has been assigned to as administrator.</li>
             <li>Several actions can be performed on a host:</li>
                 <ul>
                     <li>
-                        Register: The host will be scanned thoroughly for vulnerabilities <s>and unblocked by the perimeter firewall on success</s><i>(not supported yet)</i>. 
+                        Register:
+                        <br>
+                        The host will be scanned thoroughly for vulnerabilities <s>and unblocked by the perimeter firewall on success</s><i>(not supported yet)</i>. 
                         <s>In case there are security risks, the host remains blocked.</s> <i>(not supported yet)</i>
+                        <br>
                         Information on the scan results will be send via e-mail to the admin(s).
+                        <br>
                         Additionally, the host will be scanned periodically.
                     </li>
                     <li>
-                        Ordinary Scan: The host will be scanned for vulnerabilities but not as thoroughly as with registration.
+                        Ordinary Scan:
+                        <br>
+                        The host will be scanned for vulnerabilities but not as thoroughly as with registration.
                     </li>
                     <li>
-                        Block: <s>Block the host at the perimeter firewall and</s><i>(not supported yet)</i> remove host from periodic scan.
+                        Block:
+                        <br>
+                        Remove host from periodic scan <s>and block the host at the perimeter firewall</s><i>(not supported yet)</i>.
                     </li>
                     <li>
-                        Edit Details: Choose a profile for the service the host provides and choose the host-based firewall program running on the host.
+                        Edit Details:
+                        <br>
+                        Choose a profile for the service the host provides and choose the host-based firewall program running on the host.
+                        <br>
                         This information is used for configuring the perimeter firewall to only allow traffic for that service.
+                        <br>
                         This information is also used for generating the host-based firewall configuration script.
+                        <br>
+                        Each time this information is changed the host-based firewall policies are adapted.
                     </li>
                     <li>
-                        Edit custom host-based firewall policies: Specify custom firewall rules for more precise control over the host-based firewall configuration script.
+                        Edit host-based firewall policies:
+                        <br>
+                        Specify firewall rules for more precise control over the host-based firewall configuration.
                     </li>
                     <li>
-                        Download host-based firewall configuration script: Generate and download the host-based firewall configuration script.
+                        Download host-based firewall configuration script:
+                        <br>
+                        Generate and download the configuration script.
                     </li>
                 </ul>
         </ol>

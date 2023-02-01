@@ -1,6 +1,6 @@
 from django import forms
 
-from .core.host import HostServiceContract, HostFWContract, CustomRuleSubnetContract, CustomRuleProtocolContract
+from .core.host import HostServiceContract, HostFWContract, HostBasedRuleSubnetContract, HostBasedRuleProtocolContract
 
 class HostadminForm(forms.Form):
     def __init__(self, *args, **kwargs):
@@ -37,7 +37,7 @@ class ChangeHostDetailForm(forms.Form):
     service_profile = forms.ChoiceField(
         choices=SERVICE_CHOICES,
         label='Service Profile',
-        help_text='Service Profile that has to be chosen for this host.',
+        help_text='Internet Service Profile that has to be chosen for this host.',
         required = False,
         initial=''
     )
@@ -81,8 +81,8 @@ class AddHostRulesForm(forms.Form):
                 raise forms.ValidationError("Invalid format for port list.", code="ports_invalid")
             return port_entries
 
-    SUBNET_CHOICES = [(sub.name, sub.display()) for sub in CustomRuleSubnetContract]
-    PROTOCOL_CHOICES = [(proto.value, proto.value) for proto in CustomRuleProtocolContract]
+    SUBNET_CHOICES = [(sub.name, sub.display()) for sub in HostBasedRuleSubnetContract]
+    PROTOCOL_CHOICES = [(proto.value, proto.value) for proto in HostBasedRuleProtocolContract]
 
     subnet = forms.ChoiceField(
         choices=SUBNET_CHOICES,

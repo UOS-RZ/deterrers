@@ -1,9 +1,7 @@
 import os
 import logging
 
-from .host import HostFWContract, HostServiceContract
-
-from django.conf import settings
+from .host import HostFWContract
 
 
 logger = logging.getLogger(__name__)
@@ -11,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def __generate_ufw__script(custom_rules : list[dict]) -> str|None:
-
+    rule_config = ""
     # the preamble is the same for every service profile
     PREAMBLE = \
 """#!/bin/bash
@@ -52,6 +50,7 @@ ufw enable
 
 
 def __generate_firewalld__script(custom_rules : list[dict]) -> str|None:
+    rule_config = ""
     CUSTOM_ZONE = "zone-by-deterrers"
     PREAMBLE = \
 f"""#!/bin/bash
@@ -102,6 +101,7 @@ firewall-cmd --reload
 
 
 def __generate_nftables__script(custom_rules : list[dict]) -> str|None:
+    rule_config = ""
     FILE_PATH = "/etc/nftables/deterrers_rules.nft"
     PREAMBLE = \
 f"""#!/bin/bash
