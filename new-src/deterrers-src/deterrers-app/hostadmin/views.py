@@ -30,10 +30,14 @@ logger = logging.getLogger(__name__)
 
 def __block_host(host_ip : str) -> bool:
     """
-    TODO: docu
+    Block a host at the perimeter firewall and update the status in the IPAM.
+    Removes host also from periodic scan.
 
     Args:
-        host_ip (str): _description_
+        host_ip (str): IP address of the host.
+
+    Returns:
+        bool: Returns True on success and False if something went wrong.
     """
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
         host = ipam.get_host_info_from_ip(host_ip)
@@ -45,7 +49,10 @@ def __block_host(host_ip : str) -> bool:
         if not ipam.update_host_info(host):
             return False
     
-    # TODO: remove from periodic scan
+    # remove from periodic scan
+    with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
+        if not scanner.remove_host_from_periodic_scan(host_ip):
+            return False
         
     return True
 
@@ -95,7 +102,15 @@ def __get_available_actions(host : MyHost) -> dict:
     return flags
 
 def __send_report_email(report_html : str, subject : str, str_body : str, to : list):
-    # TODO: docu
+    """
+    Utility method for sending e-mail.
+
+    Args:
+        report_html (str): HTML string that is attached to email.
+        subject (str): Subject of email.
+        str_body (str): String content of the email.
+        to (list): List of addresses to send email to.
+    """
     email = EmailMessage(
         subject,
         str_body,
@@ -244,7 +259,16 @@ def hosts_list_view(request):
 @login_required
 @require_http_methods(['GET', 'POST'])
 def hostadmin_init_view(request):
-    # TODO: docu
+    """
+    Function view for initialization of hostadmins. On GET the form is displayed, on POST the
+    form is read and the hostadmin is initialized.
+
+    Args:
+        request (_type_): Request object.
+
+    Returns:
+        HttpResponse: Rendered HTML page or redirect.
+    """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
         if ipam.admin_tag_exists(hostadmin.username):
@@ -253,7 +277,6 @@ def hostadmin_init_view(request):
         department_choices = ipam.get_department_tag_names()
         # do processing based on whether this is GET or POST request
         if request.method == 'POST':
-            # TODO: handle form
             form = HostadminForm(request.POST, choices=request.POST['department'])
             if form.is_valid():
                 for k, v in list(enumerate(department_choices)):

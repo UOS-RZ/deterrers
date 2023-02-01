@@ -434,7 +434,12 @@ deterrers_rules={json.dumps(host.host_based_rules)}|'}
 
 
     def get_department_tag_names(self) -> list:
-        # TODO: docu
+        """
+        Crawl all department tag names.
+
+        Returns:
+            list: Returns list of department tag names.
+        """
         admin_tag_grps = []
         try:
             tag_group_id = self.__get_tag_grp_id()
@@ -449,7 +454,15 @@ deterrers_rules={json.dumps(host.host_based_rules)}|'}
         return admin_tag_grps
 
     def get_department_to_admin(self, admin_tag_name : str) -> str|None:
-        # TODO: docu
+        """
+        Query the name of the department an admin belongs to.
+
+        Args:
+            admin_tag_name (str): Name of the admin tag.
+
+        Returns:
+            str|None: Returns the name of a department or None if something went wrong.
+        """
         try:
             tag_group_id = self.__get_tag_grp_id()
             # get all department tags which themselves hold the actual admin tags
@@ -469,7 +482,16 @@ deterrers_rules={json.dumps(host.host_based_rules)}|'}
         return None
 
     def create_admin_tag(self, admin_tag_name : str, department_tag_name : str) -> bool:
-        # TODO: docu
+        """
+        Create an admin tag object under some existing department tag.
+
+        Args:
+            admin_tag_name (str): Name of the admin tag to create.
+            department_tag_name (str): Name of the department tag that already exists.
+
+        Returns:
+            bool: Returns True on success and False if something goes wrong.
+        """
         try:
             admin_tag_name = self.__escape_user_input(admin_tag_name)
             tag_group_id = self.__get_tag_grp_id()
@@ -493,7 +515,15 @@ deterrers_rules={json.dumps(host.host_based_rules)}|'}
         return False
 
     def admin_tag_exists(self, admin_tag_name : str) -> bool|None:
-        # TODO: docu
+        """
+        Check whether an admin tag exists.
+
+        Args:
+            admin_tag_name (str): Name of the admin tag.
+
+        Returns:
+            bool|None: Returns True if exists, False if not and None something goes wrong.
+        """
         try:
             tag_group_id = self.__get_tag_grp_id()
             # get all department tags which themselves hold the actual admin tags
@@ -515,7 +545,16 @@ deterrers_rules={json.dumps(host.host_based_rules)}|'}
         return None
 
     def add_tag_to_host(self, tag_name : str, host_ip : str) -> bool:
-        # TODO: docu
+        """
+        Link a tag to a IPv4Address object.
+
+        Args:
+            tag_name (str): Tag name.
+            host_ip (str): IP address of the host.
+
+        Returns:
+            bool: Returns True on success and False if something goes wrong.
+        """
         try:
             # get IPv4Address object
             data = self.__get_IP4Address(host_ip)
