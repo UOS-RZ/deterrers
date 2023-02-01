@@ -1,5 +1,6 @@
 import ipaddress
 from enum import Enum
+import uuid
 
 from django.urls import reverse
 
@@ -21,7 +22,7 @@ class HostFWContract(Enum):
     NFTABLES =  'nftables'
     EMPTY =     ''
 
-class CustomRuleSubnetContract(Enum):
+class HostBasedRuleSubnetContract(Enum):
     ANY = {'name' : 'Any', 'range' : '0.0.0.0/0'}
     RZ_BACKBONE = {'name' : 'Uni RZ-Backbone', 'range' : '131.173.16.0/22'}
     VM_BACKBONE = {'name' : 'Uni VM-Backbone', 'range' : '131.173.22.0/23'}
@@ -29,7 +30,7 @@ class CustomRuleSubnetContract(Enum):
     def display(self):
         return f"{self.value['name']}"
 
-class CustomRuleProtocolContract(Enum):
+class HostBasedRuleProtocolContract(Enum):
     TCP = "tcp"
     UDP = "udp"
     # ANY = "any" # cannot be modelled with firewalld and nftables, so we do not support it in the meantime
@@ -63,12 +64,12 @@ class MyHost():
         self.fw = fw
         # list of dictionaries of form: 
         # {
-        #     'allow_src' : <CustomRuleSubnetContract.value>,
+        #     'allow_src' : <HostBasedRuleSubnetContract.value>,
         #     'allow_ports' : <list[str]>,
-        #     'allow_proto' : CustomRuleProtocolContract.value
+        #     'allow_proto' : HostBasedRuleProtocolContract.value
         #     'id' : <UUID>
         # }
-        self.custom_rules = rules
+        self.host_based_rules = rules
         self.entity_id = entity_id
 
 
@@ -92,6 +93,17 @@ class MyHost():
 
     def get_status_display(self) -> str:
         return self.status.value
+
+    def add_host_based_rule(self, subnet : str, ports : list[str], proto : str):
+        # TODO check if rule already exists
+        self.host_based_rules.append(
+            {
+                'allow_src' : subnet,
+                'allow_ports' : ports,
+                'allow_proto' : proto,
+                'id' : str(uuid.uuid4())
+            }
+        )
 
     def is_valid(self) -> bool:
         """

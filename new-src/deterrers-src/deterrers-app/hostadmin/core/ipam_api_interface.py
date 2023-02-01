@@ -414,7 +414,7 @@ class ProteusIPAMInterface():
 deterrers_service_profile={self.__escape_user_input(host.get_service_profile_display())}|\
 deterrers_fw={self.__escape_user_input(host.get_fw_display())}|\
 deterrers_status={self.__escape_user_input(host.get_status_display())}|\
-deterrers_rules={json.dumps(host.custom_rules)}|'}
+deterrers_rules={json.dumps(host.host_based_rules)}|'}
 
                 response = requests.put(update_host_url, json=update_host_body, headers=self.header, timeout=self.TIMEOUT)
 
