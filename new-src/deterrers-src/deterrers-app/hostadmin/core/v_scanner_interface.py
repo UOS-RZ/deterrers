@@ -257,15 +257,27 @@ class GmpVScannerInterface():
 
         return alert_uuid
 
-    def __modify_http_alert_data(self, host_ip, deterrers_url, target_uuid, task_uuid, report_uuid, alert_uuid : str):
+    def __modify_http_alert_data(
+        self,
+        host_ip : str,
+        deterrers_url : str,
+        target_uuid : str,
+        task_uuid : str,
+        report_uuid : str,
+        alert_uuid : str):
         """
-        TODO: docu
+        Set the necessary identifiers as query parameters in the HTTP alert.
 
         Args:
-            alert_uuid (str): _description_
+            host_ip (str): IP address of the host.
+            deterrers_url (str): Server address to send alert to.
+            target_uuid (str): UUID of scan target.
+            task_uuid (str): UUID of scan task.
+            report_uuid (str): UUID of scan report.
+            alert_uuid (str): UUID of HTTP alert itself.
 
         Raises:
-            GmpAPIError: _description_
+            GmpAPIError: Raised if couldn't query or modify alert.
         """
         response = self.gmp.get_alert(alert_uuid)
         response_status = int(response.xpath('@status')[0])
@@ -553,7 +565,7 @@ class GmpVScannerInterface():
                     response = self.gmp.stop_task(task_uuid)
                     response_status = int(response.xpath('@status')[0])
                     assert response_status != 200
-                    stopped = True # TODO: check response whether task was actually running
+                    stopped = True
                 else:
                     stopped = False
 
@@ -624,6 +636,10 @@ class GmpVScannerInterface():
         except GmpAPIError:
             logger.exception("Couldn't add host to periodic scan task.")
             return False
+        return True
+
+    def remove_host_from_periodic_scan(self, host_ip : str) -> bool:
+        # TODO: implement
         return True
 
 

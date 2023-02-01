@@ -167,27 +167,27 @@ class PaloAltoInterface():
 
         return obj_name
 
-    def __get_addr_grp_properties(self, addr_grp_name : AddressGroup) -> dict:
+    def __get_addr_grp_properties(self, addr_grp : AddressGroup) -> dict:
         """
-        TODO: docu
+        Query the properties of an AddressGroup.
 
         Args:
-            addr_grp_name (str): _description_
+            addr_grp (AddressGroup): Enum instance of the AddressGroup to query.
 
         Raises:
-            PaloAltoAPIError: _description_
+            PaloAltoAPIError: Raised if firewall responded unexpectedly.
 
         Returns:
-            dict: _description_
+            dict: Retruns a dictionary of properties.
         """
-        get_addr_grp_params =  f"name={addr_grp_name.value}&location={self.LOCATION}"
+        get_addr_grp_params =  f"name={addr_grp.value}&location={self.LOCATION}"
         get_addr_grp_url = self.rest_url + "Objects/AddressGroups?" + get_addr_grp_params
         response = requests.get(get_addr_grp_url, headers=self.header, timeout=self.TIMEOUT)
         data = response.json()
         if response.status_code != 200 \
                     or data.get('@status') != 'success' \
                         or int(data.get('result').get('@total-count')) != 1:
-            raise PaloAltoAPIError(f"Could not query Address Group {addr_grp_name.value} \
+            raise PaloAltoAPIError(f"Could not query Address Group {addr_grp.value} \
 from firewall! Status code: {response.status_code}. Status: {data.get('@status')}")
 
         addr_grp_props = data.get('result').get('entry')[0]
@@ -340,7 +340,15 @@ Status code: {response.status_code}. Status: {data.get('@status')}")
         return True
 
     def get_host_status(self, ip_addr : str) -> HostStatusContract:
-        # TODO
+        """
+        Query the status of an host at the perimeter firewall.
+
+        Args:
+            ip_addr (str): IP address of the host.
+
+        Returns:
+            HostStatusContract: Returns enum instance representing the host status.
+        """
         try:
             addr_obj_name = self.__get_addr_obj(ip_addr)
             if not addr_obj_name:
