@@ -72,11 +72,7 @@
                         </td>
                         <td>
                             {% bootstrap_button button_type="submit" content="Add" %}
-                            {% if form.errors %}
-                                <div class="form-errors">
-                                    {{from.errors}}
-                                </div>
-                            {% endif %}
+                            {% bootstrap_form_errors form %}
                         </td>
                     </tr>
                     <br>

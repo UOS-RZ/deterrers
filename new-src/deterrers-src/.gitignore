@@ -1,4 +1,6 @@
 *__pycache__
-db/
+db/*
+logs/*
+vpn/*
 .pip_cache/
 .env.prod

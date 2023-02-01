@@ -94,8 +94,14 @@ class MyHost():
     def get_status_display(self) -> str:
         return self.status.value
 
-    def add_host_based_rule(self, subnet : str, ports : list[str], proto : str):
-        # TODO check if rule already exists
+    def add_host_based_rule(self, subnet : str, ports : list[str], proto : str) -> bool:
+        for rule in self.host_based_rules:
+            same_src = rule['allow_src'] == subnet
+            same_proto = rule['allow_proto'] == proto
+            same_ports = set(ports).issubset(set(rule['allow_ports']))
+            if same_src and same_proto and same_ports:
+                return False
+
         self.host_based_rules.append(
             {
                 'allow_src' : subnet,
@@ -104,6 +110,7 @@ class MyHost():
                 'id' : str(uuid.uuid4())
             }
         )
+        return True
 
     def is_valid(self) -> bool:
         """
