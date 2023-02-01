@@ -69,7 +69,7 @@ def __get_available_actions(host : MyHost) -> dict:
             flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
             flags['can_block'] = False
         case HostStatusContract.UNDER_REVIEW:
-            flags['can_update'] = True
+            flags['can_update'] = False
             flags['can_register'] = False
             flags['can_scan'] = False
             flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
@@ -81,7 +81,7 @@ def __get_available_actions(host : MyHost) -> dict:
             flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
             flags['can_block'] = False
         case HostStatusContract.ONLINE:
-            flags['can_update'] = True
+            flags['can_update'] = False
             flags['can_register'] = False
             flags['can_scan'] = True
             flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
@@ -152,13 +152,13 @@ def host_detail_view(request, ip):
                 ports = form.cleaned_data['ports']
                 proto = form.cleaned_data['protocol']
                 # update the actual model instance
-                host.add_host_based_rule(subnet, ports, proto)
-                
-                ret = ipam.update_host_info(host)
-                if not ret:
-                    form.add_error(None, "Host rules could not be updated! Try again later...")
+                if not host.add_host_based_rule(subnet, ports, proto):
+                    form.add_error(None, "Rule is redundant!")
                 else:
-                    form = AddHostRulesForm()
+                    if not ipam.update_host_info(host):
+                        form.add_error(None, "Host rules could not be updated! Try again later...")
+                    else:
+                        form = AddHostRulesForm()
         else:
             # create new empty form
             form = AddHostRulesForm()
@@ -312,21 +312,25 @@ def update_host_detail(request, ip : str):
                 # update the actual model instance
                 host.service_profile = HostServiceContract(form.cleaned_data['service_profile'])
                 host.fw = HostFWContract(form.cleaned_data['fw'])
-                # always allow SSH standard port 22 over TCP and UDP
-                host.add_host_based_rule(HostBasedRuleSubnetContract.ANY.value, ['22'], HostBasedRuleProtocolContract.TCP.value)
-                host.add_host_based_rule(HostBasedRuleSubnetContract.ANY.value, ['22'], HostBasedRuleProtocolContract.UDP.value)
 
                 match host.service_profile:
-                    case HostServiceContract.SSH:
-                        # since SSH rules have already been added do nothing else
+                    case HostServiceContract.EMPTY:
                         pass
-                    case HostServiceContract.HTTP:
-                        # allow HTTP and HTTPS standard ports 80 and 443 over TCP
-                        host.add_host_based_rule(HostBasedRuleSubnetContract.ANY.value, ['80'], HostBasedRuleProtocolContract.TCP.value)
-                        host.add_host_based_rule(HostBasedRuleSubnetContract.ANY.value, ['443'], HostBasedRuleProtocolContract.TCP.value)
+                    case (HostServiceContract.SSH | HostServiceContract.HTTP) as s_p:
+                        # allow SSH standard port 22 over TCP and UDP if a service profile is specified
+                        host.add_host_based_rule(HostBasedRuleSubnetContract.ANY.value, ['22'], HostBasedRuleProtocolContract.TCP.value)
+                        host.add_host_based_rule(HostBasedRuleSubnetContract.ANY.value, ['22'], HostBasedRuleProtocolContract.UDP.value)
+                        match s_p:
+                            case HostServiceContract.SSH:
+                                # since SSH rules have already been added do nothing else
+                                pass
+                            case HostServiceContract.HTTP:
+                                # allow HTTP and HTTPS standard ports 80 and 443 over TCP
+                                host.add_host_based_rule(HostBasedRuleSubnetContract.ANY.value, ['80'], HostBasedRuleProtocolContract.TCP.value)
+                                host.add_host_based_rule(HostBasedRuleSubnetContract.ANY.value, ['443'], HostBasedRuleProtocolContract.TCP.value)
                     case HostServiceContract.MULTIPURPOSE:
                         # allow nothing else; users are expected to configure their own rules
-                        messages.info(request, f"Please make sure to configure custom rules for your desired services when choosing the {HostServiceContract.MULTIPURPOSE.value} profile!")
+                        messages.warning(request, f"Please make sure to configure custom rules for your desired services when choosing the {HostServiceContract.MULTIPURPOSE.value} profile!")
                     case _:
                         logger.error("%s is not supported yet.", host.service_profile)
                 

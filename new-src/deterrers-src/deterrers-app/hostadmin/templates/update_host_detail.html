@@ -7,13 +7,8 @@
 
 	<form action="" method="post">
 		{% csrf_token %}
-		{% comment %} <table>
-		{{ form.as_table }}
-		</table> {% endcomment %}
 		{% bootstrap_form form layout='inline' %}
 		<br>
-		{% comment %} <input type="button" value="Back" onclick="history.back()">
-		<input type="submit" value="Submit"> {% endcomment %}
 		{% bootstrap_button button_type="button" content="Back" button_class="btn btn-secondary btn-lg" onclick="history.back()" %}
 		{% bootstrap_button button_type="submit" content="Confirm" button_class="btn btn-primary btn-lg" %}
 	</form>
