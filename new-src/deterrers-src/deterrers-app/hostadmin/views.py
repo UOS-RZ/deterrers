@@ -19,7 +19,7 @@ from .core.v_scanner_interface import GmpVScannerInterface
 from .core.fw_interface import PaloAltoInterface, AddressGroup
 from .core.risk_assessor import compute_risk_of_network_exposure
 from .core.rule_generator import generate_rule
-from .core.host import MyHost, HostStatusContract, HostServiceContract, HostFWContract, CustomRuleSubnetContract
+from .core.host import MyHost, HostStatusContract, HostServiceContract, HostFWContract, CustomRuleSubnetContract, CustomRuleProtocolContract
 
 from myuser.models import MyUser
 
@@ -319,6 +319,50 @@ def update_host_detail(request, ip : str):
                 # update the actual model instance
                 host.service_profile = HostServiceContract(form.cleaned_data['service_profile'])
                 host.fw = HostFWContract(form.cleaned_data['fw'])
+                # always allow SSH standard port 22 over TCP and UDP
+                host.custom_rules.append(
+                    {
+                        'allow_src' : CustomRuleSubnetContract.ANY.value,
+                        'allow_ports' : [22],
+                        'allow_proto' : CustomRuleProtocolContract.TCP.value,
+                        'id' : str(uuid.uuid4())
+                    }
+                )
+                host.custom_rules.append(
+                    {
+                        'allow_src' : CustomRuleSubnetContract.ANY.value,
+                        'allow_ports' : [22],
+                        'allow_proto' : CustomRuleProtocolContract.UDP.value,
+                        'id' : str(uuid.uuid4())
+                    }
+                )
+                match host.service_profile:
+                    case HostServiceContract.SSH:
+                        # since SSH rules have already been added do nothing else
+                        pass
+                    case HostServiceContract.HTTP:
+                        # allow HTTP and HTTPS standard ports 80 and 443 over TCP
+                        host.custom_rules.append(
+                            {
+                                'allow_src' : CustomRuleSubnetContract.ANY.value,
+                                'allow_ports' : [80],
+                                'allow_proto' : CustomRuleProtocolContract.TCP.value,
+                                'id' : str(uuid.uuid4())
+                            }
+                        )
+                        host.custom_rules.append(
+                            {
+                                'allow_src' : CustomRuleSubnetContract.ANY.value,
+                                'allow_ports' : [443],
+                                'allow_proto' : CustomRuleProtocolContract.TCP.value,
+                                'id' : str(uuid.uuid4())
+                            }
+                        )
+                    case HostServiceContract.MULTIPURPOSE:
+                        # allow nothing else; users are expected to configure their own rules
+                        messages.info(request, f"Please make sure to configure custom rules for your desired services when choosing the {HostServiceContract.MULTIPURPOSE.value} profile!")
+                    case _:
+                        logger.error("%s is not supported yet.", host.service_profile)
                 
                 ret = ipam.update_host_info(host)
                 if ret:
@@ -545,7 +589,7 @@ def get_fw_config(request, ip : str):
             return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
 
 
-    script = generate_rule(host.fw, host.service_profile, host.custom_rules)
+    script = generate_rule(host.fw, host.custom_rules)
     if script:
         f_temp = io.BytesIO(bytes(script, 'utf-8'))
         f_response = FileResponse(f_temp, as_attachment=True, filename='fw_config.sh')

@@ -27,7 +27,7 @@ class CustomRuleSubnetContract(Enum):
     VM_BACKBONE = {'name' : 'Uni VM-Backbone', 'range' : '131.173.22.0/23'}
 
     def display(self):
-        return f"{self.value['name']} ({self.value['range']})"
+        return f"{self.value['name']}"
 
 class CustomRuleProtocolContract(Enum):
     TCP = "tcp"

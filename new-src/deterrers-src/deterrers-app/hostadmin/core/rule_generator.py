@@ -1,7 +1,7 @@
 import os
 import logging
 
-from .host import HostFWContract, HostServiceContract, CustomRuleSubnetContract
+from .host import HostFWContract, HostServiceContract
 
 from django.conf import settings
 
@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 
-def __generate_ufw__script(service_profile : HostServiceContract, custom_rules : list[dict]) -> str|None:
+def __generate_ufw__script(custom_rules : list[dict]) -> str|None:
 
     # the preamble is the same for every service profile
     PREAMBLE = \
@@ -23,47 +23,12 @@ ufw disable
 # delete all previous configurations so old settings can be overwritten
 echo 'y' | ufw reset
 
-"""
-
-    # first configure the rules derived from the service profile
-    rule_config = ""
-    match service_profile:
-        case HostServiceContract.HTTP:
-            rule_config += \
-"""
 # set default rules
 ufw default deny incoming
 ufw default allow outgoing
+"""
 
-# always allow SSH
-ufw allow ssh
-
-# allow HTTP/S
-ufw allow http
-ufw allow https
-"""
-        case HostServiceContract.SSH:
-            rule_config += \
-"""
-# set default rules
-ufw default deny incoming
-ufw default allow outgoing
-
-# allow SSH
-ufw allow ssh
-"""
-        case HostServiceContract.MULTIPURPOSE:
-            rule_config += \
-"""
-# set default rules
-ufw default allow incoming
-ufw default allow outgoing
-"""
-        case _:
-            logger.error("Service profile %s not supported by rule generator!", str(service_profile))
-            return None
-
-    ## construct custom rules; they may overwrite the service profile rules
+    ## construct custom rules
     for n, c_rule in enumerate(custom_rules):
         allow_src = c_rule['allow_src']
         allow_ports = c_rule['allow_ports']
@@ -86,7 +51,7 @@ ufw enable
 
 
 
-def __generate_firewalld__script(service_profile : HostServiceContract, custom_rules : list[dict]) -> str|None:
+def __generate_firewalld__script(custom_rules : list[dict]) -> str|None:
     CUSTOM_ZONE = "zone-by-deterrers"
     PREAMBLE = \
 f"""#!/bin/bash
@@ -106,36 +71,7 @@ firewall-cmd --permanent --new-zone={CUSTOM_ZONE}
 firewall-cmd --reload
 """
 
-    # first configure the rules derived from the service profile
-    rule_config = ""
-    match service_profile:
-        case HostServiceContract.HTTP:
-            rule_config += \
-f"""
-# always allow SSH
-firewall-cmd --zone={CUSTOM_ZONE} --add-service=ssh
-
-# allow HTTP/S
-firewall-cmd --zone={CUSTOM_ZONE} --add-service=http
-firewall-cmd --zone={CUSTOM_ZONE} --add-service=https
-"""
-        case HostServiceContract.SSH:
-            rule_config += \
-f"""
-# allow SSH
-firewall-cmd --zone={CUSTOM_ZONE} --add-service=ssh
-"""
-        case HostServiceContract.MULTIPURPOSE:
-            rule_config += \
-f"""
-#set the target of custom zone to ALLOW in order to make it default behaviour
-firewall-cmd --zone={CUSTOM_ZONE} --set-target=ACCEPT
-"""
-        case _:
-            logger.error("Service profile %s not supported by rule generator!", str(service_profile))
-            return None
-
-    ## construct custom rules; they may overwrite the service profile rules
+    ## construct custom rules
     for n, c_rule in enumerate(custom_rules):
         allow_src = c_rule['allow_src']
         allow_ports = c_rule['allow_ports']
@@ -165,7 +101,7 @@ firewall-cmd --reload
 
 
 
-def __generate_nftables__script(service_profile : HostServiceContract, custom_rules : list[dict]) -> str|None:
+def __generate_nftables__script(custom_rules : list[dict]) -> str|None:
     FILE_PATH = "/etc/nftables/deterrers_rules.nft"
     PREAMBLE = \
 f"""#!/bin/bash
@@ -189,38 +125,9 @@ table inet deterrers-ruleset {{
 
         # accept packets of existing connections
         ct state {{ established, related }} accept
-"""
-
-    # first configure the rules derived from the service profile
-    rule_config = ""
-    match service_profile:
-        case HostServiceContract.HTTP:
-            rule_config += \
-"""
         # drop all packets that do not match a rule in this chain
         type deterrers-ruleset hook input priority 0; policy drop;
-        # accept SSH
-        tcp dport ssh accept
-        # accept HTTP and HTTPS
-        tcp dport { http, https } accept
 """
-        case HostServiceContract.SSH:
-            rule_config += \
-"""
-        # drop all packets that do not match a rule in this chain
-        type deterrers-ruleset hook input priority 0; policy drop;
-        # accept SSH
-        tcp dport ssh accept
-"""
-        case HostServiceContract.MULTIPURPOSE:
-            rule_config += \
-"""
-        # allow all packets that do not match a rule in this chain
-        type filter hook input priority 0; policy allow;
-"""
-        case _:
-            logger.error("Service profile %s not supported by rule generator!", str(service_profile))
-            return None
     
     ## construct the custom rules
     for n, c_rule in enumerate(custom_rules):
@@ -258,14 +165,13 @@ systemctl start nftables
     return PREAMBLE + rule_config + POST_AMBLE
 
 
-def generate_rule(fw : HostFWContract, service_profile : HostServiceContract, custom_rules : list[dict]) -> str|None:
+def generate_rule(fw : HostFWContract, custom_rules : list[dict]) -> str|None:
     """
     Generate/Suggest a firewall configuration script for some combination of fw program and service profile.
     Additionally consider custom rules that might be specified.
 
     Args:
         fw (HostFWContract): Firewall program.
-        service_profile (HostServiceContract): Service profile.
         custom_rules (list[dict]): List of dicts specifying custom rules in following form:
         {
             'allow_src' : <CustomRuleSubnetContract.value>,
@@ -276,11 +182,11 @@ def generate_rule(fw : HostFWContract, service_profile : HostServiceContract, cu
     """
     match fw:
         case HostFWContract.UFW:
-            script = __generate_ufw__script(service_profile, custom_rules)
+            script = __generate_ufw__script( custom_rules)
         case HostFWContract.FIREWALLD:
-            script = __generate_firewalld__script(service_profile, custom_rules)
+            script = __generate_firewalld__script( custom_rules)
         case HostFWContract.NFTABLES:
-            script = __generate_nftables__script(service_profile, custom_rules)
+            script = __generate_nftables__script( custom_rules)
         case _:
             logger.error(f"Firewall '{fw}' is not supported by rule generator!")
             return None
