@@ -26,11 +26,14 @@ class HostBasedPolicy():
         if len(elems) == 4:
             p_id = elems[0]
             allow_src = json.loads(elems[1])
-            allow_ports = json.loads(elems[2])
+            allow_ports = set(json.loads(elems[2]))
             allow_proto = elems[3]
             return cls(id=p_id, allow_src=allow_src, allow_ports=allow_ports, allow_proto=allow_proto)
         logger.error("Invalid string input: %s", string)
         return None
+
+    def to_string(self) -> str:
+        return self.id + self.SEPERATOR + json.dumps(self.allow_src) + self.SEPERATOR + json.dumps(list(self.allow_ports)) + self.SEPERATOR + self.allow_proto
 
     def is_subset_of(self, p : HostBasedPolicy) -> bool:
         """
@@ -48,9 +51,6 @@ class HostBasedPolicy():
         if same_src and same_proto and ports_are_subset:
             return True
         return False
-
-    def to_string(self) -> str:
-        return self.id + self.SEPERATOR + json.dumps(self.allow_src) + self.SEPERATOR + json.dumps(self.allow_ports) + self.SEPERATOR + self.allow_proto
 
 
 
