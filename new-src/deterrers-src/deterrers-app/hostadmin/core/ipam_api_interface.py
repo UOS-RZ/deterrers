@@ -89,7 +89,7 @@ class ProteusIPAMInterface():
             except KeyError:
                 fw = HostFWContract.EMPTY
             try:
-                rules = [HostBasedPolicy().from_string(p_str) for p_str in props['deterrers_rules']]
+                rules = [HostBasedPolicy.from_string(p_str) for p_str in props['deterrers_rules']]
             except KeyError:
                 rules = []
         except (KeyError, AttributeError):
