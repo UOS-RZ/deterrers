@@ -544,7 +544,7 @@ def delete_host_rule(request, ip : str, rule_id : uuid.UUID):
 
         # delete rule from host
         for rule in host.host_based_policies:
-            if uuid.UUID(rule['id']) == rule_id:
+            if uuid.UUID(rule.id) == rule_id:
                 host.host_based_policies.remove(rule)
                 break
         if not ipam.update_host_info(host):
