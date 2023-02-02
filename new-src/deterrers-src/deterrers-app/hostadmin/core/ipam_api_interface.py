@@ -3,7 +3,8 @@ from ipaddress import ip_address
 import logging
 import json
 
-from .host import MyHost, HostStatusContract, HostServiceContract, HostFWContract
+from .host import MyHost
+from .contracts import HostStatusContract, HostServiceContract, HostFWContract
 from .rule_generator import HostBasedPolicy
 
 logger = logging.getLogger(__name__)
