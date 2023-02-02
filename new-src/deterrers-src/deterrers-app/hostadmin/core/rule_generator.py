@@ -13,15 +13,22 @@ class HostBasedPolicy():
     Class representing a host-based firewall policy.
     """ 
     SEPERATOR = '___'
-    def __init__(self,
-        allow_src : dict = {'name' : 'None', 'range' : []},
-        allow_ports : set[str] = set(),
-        allow_proto : str = '',
-        id : str = str(uuid.uuid4())): # TODO: find prettier way for multiple constructors
+
+    def __init__(self, allow_src : dict, allow_ports : set[str], allow_proto : str, id : str = str(uuid.uuid4())):
         self.id = id
         self.allow_src = allow_src
         self.allow_ports = set(allow_ports)
         self.allow_proto = allow_proto
+
+    @classmethod
+    def from_string(cls, string : str) -> HostBasedPolicy:
+        elems = string.split(cls.SEPERATOR)
+        if len(elems) == 4:
+            id = elems[0]
+            allow_src = json.loads(elems[1])
+            allow_ports = json.loads(elems[2])
+            allow_proto = elems[3]
+        return cls(id=id, allow_src=allow_src, allow_ports=allow_ports, allow_proto=allow_proto)
 
     def is_subset_of(self, p : HostBasedPolicy) -> bool:
         """
@@ -43,15 +50,7 @@ class HostBasedPolicy():
     def to_string(self) -> str:
         return self.id + self.SEPERATOR + json.dumps(self.allow_src) + self.SEPERATOR + json.dumps(self.allow_ports) + self.SEPERATOR + self.allow_proto
 
-    def from_string(self, string : str) -> HostBasedPolicy:
-        elems = string.split(self.SEPERATOR)
-        if len(elems) == 4:
-            self.id = elems[0]
-            self.allow_src = json.loads(elems[1])
-            self.allow_ports = json.loads(elems[2])
-            self.allow_proto = elems[3]
 
-        return self
 
 
 
