@@ -29,6 +29,7 @@ class HostBasedPolicy():
             allow_ports = json.loads(elems[2])
             allow_proto = elems[3]
             return cls(id=p_id, allow_src=allow_src, allow_ports=allow_ports, allow_proto=allow_proto)
+        logger.error("Invalid string input: %s", string)
         return None
 
     def is_subset_of(self, p : HostBasedPolicy) -> bool:
