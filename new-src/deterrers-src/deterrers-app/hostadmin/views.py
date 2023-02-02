@@ -16,10 +16,11 @@ from django.core.mail import EmailMessage
 from .forms import ChangeHostDetailForm, AddHostRulesForm, HostadminForm, AddHostForm
 from .core.ipam_api_interface import ProteusIPAMInterface
 from .core.v_scanner_interface import GmpVScannerInterface
-from .core.fw_interface import PaloAltoInterface, AddressGroup
+from .core.fw_interface import PaloAltoInterface
 from .core.risk_assessor import compute_risk_of_network_exposure
-from .core.rule_generator import generate_rule, HostBasedRuleSubnetContract, HostBasedRuleProtocolContract
-from .core.host import MyHost, HostStatusContract, HostServiceContract, HostFWContract
+from .core.rule_generator import generate_rule
+from .core.host import MyHost
+from .core.contracts import HostBasedRuleSubnetContract, HostBasedRuleProtocolContract, HostStatusContract, HostServiceContract, HostFWContract, AddressGroup
 
 
 from myuser.models import MyUser

@@ -1,28 +1,9 @@
 import ipaddress
-from enum import Enum
-import uuid
 
 from django.urls import reverse
 
 from .rule_generator import HostBasedPolicy
-
-class HostStatusContract(Enum):
-    UNREGISTERED =  'Unscanned' # TODO: should rather be 'Unregistered' but must be changed everywhere
-    UNDER_REVIEW =  'Under Review'
-    BLOCKED =       'Blocked'
-    ONLINE =        'Online'
-
-class HostServiceContract(Enum):
-    HTTP =          'HTTP'
-    SSH =           'SSH'
-    MULTIPURPOSE =  'Multipurpose'
-    EMPTY =         ''
-
-class HostFWContract(Enum):
-    UFW =       'UFW'
-    FIREWALLD = 'FirewallD'
-    NFTABLES =  'nftables'
-    EMPTY =     ''
+from .contracts import HostFWContract, HostServiceContract, HostStatusContract
 
 
 class MyHost():
