@@ -1,24 +1,14 @@
 import logging
 import requests
 from lxml import etree
-from enum import Enum
 import time
 from threading import Thread
 
-from .host import HostStatusContract
+from .contracts import HostStatusContract, AddressGroup
 
 
 logger = logging.getLogger(__name__)
 
-
-class AddressGroup(Enum):
-    """
-    Enumeration of the different AddressGroup names which specify the service profiles in the
-    firewall configuration.
-    """
-    HTTP = "FWP1-WEB"
-    SSH = "FWP2-SSH"
-    OPEN = "FWP3-OPEN"
 
 class PaloAltoAPIError(Exception):
     """ Custom exception that is raised when the Palo Alto API does not respond as expected. """
