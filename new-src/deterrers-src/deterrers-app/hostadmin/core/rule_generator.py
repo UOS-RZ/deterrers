@@ -1,5 +1,6 @@
-import os
+from enum import Enum
 import logging
+import uuid
 
 from .host import HostFWContract
 
@@ -7,8 +8,76 @@ from .host import HostFWContract
 logger = logging.getLogger(__name__)
 
 
+class HostBasedRuleSubnetContract(Enum):
+    ANY = {
+        'name' : 'Any',
+        'range' : ['0.0.0.0/0']
+    }
+    RZ_INTERN = {
+        'name' : 'RZ Intern',
+        'range' : ['131.173.61.0/24', '131.173.245.32/27']
+    }
+    VM_BACKBONE = {
+        'name' : 'Uni VM-Backbone',
+        'range' : [
+            '131.173.0.0/19',
+            '131.173.32.0/20',
+            '131.173.56.0/22',
+            '131.173.60.0/23',
+            '131.173.63.0/24',
+            '131.173.128.0/20',
+            '131.173.144.0/21',
+            '131.173.160.0/19',
+            '131.173.192.0/20',
+            '131.173.208.0/21',
+            '131.173.224.0/21',
+            '131.173.244.0/23',
+            '131.173.248.0/23',
+            '131.173.252.0/22',
+            '193.175.2.48/28',
+            '2001:638:508::/48',
+            '172.16.0.0/12',
+        ]
+    }
 
-def __generate_ufw__script(custom_rules : list[dict]) -> str|None:
+    def display(self):
+        return f"{self.value['name']}"
+
+class HostBasedRuleProtocolContract(Enum):
+    TCP = "tcp"
+    UDP = "udp"
+    # ANY = "any" # cannot be modelled with firewalld and nftables, so we do not support it in the meantime
+
+class HostBasedPolicy():
+    """
+    Class representing a host-based firewall policy.
+    """ 
+    def __init__(self, allow_src : dict, allow_ports : set[str], allow_proto : str, id : uuid.UUID = uuid.uuid4()):
+        self.allow_src = allow_src
+        self.allow_ports = set(allow_ports)
+        self.allow_proto = allow_proto
+        self.id = id
+
+    def is_subset_of(self, p) -> bool:
+        """
+        Checks if this policy (self) is made obsolete by policy p.
+
+        Args:
+            p (HostBasedPolicy): Policy which is checked to be a superset of self.
+
+        Returns:
+            bool: Returns True if self is made obsolete by p, False otherwise.
+        """
+        same_src = self.allow_src == p.allow_src
+        same_proto = self.allow_proto == p.allow_proto
+        ports_are_subset = self.allow_ports.issubset(p.allow_ports)
+        if same_src and same_proto and ports_are_subset:
+            return True
+        return False
+
+
+
+def __generate_ufw__script(custom_rules : list[HostBasedPolicy]) -> str|None:
     rule_config = ""
     # the preamble is the same for every service profile
     PREAMBLE = \
@@ -28,9 +97,9 @@ ufw default allow outgoing
 
     ## construct custom rules
     for n, c_rule in enumerate(custom_rules):
-        allow_src = c_rule['allow_src']
-        allow_ports = c_rule['allow_ports']
-        allow_proto = c_rule['allow_proto']
+        allow_src = c_rule.allow_src
+        allow_ports = c_rule.allow_ports
+        allow_proto = c_rule.allow_proto
         rule_config += \
 f"""
 # set custom rule no. {n}"""
@@ -49,7 +118,7 @@ ufw enable
 
 
 
-def __generate_firewalld__script(custom_rules : list[dict]) -> str|None:
+def __generate_firewalld__script(custom_rules : list[HostBasedPolicy]) -> str|None:
     rule_config = ""
     CUSTOM_ZONE = "zone-by-deterrers"
     PREAMBLE = \
@@ -72,9 +141,9 @@ firewall-cmd --reload
 
     ## construct custom rules
     for n, c_rule in enumerate(custom_rules):
-        allow_src = c_rule['allow_src']
-        allow_ports = c_rule['allow_ports']
-        allow_proto = c_rule['allow_proto']
+        allow_src = c_rule.allow_src
+        allow_ports = c_rule.allow_ports
+        allow_proto = c_rule.allow_proto
         allow_family = "ipv4" # TODO: for IPv6 support this needs to be changed
         rule_config += \
 f"""
@@ -100,7 +169,7 @@ firewall-cmd --reload
 
 
 
-def __generate_nftables__script(custom_rules : list[dict]) -> str|None:
+def __generate_nftables__script(custom_rules : list[HostBasedPolicy]) -> str|None:
     rule_config = ""
     FILE_PATH = "/etc/nftables/deterrers_rules.nft"
     PREAMBLE = \
@@ -131,9 +200,9 @@ table inet deterrers-ruleset {{
     
     ## construct the custom rules
     for n, c_rule in enumerate(custom_rules):
-        allow_src = c_rule['allow_src']
-        allow_ports = c_rule['allow_ports']
-        allow_proto = c_rule['allow_proto']
+        allow_src = c_rule.allow_src
+        allow_ports = c_rule.allow_ports
+        allow_proto = c_rule.allow_proto
         rule_config += \
 f"""
         # set custom rule no. {n}"""
@@ -165,20 +234,14 @@ systemctl start nftables
     return PREAMBLE + rule_config + POST_AMBLE
 
 
-def generate_rule(fw : HostFWContract, custom_rules : list[dict]) -> str|None:
+def generate_rule(fw : HostFWContract, custom_rules : list[HostBasedPolicy]) -> str|None:
     """
     Generate/Suggest a firewall configuration script for some combination of fw program and service profile.
     Additionally consider custom rules that might be specified.
 
     Args:
         fw (HostFWContract): Firewall program.
-        custom_rules (list[dict]): List of dicts specifying custom rules in following form:
-        {
-            'allow_src' : <CustomRuleSubnetContract.value>,
-            'allow_ports' : <list[str]>,
-            'allow_proto' : CustomRuleProtocolContract.value
-            'id' : <UUID>
-        }
+        custom_rules (list[dict]): List of host-based firewall policies.
     """
     match fw:
         case HostFWContract.UFW:

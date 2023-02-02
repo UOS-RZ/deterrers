@@ -4,6 +4,8 @@ import uuid
 
 from django.urls import reverse
 
+from .rule_generator import HostBasedPolicy
+
 class HostStatusContract(Enum):
     UNREGISTERED =  'Unscanned' # TODO: should rather be 'Unregistered' but must be changed everywhere
     UNDER_REVIEW =  'Under Review'
@@ -22,19 +24,6 @@ class HostFWContract(Enum):
     NFTABLES =  'nftables'
     EMPTY =     ''
 
-class HostBasedRuleSubnetContract(Enum):
-    ANY = {'name' : 'Any', 'range' : '0.0.0.0/0'}
-    RZ_BACKBONE = {'name' : 'Uni RZ-Backbone', 'range' : '131.173.16.0/22'}
-    VM_BACKBONE = {'name' : 'Uni VM-Backbone', 'range' : '131.173.22.0/23'}
-
-    def display(self):
-        return f"{self.value['name']}"
-
-class HostBasedRuleProtocolContract(Enum):
-    TCP = "tcp"
-    UDP = "udp"
-    # ANY = "any" # cannot be modelled with firewalld and nftables, so we do not support it in the meantime
-
 
 class MyHost():
     """
@@ -50,7 +39,7 @@ class MyHost():
         name : str = '',
         service : HostServiceContract = HostServiceContract.EMPTY,
         fw : HostFWContract = HostFWContract.EMPTY,
-        rules  : list[dict] = [],
+        policies  : list[HostBasedPolicy] = [],
         entity_id=None ):
 
         # Mandatory
@@ -62,14 +51,7 @@ class MyHost():
         self.name = name
         self.service_profile = service
         self.fw = fw
-        # list of dictionaries of form: 
-        # {
-        #     'allow_src' : <HostBasedRuleSubnetContract.value>,
-        #     'allow_ports' : <list[str]>,
-        #     'allow_proto' : HostBasedRuleProtocolContract.value
-        #     'id' : <UUID>
-        # }
-        self.host_based_rules = rules
+        self.host_based_policies = policies
         self.entity_id = entity_id
 
 
@@ -94,22 +76,13 @@ class MyHost():
     def get_status_display(self) -> str:
         return self.status.value
 
-    def add_host_based_rule(self, subnet : str, ports : list[str], proto : str) -> bool:
-        for rule in self.host_based_rules:
-            same_src = rule['allow_src'] == subnet
-            same_proto = rule['allow_proto'] == proto
-            same_ports = set(ports).issubset(set(rule['allow_ports']))
-            if same_src and same_proto and same_ports:
+    def add_host_based_policy(self, subnets : list[str], ports : list[str], proto : str) -> bool:
+        new_policy = HostBasedPolicy(subnets, ports, proto)
+        for policy in self.host_based_policies:
+            if new_policy.is_subset_of(policy):
                 return False
 
-        self.host_based_rules.append(
-            {
-                'allow_src' : subnet,
-                'allow_ports' : ports,
-                'allow_proto' : proto,
-                'id' : str(uuid.uuid4())
-            }
-        )
+        self.host_based_policies.append(new_policy)
         return True
 
     def is_valid(self) -> bool:
