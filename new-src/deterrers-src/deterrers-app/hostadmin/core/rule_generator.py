@@ -1,3 +1,4 @@
+from __future__ import annotations # enable type hinting to class in class itself; might be unneccessary from 3.11 on
 import logging
 import uuid
 import json
@@ -7,7 +8,6 @@ from.contracts import HostFWContract
 
 logger = logging.getLogger(__name__)
 
-from __future__ import annotations # enable type hinting to class in class itself
 class HostBasedPolicy():
     """
     Class representing a host-based firewall policy.
