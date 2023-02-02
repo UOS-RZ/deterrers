@@ -1,6 +1,7 @@
 from enum import Enum
 import logging
 import uuid
+import json
 
 from .host import HostFWContract
 
@@ -39,6 +40,10 @@ class HostBasedRuleSubnetContract(Enum):
             '172.16.0.0/12',
         ]
     }
+    IT_ADMIN_VPN = {
+        'name' : 'IT Admin VPN',
+        'range' : ['']
+    }
 
     def display(self):
         return f"{self.value['name']}"
@@ -52,11 +57,12 @@ class HostBasedPolicy():
     """
     Class representing a host-based firewall policy.
     """ 
-    def __init__(self, allow_src : dict, allow_ports : set[str], allow_proto : str, id : uuid.UUID = uuid.uuid4()):
+    SEPERATOR = '___'
+    def __init__(self, allow_src : dict, allow_ports : set[str], allow_proto : str, id : str = str(uuid.uuid4())):
+        self.id = id
         self.allow_src = allow_src
         self.allow_ports = set(allow_ports)
         self.allow_proto = allow_proto
-        self.id = id
 
     def is_subset_of(self, p) -> bool:
         """
@@ -74,6 +80,19 @@ class HostBasedPolicy():
         if same_src and same_proto and ports_are_subset:
             return True
         return False
+
+    def to_string(self) -> str:
+        return self.id + self.SEPERATOR + json.dumps(self.allow_src) + self.SEPERATOR + json.dumps(self.allow_ports) + self.SEPERATOR + self.allow_proto
+
+    def from_string(self, string : str) -> HostBasedPolicy:
+        elems = string.split(self.SEPERATOR)
+        if len(elems) == 4:
+            self.id = elems[0]
+            self.allow_src = json.loads(elems[1])
+            self.allow_ports = json.loads(elems[2])
+            self.allow_proto = elems[3]
+
+        return self
 
 
 
