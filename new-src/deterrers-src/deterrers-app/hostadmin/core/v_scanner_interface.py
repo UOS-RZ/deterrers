@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 import icalendar
 from base64 import b64decode
 import os
-import time
 
 from gvm.protocols.gmp import Gmp
 from gvm.connections import SSHConnection

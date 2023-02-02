@@ -3,7 +3,9 @@ from ipaddress import ip_address
 import logging
 import json
 
-from .host import MyHost, HostStatusContract, HostServiceContract, HostFWContract
+from .host import MyHost
+from .contracts import HostStatusContract, HostServiceContract, HostFWContract
+from .rule_generator import HostBasedPolicy
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +89,7 @@ class ProteusIPAMInterface():
             except KeyError:
                 fw = HostFWContract.EMPTY
             try:
-                rules = json.loads(props['deterrers_rules'])
+                rules = [HostBasedPolicy.from_string(p_str) for p_str in json.loads(props['deterrers_rules'])]
             except KeyError:
                 rules = []
         except (KeyError, AttributeError):
@@ -254,7 +256,7 @@ class ProteusIPAMInterface():
                 name=name,
                 service=service,
                 fw=fw,
-                rules=rules,
+                policies=rules,
                 entity_id=host_id
             )
             if my_host.is_valid():
@@ -296,7 +298,7 @@ class ProteusIPAMInterface():
                 name=name,
                 service=service,
                 fw=fw,
-                rules=rules,
+                policies=rules,
                 entity_id=host_id
             )
             if my_host.is_valid():
@@ -347,7 +349,7 @@ class ProteusIPAMInterface():
                         name=name,
                         service=service,
                         fw=fw,
-                        rules=rules,
+                        policies=rules,
                         entity_id=host_id
                     )
                     if my_host.is_valid():
@@ -414,7 +416,7 @@ class ProteusIPAMInterface():
 deterrers_service_profile={self.__escape_user_input(host.get_service_profile_display())}|\
 deterrers_fw={self.__escape_user_input(host.get_fw_display())}|\
 deterrers_status={self.__escape_user_input(host.get_status_display())}|\
-deterrers_rules={json.dumps(host.host_based_rules)}|'}
+deterrers_rules={json.dumps([p.to_string() for p in host.host_based_policies])}|'}
 
                 response = requests.put(update_host_url, json=update_host_body, headers=self.header, timeout=self.TIMEOUT)
 
