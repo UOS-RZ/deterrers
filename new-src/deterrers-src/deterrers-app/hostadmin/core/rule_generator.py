@@ -7,7 +7,7 @@ from.contracts import HostFWContract
 
 logger = logging.getLogger(__name__)
 
-
+from __future__ import annotations # enable type hinting to class in class itself
 class HostBasedPolicy():
     """
     Class representing a host-based firewall policy.
@@ -19,7 +19,7 @@ class HostBasedPolicy():
         self.allow_ports = set(allow_ports)
         self.allow_proto = allow_proto
 
-    def is_subset_of(self, p) -> bool:
+    def is_subset_of(self, p : HostBasedPolicy) -> bool:
         """
         Checks if this policy (self) is made obsolete by policy p.
 
