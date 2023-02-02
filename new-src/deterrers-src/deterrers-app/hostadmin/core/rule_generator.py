@@ -13,7 +13,7 @@ class HostBasedPolicy():
     Class representing a host-based firewall policy.
     """ 
     SEPERATOR = '___'
-    def __init__(self, allow_src : dict, allow_ports : set[str], allow_proto : str, id : str = str(uuid.uuid4())):
+    def __init__(self, allow_src : dict = None, allow_ports : set[str] = None, allow_proto : str = None, id : str = str(uuid.uuid4())): # TODO: find prettier way for multiple constructors
         self.id = id
         self.allow_src = allow_src
         self.allow_ports = set(allow_ports)
