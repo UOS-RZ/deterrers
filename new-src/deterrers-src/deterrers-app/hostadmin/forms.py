@@ -1,6 +1,7 @@
 from django import forms
 
-from .core.host import HostServiceContract, HostFWContract, HostBasedRuleSubnetContract, HostBasedRuleProtocolContract
+from .core.host import HostServiceContract, HostFWContract
+from .core.rule_generator import HostBasedRuleSubnetContract, HostBasedRuleProtocolContract
 
 class HostadminForm(forms.Form):
     def __init__(self, *args, **kwargs):
