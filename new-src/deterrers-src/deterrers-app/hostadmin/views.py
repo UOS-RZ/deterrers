@@ -661,6 +661,8 @@ def v_scanner_registration_alert(request):
                         host.status = HostStatusContract.ONLINE
                         if not ipam.update_host_info(host):
                             raise RuntimeError("Couldn't update host information!")
+                        # get all department names for use below
+                        departments = ipam.get_department_tag_names()
                 else:
                     logger.info("Host %s did not pass the registration and will be blocked.", host_ip)
                     if not __block_host(host_ip):
@@ -668,7 +670,7 @@ def v_scanner_registration_alert(request):
 
                 # get HTML report and send via e-mail to admin
                 report_html = scanner.get_report_html(report_uuid)
-                admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if not admin_id.contains(' ')]
+                admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments] # deduce admin email addr and filter out departments
                 logger.debug("Admin addresses: %s", str(admin_addresses))
                 __send_report_email(
                     report_html,
@@ -737,10 +739,12 @@ def v_scanner_scan_alert(request):
                         host.status = fw.get_host_status(host.ip_addr)
                     if not ipam.update_host_info(host):
                         raise RuntimeError("Couldn't update host information!")
+                    # get all department names for use below
+                    departments = ipam.get_department_tag_names()
 
                 # get HTML report and send via e-mail to admin
                 report_html = scanner.get_report_html(report_uuid)
-                admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if not admin_id.contains(' ')]
+                admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments] # deduce admin email addr and filter out departments
                 logger.debug("Admin addresses: %s", str(admin_addresses))
                 __send_report_email(
                     report_html,

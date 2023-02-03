@@ -34,7 +34,12 @@ class HostBasedRuleSubnetContract(Enum):
     }
     IT_ADMIN_VPN = {
         'name' : 'IT Admin VPN',
-        'range' : ['']
+        'range' : [
+            '131.173.16.48',
+            '2001:638:508:FE30::/64',
+            '2001:638:508:FE31::/64',
+            '2001:638:508:FE32::/64',
+            ]
     }
 
     def display(self):
