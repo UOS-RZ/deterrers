@@ -184,7 +184,7 @@ def host_detail_view(request, ip):
         'hostadmin' : hostadmin,
         'host_detail' : host,
         'host_rules' : [
-                {'allow_src': HostBasedRuleSubnetContract(p.allow_src).display(),
+                {'allow_src': HostBasedRuleSubnetContract(p.allow_srcs).display(),
                 'allow_ports' : p.allow_ports,
                 'allow_proto' : p.allow_proto,
                 'id' : p.id}
