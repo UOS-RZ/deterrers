@@ -2,6 +2,7 @@ from __future__ import annotations # enable type hinting to class in class itsel
 import logging
 import uuid
 import json
+import ipaddress
 
 from.contracts import HostFWContract
 
@@ -14,9 +15,9 @@ class HostBasedPolicy():
     """ 
     SEPERATOR = '___'
 
-    def __init__(self, allow_src : dict, allow_ports : set[str], allow_proto : str, id : str = str(uuid.uuid4())):
+    def __init__(self, allow_srcs : dict, allow_ports : set[str], allow_proto : str, id : str = str(uuid.uuid4())):
         self.id = id
-        self.allow_src = allow_src
+        self.allow_srcs = allow_srcs
         self.allow_ports = set(allow_ports)
         self.allow_proto = allow_proto
 
@@ -33,7 +34,7 @@ class HostBasedPolicy():
         return None
 
     def to_string(self) -> str:
-        return self.id + self.SEPERATOR + json.dumps(self.allow_src) + self.SEPERATOR + json.dumps(list(self.allow_ports)) + self.SEPERATOR + self.allow_proto
+        return self.id + self.SEPERATOR + json.dumps(self.allow_srcs) + self.SEPERATOR + json.dumps(list(self.allow_ports)) + self.SEPERATOR + self.allow_proto
 
     def is_subset_of(self, p : HostBasedPolicy) -> bool:
         """
@@ -45,7 +46,7 @@ class HostBasedPolicy():
         Returns:
             bool: Returns True if self is made obsolete by p, False otherwise.
         """
-        same_src = self.allow_src == p.allow_src
+        same_src = self.allow_srcs == p.allow_srcs
         same_proto = self.allow_proto == p.allow_proto
         ports_are_subset = self.allow_ports.issubset(p.allow_ports)
         if same_src and same_proto and ports_are_subset:
@@ -53,15 +54,74 @@ class HostBasedPolicy():
         return False
 
 
+FW_PROGRAM_CHECK = \
+"""
+FW_NAME=%s
+# get OS in order to know which package manager to use below
+while : ; do
+    echo "Please choose the operating system this machine is running on:
+    [1] Debian/Ubuntu
+    [2] CentOS
+    [3] other"
 
+    read OS_I
+    if [ $OS_I == 1 ] || [ $OS_I == 2 ] || [ $OS_I == 3 ]
+    then
+        break
+    fi
+    echo "Invalid input!"
+done
+
+# check if firewall progamm is installed
+if [ $OS_I == 1 ]
+then
+    # Debian/Ubunut uses dpkg
+    if dpkg -s ${FW_NAME} | grep -q "Status: install ok installed"
+    then
+        echo "Found ${FW_NAME} installed. Continue..."
+    else
+        echo "Did not find ${FW_NAME} installed on machine. Please make sure to install it first!"
+        exit 0
+    fi
+elif [ $OS_I == 2 ]
+    # CentOS uses rpm
+    if rpm -qa | grep ${FW_NAME}
+    then
+        echo "Found ${FW_NAME} installed. Continue..."
+    else
+        echo "Did not find ${FW_NAME} installed on machine. Please make sure to install it first!"
+        exit 0
+    fi
+elif [ $OS_I == 3 ]
+    # other can't be handeled
+    echo "Cannot check if ${FW_NAME} is installed without infos about OS. Please make sure that it is installed manually!
+    Contiue anyways? [y/n]"
+
+    read cont
+    if [ ${cont} != y ]
+    then
+        exit 0
+    fi
+fi
+"""
 
 
 def __generate_ufw__script(custom_rules : list[HostBasedPolicy]) -> str|None:
     rule_config = ""
     # the preamble is the same for every service profile
     PREAMBLE = \
-"""#!/bin/bash
+f"""#!/bin/bash
 # This script should be run with sudo permissions!
+
+{FW_PROGRAM_CHECK.format('ufw')}
+
+# confirm that user wants to overwrite existing rules
+echo "Continuing will overwrite all present configurations to ufw! Do you agree to reset ufw? [y/n]"
+read continue
+if [ ${{continue}} =! y ]
+then
+    exit 0
+fi
 
 # disable the host-based firewall before making any changes
 ufw disable
@@ -76,15 +136,16 @@ ufw default allow outgoing
 
     ## construct custom rules
     for n, c_rule in enumerate(custom_rules):
-        allow_src = c_rule.allow_src
+        allow_srcs = c_rule.allow_srcs
         allow_ports = c_rule.allow_ports
         allow_proto = c_rule.allow_proto
         rule_config += \
 f"""
 # set custom rule no. {n}"""
-        rule_config += \
+        for src in allow_srcs['range']:
+            rule_config += \
 f"""
-ufw allow proto {allow_proto} from {allow_src['range']} to any port {','.join(allow_ports)} comment 'Custom DETERRERS rule no. {n}' """
+ufw allow proto {allow_proto} from {src} to any port {','.join(allow_ports)} comment 'Custom DETERRERS rule no. {n}' """
 
     # postamble is the same for every service profile
     POSTAMBLE = \
@@ -104,6 +165,8 @@ def __generate_firewalld__script(custom_rules : list[HostBasedPolicy]) -> str|No
 f"""#!/bin/bash
 # This script should be run with sudo permissions!
 
+{FW_PROGRAM_CHECK.format('firewalld')}
+
 # make sure the firewalld service is running and will activated at system start
 systemctl enable firewalld
 systemctl start firewalld
@@ -120,18 +183,22 @@ firewall-cmd --reload
 
     ## construct custom rules
     for n, c_rule in enumerate(custom_rules):
-        allow_src = c_rule.allow_src
+        allow_srcs = c_rule.allow_srcs
         allow_ports = c_rule.allow_ports
         allow_proto = c_rule.allow_proto
-        allow_family = "ipv4" # TODO: for IPv6 support this needs to be changed
         rule_config += \
 f"""
 # set custom rule no. {n}"""
+        for src in allow_srcs['range']:
+            rule_config += \
+f"""
+firewall-cmd --zone={CUSTOM_ZONE} --add-source={src}"""
+
         for port in allow_ports:
             port = port.replace(':', '-') # firewalld uses 'x-y'-notation for port ranges
             rule_config += \
 f"""
-firewall-cmd --add-rich-rule='rule familiy={allow_family} source address={allow_src['range']} port port={port} protocol={allow_proto}  accept' """
+firewall-cmd --zone={CUSTOM_ZONE} --add-port={port}/{allow_proto}"""
 
 
     POSTAMBLE = \
@@ -154,6 +221,8 @@ def __generate_nftables__script(custom_rules : list[HostBasedPolicy]) -> str|Non
     PREAMBLE = \
 f"""#!/bin/bash
 # This script should be run with sudo permissions!
+
+{FW_PROGRAM_CHECK.format('nftables')}
 
 # create the config file
 mkdir -p /etc/nftables/
@@ -179,17 +248,21 @@ table inet deterrers-ruleset {{
     
     ## construct the custom rules
     for n, c_rule in enumerate(custom_rules):
-        allow_src = c_rule.allow_src
+        allow_srcs = c_rule.allow_srcs['range']
         allow_ports = c_rule.allow_ports
         allow_proto = c_rule.allow_proto
         rule_config += \
 f"""
         # set custom rule no. {n}"""
-        for port in allow_ports:
-            port = port.replace(':', '-') # nftables uses 'x-y'-notation for port ranges
-            rule_config += \
+        allow_ports = [p.replace(':', '-') for p in allow_ports] # nftables uses 'x-y'-notation for port ranges
+        allow_srcs_ipv4 = [src for src in allow_srcs if isinstance(ipaddress.ip_address(src), ipaddress.IPv4Address)]
+        allow_srcs_ipv6 = [src for src in allow_srcs if isinstance(ipaddress.ip_address(src), ipaddress.IPv6Address)]
+        rule_config += \
 f"""
-        ip saddr {allow_src['range']} {allow_proto} dport {port} accept"""
+        ip saddr {{ {','.join(allow_srcs_ipv4)} }} {allow_proto} dport {{ {','.join(allow_ports)} }} accept"""
+        rule_config += \
+f"""
+        ip6 saddr {{ {','.join(allow_srcs_ipv6)} }} {allow_proto} dport {{ {','.join(allow_ports)} }} accept"""
 
     POST_AMBLE = \
 f"""
@@ -224,11 +297,11 @@ def generate_rule(fw : HostFWContract, custom_rules : list[HostBasedPolicy]) -> 
     """
     match fw:
         case HostFWContract.UFW:
-            script = __generate_ufw__script( custom_rules)
+            script = __generate_ufw__script(custom_rules)
         case HostFWContract.FIREWALLD:
-            script = __generate_firewalld__script( custom_rules)
+            script = __generate_firewalld__script(custom_rules)
         case HostFWContract.NFTABLES:
-            script = __generate_nftables__script( custom_rules)
+            script = __generate_nftables__script(custom_rules)
         case _:
             logger.error(f"Firewall '{fw}' is not supported by rule generator!")
             return None
