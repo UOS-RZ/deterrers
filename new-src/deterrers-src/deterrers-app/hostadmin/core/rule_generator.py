@@ -256,7 +256,7 @@ echo '#!/usr/sbin/nft -f
 flush ruleset
 
 # table type inet stands for Iv4 and IPv6
-table inet deterrers-ruleset {{
+table inet filter {{
     # create two chains that give the default behavior for foreward and outgoing traffic
     chain forward {{
         # do not forward any traffic
@@ -276,7 +276,7 @@ table inet deterrers-ruleset {{
         # accept packets of existing connections
         ct state {{ established, related }} accept
         # drop all packets that do not match a rule in this chain
-        type deterrers-ruleset hook input priority 0; policy drop;
+        type filter hook input priority 0; policy drop;
 """
     
     ## construct the custom rules
@@ -289,11 +289,13 @@ f"""
         # set custom rule no. {n}"""
         allow_ports = [p.replace(':', '-') for p in allow_ports] # nftables uses 'x-y'-notation for port ranges
         allow_srcs_ipv4 = [src for src in allow_srcs if isinstance(ipaddress.ip_network(src), ipaddress.IPv4Network)]
-        allow_srcs_ipv6 = [src for src in allow_srcs if isinstance(ipaddress.ip_network(src), ipaddress.IPv6Network)]
-        rule_config += \
+        if len(allow_srcs_ipv4) > 0:
+            rule_config += \
 f"""
         ip saddr {{ {','.join(allow_srcs_ipv4)} }} {allow_proto} dport {{ {','.join(allow_ports)} }} accept"""
-        rule_config += \
+        allow_srcs_ipv6 = [src for src in allow_srcs if isinstance(ipaddress.ip_network(src), ipaddress.IPv6Network)]
+        if len(allow_srcs_ipv6) > 0:
+            rule_config += \
 f"""
         ip6 saddr {{ {','.join(allow_srcs_ipv6)} }} {allow_proto} dport {{ {','.join(allow_ports)} }} accept"""
 
@@ -305,7 +307,7 @@ f"""
 
 # enable nftables at system start and restart
 systemctl enable nftables.service
-systemctl start nftables
+systemctl restart nftables
 """
     return PREAMBLE + rule_config + POST_AMBLE
 
