@@ -167,12 +167,20 @@ f"""#!/bin/bash
 
 {FW_PROGRAM_CHECK.format('firewalld')}
 
+# get consent to delete all present configurations
+echo "This script will overwrite all custom configurations to firewalld you might have done in the past! Do you want to proceed? [y/n]"
+read continue
+if [ ${{continue}} =! y ]
+then
+    exit 0
+fi
+# fw configurations are saved in /etc/firewalld/zones; delete all files in the directory and do a complete reset
+rm -f /etc/firewalld/zones/*
+firewall-cmd --complete-reload
+
 # make sure the firewalld service is running and will activated at system start
 systemctl enable firewalld
 systemctl start firewalld
-
-# delete custum zone if it exists so previous configurations can be overwritten
-firewall-cmd --permanent --delete-zone={CUSTOM_ZONE}
 
 # create custom zone
 firewall-cmd --permanent --new-zone={CUSTOM_ZONE}
@@ -217,24 +225,48 @@ firewall-cmd --reload
 
 def __generate_nftables__script(custom_rules : list[HostBasedPolicy]) -> str|None:
     rule_config = ""
-    FILE_PATH = "/etc/nftables/deterrers_rules.nft"
     PREAMBLE = \
 f"""#!/bin/bash
 # This script should be run with sudo permissions!
 
 {FW_PROGRAM_CHECK.format('nftables')}
 
-# create the config file
-mkdir -p /etc/nftables/
-touch {FILE_PATH}
+# get consent to delete all present configurations
+echo "This script will overwrite all custom configurations to nftables you might have done in the past! Do you want to proceed? [y/n]"
+read continue
+if [ ${{continue}} =! y ]
+then
+    exit 0
+fi
+
+# nftables.conf may exist at different locations in filesystem, so check where it is
+PATHS=("/etc/nftables.conf" "/etc/sysconfig/nftables.conf")
+for path in ${{PATHS[@]}}
+do
+    if [ -f "$path" ]
+    then
+        CONF_LOC=$path
+        break
+    fi
+done
 
 # create a config file that specifies the custom rule set
 echo '
-#!/usr/sbin/nft -f
 flush ruleset
 
 # table type inet stands for Iv4 and IPv6
 table inet deterrers-ruleset {{
+    # create two chains that give the default behavior for foreward and outgoing traffic
+    chain forward {{
+        # do not forward any traffic
+        type filter hook forward priority 0; policy drop;
+    }}
+
+    chain output {{
+        # allow all outgoing traffic
+        type filter hook output priority 0; policy accept;
+    }}
+    
     # create a table named input-chain which will hold rules for incoming traffic
     chain input-chain {{
         # accept packets to localhost
@@ -265,19 +297,10 @@ f"""
         ip6 saddr {{ {','.join(allow_srcs_ipv6)} }} {allow_proto} dport {{ {','.join(allow_ports)} }} accept"""
 
     POST_AMBLE = \
-f"""
-    }}
-}}
-' > {FILE_PATH}
-
-# load the custom rule set
-nft -f {FILE_PATH}
-
-# make nftables load the custom rule set at each system start
-echo '
-
-include "{FILE_PATH}"
-' >> /etc/nftables.conf
+"""
+    }
+}
+' > $CONF_LOC
 
 # enable nftables at system start and restart
 systemctl enable nftables.service
