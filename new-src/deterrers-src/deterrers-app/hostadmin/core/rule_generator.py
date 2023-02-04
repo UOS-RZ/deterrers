@@ -175,39 +175,39 @@ if [ ${{continue}} != y ]
 then
     exit 0
 fi
-# fw configurations are saved in /etc/firewalld/zones; delete all files in the directory and do a complete reset
-rm -f /etc/firewalld/zones/*
-firewall-cmd --complete-reload
 
-# make sure the firewalld service is running and will activated at system start
+# make sure the firewalld service is running and will be activated at system start
 systemctl enable firewalld
 systemctl start firewalld
 
-# create custom zone
-firewall-cmd --permanent --new-zone={CUSTOM_ZONE}
-
-# make custom zone available in runtime configuration
-firewall-cmd --reload
+# fw configurations are saved in /etc/firewalld/zones; delete all files in the directory and do a complete reset
+rm -f /etc/firewalld/zones/*
+firewall-cmd --complete-reload
 """
 
-    ## construct custom rules
+    ## construct a zone for each custom rule
     for n, c_rule in enumerate(custom_rules):
         allow_srcs = c_rule.allow_srcs
         allow_ports = c_rule.allow_ports
         allow_proto = c_rule.allow_proto
         rule_config += \
 f"""
-# set custom rule no. {n}"""
+# create custom zone for rule {n}
+firewall-cmd --permanent --new-zone={CUSTOM_ZONE}_{n}
+
+# make custom zone available in runtime configuration
+firewall-cmd --reload"""
+
         for src in allow_srcs['range']:
             rule_config += \
 f"""
-firewall-cmd --zone={CUSTOM_ZONE} --add-source={src}"""
+firewall-cmd --zone={CUSTOM_ZONE}_{n} --add-source={src}"""
 
         for port in allow_ports:
             port = port.replace(':', '-') # firewalld uses 'x-y'-notation for port ranges
             rule_config += \
 f"""
-firewall-cmd --zone={CUSTOM_ZONE} --add-port={port}/{allow_proto}"""
+firewall-cmd --zone={CUSTOM_ZONE}_{n} --add-port={port}/{allow_proto}"""
 
 
     POSTAMBLE = \
