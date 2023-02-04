@@ -161,6 +161,7 @@ ufw enable
 
 def __generate_firewalld__script(custom_rules : list[HostBasedPolicy]) -> str|None:
     rule_config = ""
+    CUSTOM_ZONE = "deterrers-zone"
     PREAMBLE = \
 f"""#!/bin/bash
 # This script should be run with sudo permissions!
@@ -181,41 +182,79 @@ systemctl start firewalld
 
 # fw configurations are saved in /etc/firewalld/zones; delete all files in the directory and do a complete reset
 rm -f /etc/firewalld/zones/*
-firewall-cmd --complete-reload
-"""
+firewall-cmd --complete-reload"""
 
-    ## construct a zone for each unique source
-    added_zones = []
-    for n, c_rule in enumerate(custom_rules):
-        zone_name = c_rule.allow_srcs['name'].replace(' ', '_')
-        zone_srcs = c_rule.allow_srcs['range']
-        if zone_name not in added_zones:
-            # has to be performed only the first time a policy with this source is encountered
-            rule_config += \
+    # create new zone and make it default
+    rule_config += \
 f"""
-# create custom zone for {zone_name}
-firewall-cmd --permanent --new-zone={zone_name}
+# create custom zone
+firewall-cmd --permanent --new-zone={CUSTOM_ZONE}
 
 # make custom zone available in runtime configuration
-firewall-cmd --reload"""
+firewall-cmd --reload
 
-            for src in zone_srcs:
+# set default zone to zone-by-deterrers
+firewall-cmd --set-default-zone={CUSTOM_ZONE}
+
+"""
+
+    ## construct custom rules as rich rules because abstraction to zone does not work as long as sources cannot overlap
+    for n, c_rule in enumerate(custom_rules):
+        allow_srcs = c_rule.allow_srcs['range']
+        allow_ports = c_rule.allow_ports
+        allow_proto = c_rule.allow_proto
+        rule_config += \
+f"""
+# set custom rule no. {n}"""
+        for src in allow_srcs:
+            if isinstance(ipaddress.ip_network(src), ipaddress.IPv4Network):
+                allow_family = "ipv4"
+            elif isinstance(ipaddress.ip_network(src), ipaddress.IPv6Network):
+                allow_family = "ipv6"
+            else:
+                continue
+            for port in allow_ports:
+                port = port.replace(':', '-') # firewalld uses 'x-y'-notation for port ranges
                 rule_config += \
 f"""
-firewall-cmd --zone={zone_name} --add-source={src}"""
+firewall-cmd --zone={CUSTOM_ZONE} --add-rich-rule='rule familiy={allow_family} source address={allow_srcs} port port={port} protocol={allow_proto}  accept' """
 
-            added_zones.append(zone_name)
 
-    ## add ports to the corresponding zones
-    for n, c_rule in enumerate(custom_rules):
-        zone_name = c_rule.allow_srcs['name'].replace(' ', '_')
-        zone_ports = c_rule.allow_ports
-        zone_proto = c_rule.allow_proto
-        for port in zone_ports:
-            port = port.replace(':', '-') # firewalld uses 'x-y'-notation for port ranges
-            rule_config += \
-f"""
-firewall-cmd --zone={zone_name} --add-port={port}/{zone_proto}"""
+
+### Approach below does not work because overlapping sources for zones are not allowed ###
+#     ## construct a zone for each unique source
+#     added_zones = []
+#     for n, c_rule in enumerate(custom_rules):
+#         zone_name = c_rule.allow_srcs['name'].replace(' ', '_')
+#         zone_srcs = c_rule.allow_srcs['range']
+#         if zone_name not in added_zones:
+#             # has to be performed only the first time a policy with this source is encountered
+#             rule_config += \
+# f"""
+
+# # create custom zone for {zone_name}
+# firewall-cmd --permanent --new-zone={zone_name}
+# # make custom zone available in runtime configuration
+# firewall-cmd --reload
+# # add sources"""
+
+#             for src in zone_srcs:
+#                 rule_config += \
+# f"""
+# firewall-cmd --zone={zone_name} --add-source={src}"""
+
+#             added_zones.append(zone_name)
+
+#     ## add ports to the corresponding zones
+#     for n, c_rule in enumerate(custom_rules):
+#         zone_name = c_rule.allow_srcs['name'].replace(' ', '_')
+#         zone_ports = c_rule.allow_ports
+#         zone_proto = c_rule.allow_proto
+#         for port in zone_ports:
+#             port = port.replace(':', '-') # firewalld uses 'x-y'-notation for port ranges
+#             rule_config += \
+# f"""
+# firewall-cmd --zone={zone_name} --add-port={port}/{zone_proto}"""
 
 
     POSTAMBLE = \
