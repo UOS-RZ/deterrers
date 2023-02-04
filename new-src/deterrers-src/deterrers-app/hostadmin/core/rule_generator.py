@@ -56,7 +56,6 @@ class HostBasedPolicy():
 
 FW_PROGRAM_CHECK = \
 """
-FW_NAME=%s
 # get OS in order to know which package manager to use below
 while : ; do
     echo "Please choose the operating system this machine is running on:
@@ -76,29 +75,29 @@ done
 if [ $OS_I == 1 ]
 then
     # Debian/Ubunut uses dpkg
-    if dpkg -s ${FW_NAME} | grep -q "Status: install ok installed"
+    if dpkg -s ${fw_name} | grep -q "Status: install ok installed"
     then
-        echo "Found ${FW_NAME} installed. Continue..."
+        echo "Found ${fw_name} installed. Continue..."
     else
-        echo "Did not find ${FW_NAME} installed on machine. Please make sure to install it first!"
+        echo "Did not find ${fw_name} installed on machine. Please make sure to install it first!"
         exit 0
     fi
 elif [ $OS_I == 2 ]
     # CentOS uses rpm
-    if rpm -qa | grep ${FW_NAME}
+    if rpm -qa | grep ${fw_name}
     then
-        echo "Found ${FW_NAME} installed. Continue..."
+        echo "Found ${fw_name} installed. Continue..."
     else
-        echo "Did not find ${FW_NAME} installed on machine. Please make sure to install it first!"
+        echo "Did not find ${fw_name} installed on machine. Please make sure to install it first!"
         exit 0
     fi
 elif [ $OS_I == 3 ]
     # other can't be handeled
-    echo "Cannot check if ${FW_NAME} is installed without infos about OS. Please make sure that it is installed manually!
+    echo "Cannot check if ${fw_name} is installed without infos about OS. Please make sure that it is installed manually!
     Contiue anyways? [y/n]"
 
     read cont
-    if [ ${cont} != y ]
+    if [ ${{cont}} != y ]
     then
         exit 0
     fi
@@ -113,7 +112,7 @@ def __generate_ufw__script(custom_rules : list[HostBasedPolicy]) -> str|None:
 f"""#!/bin/bash
 # This script should be run with sudo permissions!
 
-{FW_PROGRAM_CHECK.format('ufw')}
+{FW_PROGRAM_CHECK.format(fw_name='ufw')}
 
 # confirm that user wants to overwrite existing rules
 echo "Continuing will overwrite all present configurations to ufw! Do you agree to reset ufw? [y/n]"
@@ -165,7 +164,7 @@ def __generate_firewalld__script(custom_rules : list[HostBasedPolicy]) -> str|No
 f"""#!/bin/bash
 # This script should be run with sudo permissions!
 
-{FW_PROGRAM_CHECK.format('firewalld')}
+{FW_PROGRAM_CHECK.format(fw_name='firewalld')}
 
 # get consent to delete all present configurations
 echo "This script will overwrite all custom configurations to firewalld you might have done in the past! Do you want to proceed? [y/n]"
@@ -229,7 +228,7 @@ def __generate_nftables__script(custom_rules : list[HostBasedPolicy]) -> str|Non
 f"""#!/bin/bash
 # This script should be run with sudo permissions!
 
-{FW_PROGRAM_CHECK.format('nftables')}
+{FW_PROGRAM_CHECK.format(fw_name='nftables')}
 
 # get consent to delete all present configurations
 echo "This script will overwrite all custom configurations to nftables you might have done in the past! Do you want to proceed? [y/n]"
