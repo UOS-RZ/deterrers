@@ -75,27 +75,27 @@ done
 if [ $OS_I == 1 ]
 then
     # Debian/Ubunut uses dpkg
-    if dpkg -s ${fw_name} | grep -q "Status: install ok installed"
+    if dpkg -s {fw_name} | grep -q "Status: install ok installed"
     then
-        echo "Found ${fw_name} installed. Continue..."
+        echo "Found {fw_name} installed. Continue..."
     else
-        echo "Did not find ${fw_name} installed on machine. Please make sure to install it first!"
+        echo "Did not find {fw_name} installed on machine. Please make sure to install it first!"
         exit 0
     fi
 elif [ $OS_I == 2 ]
 then
     # CentOS uses rpm
-    if rpm -qa | grep ${fw_name}
+    if rpm -qa | grep {fw_name}
     then
-        echo "Found ${fw_name} installed. Continue..."
+        echo "Found {fw_name} installed. Continue..."
     else
-        echo "Did not find ${fw_name} installed on machine. Please make sure to install it first!"
+        echo "Did not find {fw_name} installed on machine. Please make sure to install it first!"
         exit 0
     fi
 elif [ $OS_I == 3 ]
 then
     # other can't be handeled
-    echo "Cannot check if ${fw_name} is installed without infos about OS. Please make sure that it is installed manually!
+    echo "Cannot check if {fw_name} is installed without infos about OS. Please make sure that it is installed manually!
     Contiue anyways? [y/n]"
 
     read cont
@@ -171,7 +171,7 @@ f"""#!/bin/bash
 # get consent to delete all present configurations
 echo "This script will overwrite all custom configurations to firewalld you might have done in the past! Do you want to proceed? [y/n]"
 read continue
-if [ ${{continue}} =! y ]
+if [ ${{continue}} != y ]
 then
     exit 0
 fi
@@ -235,7 +235,7 @@ f"""#!/bin/bash
 # get consent to delete all present configurations
 echo "This script will overwrite all custom configurations to nftables you might have done in the past! Do you want to proceed? [y/n]"
 read continue
-if [ ${{continue}} =! y ]
+if [ ${{continue}} != y ]
 then
     exit 0
 fi
