@@ -161,7 +161,7 @@ ufw enable
 
 def __generate_firewalld__script(custom_rules : list[HostBasedPolicy]) -> str|None:
     rule_config = ""
-    CUSTOM_ZONE = "zone-by-deterrers"
+    CUSTOM_ZONE = "policy-zone"
     PREAMBLE = \
 f"""#!/bin/bash
 # This script should be run with sudo permissions!
@@ -214,7 +214,7 @@ firewall-cmd --zone={CUSTOM_ZONE}_{n} --add-port={port}/{allow_proto}"""
 f"""
 
 # set default zone to zone-by-deterrers
-firewall-cmd --set-default-zone={CUSTOM_ZONE}
+# firewall-cmd --set-default-zone={CUSTOM_ZONE}
 
 # make all changes permanent and reload firewall
 firewall-cmd --runtime-to-permanent
