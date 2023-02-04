@@ -26,10 +26,10 @@ class HostBasedPolicy():
         elems = string.split(cls.SEPERATOR)
         if len(elems) == 4:
             p_id = elems[0]
-            allow_src = json.loads(elems[1])
+            allow_srcs = json.loads(elems[1])
             allow_ports = set(json.loads(elems[2]))
             allow_proto = elems[3]
-            return cls(id=p_id, allow_src=allow_src, allow_ports=allow_ports, allow_proto=allow_proto)
+            return cls(id=p_id, allow_srcs=allow_srcs, allow_ports=allow_ports, allow_proto=allow_proto)
         logger.error("Invalid string input: %s", string)
         return None
 
