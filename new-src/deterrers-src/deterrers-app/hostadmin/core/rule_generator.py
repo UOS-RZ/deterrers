@@ -207,17 +207,15 @@ firewall-cmd --zone={CUSTOM_ZONE}_{n} --add-source={src}"""
             port = port.replace(':', '-') # firewalld uses 'x-y'-notation for port ranges
             rule_config += \
 f"""
-firewall-cmd --zone={CUSTOM_ZONE}_{n} --add-port={port}/{allow_proto}"""
+firewall-cmd --zone={CUSTOM_ZONE}_{n} --add-port={port}/{allow_proto}
+
+# make changes permanent
+firewall-cmd --runtime-to-permanent"""
 
 
     POSTAMBLE = \
-f"""
+"""
 
-# set default zone to zone-by-deterrers
-# firewall-cmd --set-default-zone={CUSTOM_ZONE}
-
-# make all changes permanent and reload firewall
-firewall-cmd --runtime-to-permanent
 firewall-cmd --reload
 """
     return PREAMBLE + rule_config + POSTAMBLE
