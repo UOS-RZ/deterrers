@@ -250,7 +250,7 @@ do
 done
 
 # create a config file that specifies the custom rule set
-echo '
+echo '#!/usr/sbin/nft -f
 flush ruleset
 
 # table type inet stands for Iv4 and IPv6
