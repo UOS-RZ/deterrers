@@ -83,6 +83,7 @@ then
         exit 0
     fi
 elif [ $OS_I == 2 ]
+then
     # CentOS uses rpm
     if rpm -qa | grep ${fw_name}
     then
@@ -92,6 +93,7 @@ elif [ $OS_I == 2 ]
         exit 0
     fi
 elif [ $OS_I == 3 ]
+then
     # other can't be handeled
     echo "Cannot check if ${fw_name} is installed without infos about OS. Please make sure that it is installed manually!
     Contiue anyways? [y/n]"
