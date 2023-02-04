@@ -286,8 +286,8 @@ table inet deterrers-ruleset {{
 f"""
         # set custom rule no. {n}"""
         allow_ports = [p.replace(':', '-') for p in allow_ports] # nftables uses 'x-y'-notation for port ranges
-        allow_srcs_ipv4 = [src for src in allow_srcs if isinstance(ipaddress.ip_address(src), ipaddress.IPv4Address)]
-        allow_srcs_ipv6 = [src for src in allow_srcs if isinstance(ipaddress.ip_address(src), ipaddress.IPv6Address)]
+        allow_srcs_ipv4 = [src for src in allow_srcs if isinstance(ipaddress.ip_network(src), ipaddress.IPv4Network)]
+        allow_srcs_ipv6 = [src for src in allow_srcs if isinstance(ipaddress.ip_network(src), ipaddress.IPv6Network)]
         rule_config += \
 f"""
         ip saddr {{ {','.join(allow_srcs_ipv4)} }} {allow_proto} dport {{ {','.join(allow_ports)} }} accept"""

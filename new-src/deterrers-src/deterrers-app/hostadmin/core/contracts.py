@@ -35,7 +35,7 @@ class HostBasedRuleSubnetContract(Enum):
     IT_ADMIN_VPN = {
         'name' : 'IT Admin VPN',
         'range' : [
-            '131.173.16.48',
+            '131.173.16.48/32',
             '2001:638:508:FE30::/64',
             '2001:638:508:FE31::/64',
             '2001:638:508:FE32::/64',
