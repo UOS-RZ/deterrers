@@ -161,7 +161,6 @@ ufw enable
 
 def __generate_firewalld__script(custom_rules : list[HostBasedPolicy]) -> str|None:
     rule_config = ""
-    CUSTOM_ZONE = "policy-zone"
     PREAMBLE = \
 f"""#!/bin/bash
 # This script should be run with sudo permissions!
@@ -185,36 +184,45 @@ rm -f /etc/firewalld/zones/*
 firewall-cmd --complete-reload
 """
 
-    ## construct a zone for each custom rule
+    ## construct a zone for each unique source
+    added_zones = []
     for n, c_rule in enumerate(custom_rules):
-        allow_srcs = c_rule.allow_srcs
-        allow_ports = c_rule.allow_ports
-        allow_proto = c_rule.allow_proto
-        rule_config += \
+        zone_name = c_rule.allow_srcs['name']
+        zone_srcs = c_rule.allow_srcs['range']
+        if zone_name not in added_zones:
+            # has to be performed only the first time a policy with this source is encountered
+            rule_config += \
 f"""
-# create custom zone for rule {n}
-firewall-cmd --permanent --new-zone={CUSTOM_ZONE}_{n}
+# create custom zone for {zone_name}
+firewall-cmd --permanent --new-zone={zone_name}
 
 # make custom zone available in runtime configuration
 firewall-cmd --reload"""
 
-        for src in allow_srcs['range']:
-            rule_config += \
+            for src in zone_srcs:
+                rule_config += \
 f"""
-firewall-cmd --zone={CUSTOM_ZONE}_{n} --add-source={src}"""
+firewall-cmd --zone={zone_name} --add-source={src}"""
 
-        for port in allow_ports:
+            added_zones.append(zone_name)
+
+    ## add ports to the corresponding zones
+    for n, c_rule in enumerate(custom_rules):
+        zone_name = c_rule.allow_srcs['name']
+        zone_ports = c_rule.allow_ports
+        zone_proto = c_rule.allow_proto
+        for port in zone_ports:
             port = port.replace(':', '-') # firewalld uses 'x-y'-notation for port ranges
             rule_config += \
 f"""
-firewall-cmd --zone={CUSTOM_ZONE}_{n} --add-port={port}/{allow_proto}
-
-# make changes permanent
-firewall-cmd --runtime-to-permanent"""
+firewall-cmd --zone={zone_name} --add-port={port}/{zone_proto}"""
 
 
     POSTAMBLE = \
 """
+
+# make changes permanent
+firewall-cmd --runtime-to-permanent
 
 firewall-cmd --reload
 """
