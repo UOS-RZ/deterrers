@@ -187,7 +187,7 @@ firewall-cmd --complete-reload
     ## construct a zone for each unique source
     added_zones = []
     for n, c_rule in enumerate(custom_rules):
-        zone_name = c_rule.allow_srcs['name']
+        zone_name = c_rule.allow_srcs['name'].replace(' ', '_')
         zone_srcs = c_rule.allow_srcs['range']
         if zone_name not in added_zones:
             # has to be performed only the first time a policy with this source is encountered
@@ -208,7 +208,7 @@ firewall-cmd --zone={zone_name} --add-source={src}"""
 
     ## add ports to the corresponding zones
     for n, c_rule in enumerate(custom_rules):
-        zone_name = c_rule.allow_srcs['name']
+        zone_name = c_rule.allow_srcs['name'].replace(' ', '_')
         zone_ports = c_rule.allow_ports
         zone_proto = c_rule.allow_proto
         for port in zone_ports:
