@@ -119,10 +119,14 @@ f"""#!/bin/bash
 # confirm that user wants to overwrite existing rules
 echo "Continuing will overwrite all present configurations to ufw! Do you agree to reset ufw? [y/n]"
 read continue
-if [ ${{continue}} =! y ]
+if [ ${{continue}} != y ]
 then
     exit 0
 fi
+
+# enable service at system start and start the services
+systemctl enable ufw
+systemctl start ufw
 
 # disable the host-based firewall before making any changes
 ufw disable
