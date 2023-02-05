@@ -629,7 +629,20 @@ def v_scanner_registration_alert(request):
             alert_uuid = request.GET['alert_uuid']
             with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
                 report_xml = scanner.get_report_xml(report_uuid)
-                scan_start, results = scanner.extract_report_data(report_xml)
+                scan_start, highest_severity, results = scanner.extract_report_data(report_xml)
+                if highest_cvss < 0.1:
+                    severity = 'None'
+                elif highest_cvss >= 0.1 and highest_cvss < 4.0:
+                    severity = 'Low'
+                elif highest_cvss >= 4.0 and highest_cvss < 7.0:
+                    severity = 'Medium'
+                elif highest_cvss >=7.0 and highest_cvss < 9.0:
+                    severity = 'High'
+                elif highest_cvss >= 9.0:
+                    severity = 'Critical'
+                else:
+                    severity = 'Unknown'
+
                 if results is None:
                     return
 
@@ -675,7 +688,7 @@ def v_scanner_registration_alert(request):
                 __send_report_email(
                     report_html,
                     f"DETERRERS - Vulnerability scan report of host {host_ip}",
-                    f"You find the report of the vulnerability scan for host {host_ip} attached to this e-mail.",
+                    f"Severity of host {host_ip} is {severity}! You find the report of the vulnerability scan attached to this e-mail.", # TODO
                     ["nwintering@uos.de"], # TODO: change to admin addresses
                 )
 
@@ -719,7 +732,20 @@ def v_scanner_scan_alert(request):
             alert_uuid = request.GET['alert_uuid']
             with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
                 report_xml = scanner.get_report_xml(report_uuid)
-                scan_start, results = scanner.extract_report_data(report_xml)
+                scan_start, highest_cvss, results = scanner.extract_report_data(report_xml)
+                if highest_cvss < 0.1:
+                    severity = 'None'
+                elif highest_cvss >= 0.1 and highest_cvss < 4.0:
+                    severity = 'Low'
+                elif highest_cvss >= 4.0 and highest_cvss < 7.0:
+                    severity = 'Medium'
+                elif highest_cvss >=7.0 and highest_cvss < 9.0:
+                    severity = 'High'
+                elif highest_cvss >= 9.0:
+                    severity = 'Critical'
+                else:
+                    severity = 'Unknown'
+
                 if results is None:
                     return
 
@@ -749,7 +775,7 @@ def v_scanner_scan_alert(request):
                 __send_report_email(
                     report_html,
                     f"DETERRERS - Vulnerability scan report of host {host_ip}",
-                    f"You find the report of the vulnerability scan for host {host_ip} attached to this e-mail.", # TODO
+                    f"Severity of host {host_ip} is {severity}! You find the report of the vulnerability scan attached to this e-mail.", # TODO
                     ["nwintering@uos.de",], # TODO: change to admin addresses
                 )
 

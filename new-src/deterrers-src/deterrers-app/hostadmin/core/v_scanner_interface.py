@@ -808,6 +808,8 @@ class GmpVScannerInterface():
         try:
             scan_start = report.xpath('//scan_start')[0].text
 
+            highest_severity_filtered = report.xpath('//severity/filtered')[0].text
+
             results_xml = report.xpath('//results/result')
             results = []
 
@@ -831,11 +833,11 @@ class GmpVScannerInterface():
                 }
                 results.append(res)
 
-            return scan_start, results
+            return scan_start, float(highest_severity_filtered), results
         except Exception:
             logger.exception("Couldn't extract data from report!")
         
-        return None, None
+        return None, None, None
 
 
 
@@ -856,11 +858,12 @@ class GmpVScannerInterface():
         # except Exception as err:
         #     logger.error("%s", repr(err))
 
-        # test_report_id = "c936b5cf-0e62-4c5b-af40-44ae18dee92c"
+        # test_report_id = "7462913f-1bd9-4fbd-a29b-5c678ccc4467"
         # report = interf.get_report_xml(test_report_id)
         # with open('test_report_xml.txt', 'w') as f:
         #     pretty_print(report, f)
-        # scan_start, results = interf.extract_report_data(report)
+        # scan_start, overall_sev, results = interf.extract_report_data(report)
+        # print(overall_sev)
 
         # interf.add_host_to_periodic_task(test_host_ip)
         # interf.add_host_to_periodic_task("131.173.23.44")
