@@ -683,13 +683,14 @@ def v_scanner_registration_alert(request):
 
                 # get HTML report and send via e-mail to admin
                 report_html = scanner.get_report_html(report_uuid)
-                admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments] # deduce admin email addr and filter out departments
+                # deduce admin email addr and filter out departments
+                admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments]
                 logger.debug("Admin addresses: %s", str(admin_addresses))
                 __send_report_email(
                     report_html,
                     f"DETERRERS - Vulnerability scan report of host {host_ip}",
                     f"Severity of host {host_ip} is {severity}! You find the report of the vulnerability scan attached to this e-mail.", # TODO
-                    ["nwintering@uos.de"], # TODO: change to admin addresses
+                    admin_addresses,
                 )
 
                 scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
@@ -770,13 +771,14 @@ def v_scanner_scan_alert(request):
 
                 # get HTML report and send via e-mail to admin
                 report_html = scanner.get_report_html(report_uuid)
-                admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments] # deduce admin email addr and filter out departments
+                # deduce admin email addr and filter out departments
+                admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments]
                 logger.debug("Admin addresses: %s", str(admin_addresses))
                 __send_report_email(
                     report_html,
                     f"DETERRERS - Vulnerability scan report of host {host_ip}",
                     f"Severity of host {host_ip} is {severity}! You find the report of the vulnerability scan attached to this e-mail.", # TODO
-                    ["nwintering@uos.de",], # TODO: change to admin addresses
+                    admin_addresses,
                 )
 
                 scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
