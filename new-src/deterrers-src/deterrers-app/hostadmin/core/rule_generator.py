@@ -212,12 +212,13 @@ f"""
             elif isinstance(ipaddress.ip_network(src), ipaddress.IPv6Network):
                 allow_family = "ipv6"
             else:
+                logger.error("Not a valid source: %s", src)
                 continue
             for port in allow_ports:
                 port = port.replace(':', '-') # firewalld uses 'x-y'-notation for port ranges
                 rule_config += \
 f"""
-firewall-cmd --zone={CUSTOM_ZONE} --add-rich-rule='rule familiy={allow_family} source address={src} port port={port} protocol={allow_proto}  accept' """
+firewall-cmd --zone={CUSTOM_ZONE} --add-rich-rule='rule family={allow_family} source address={src} port port={port} protocol={allow_proto}  accept' """
 
 
 
