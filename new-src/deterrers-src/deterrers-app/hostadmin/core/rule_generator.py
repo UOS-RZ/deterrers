@@ -193,9 +193,6 @@ firewall-cmd --permanent --new-zone={CUSTOM_ZONE}
 # make custom zone available in runtime configuration
 firewall-cmd --reload
 
-# set default zone to zone-by-deterrers
-firewall-cmd --set-default-zone={CUSTOM_ZONE}
-
 """
 
     ## construct custom rules as rich rules because abstraction to zone does not work as long as sources cannot overlap
@@ -260,6 +257,12 @@ firewall-cmd --zone={CUSTOM_ZONE} --add-rich-rule='rule family={allow_family} so
 
     POSTAMBLE = \
 """
+
+# set custom zone to default zone
+firewall-cmd --set-default-zone={CUSTOM_ZONE}
+
+#set the target of custom zone to ALLOW in order to make it default behaviour
+firewall-cmd --zone={CUSTOM_ZONE} --set-target=ACCEPT
 
 # make changes permanent
 firewall-cmd --runtime-to-permanent
