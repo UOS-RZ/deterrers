@@ -217,7 +217,7 @@ f"""
                 port = port.replace(':', '-') # firewalld uses 'x-y'-notation for port ranges
                 rule_config += \
 f"""
-firewall-cmd --zone={CUSTOM_ZONE} --add-rich-rule='rule familiy={allow_family} source address={allow_srcs} port port={port} protocol={allow_proto}  accept' """
+firewall-cmd --zone={CUSTOM_ZONE} --add-rich-rule='rule familiy={allow_family} source address={src} port port={port} protocol={allow_proto}  accept' """
 
 
 
