@@ -206,14 +206,14 @@ class ProteusIPAMInterface():
         data = response.json()
         configuration_id = data[0]["id"]
 
-            # get range_id with IPRangedByIP
+        # get range_id with IPRangedByIP
         iprangedbyip_parameters = f"address={ip}&containerId={configuration_id}&type=IP4Network"
         get_iprandedbyip_url = self.main_url + "getIPRangedByIP?" + iprangedbyip_parameters
         response = requests.get(get_iprandedbyip_url, headers = self.header, timeout=self.TIMEOUT)
         data = response.json()
         range_id = data["id"]
 
-            # get properties of IP
+        # get properties of IP
         get_ip4adress_url = self.main_url + f"getIP4Address?address={ip}&containerId={range_id}"
         response = requests.get(get_ip4adress_url, headers = self.header, timeout=self.TIMEOUT)
         data = response.json()
@@ -576,11 +576,34 @@ deterrers_rules={json.dumps([p.to_string() for p in host.host_based_policies])}|
 
         return False
 
+    def user_exists(self, username : str) -> bool|None:
+        """
+        TODO: Check whether a user of given name exists.
+
+        Args:
+            username (str): Name of the queried user.
+
+        Returns:
+            bool|None: Returns True if user exists, False if not and None if something went wrong.
+        """
+        try:
+            entitybyname_parameters = f"name={username}&parentId=0&start=0&type=User"
+            get_entitiesbyname_url = self.main_url + "getEntityByName?" + entitybyname_parameters
+            response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
+            data = response.json()
+            if data['name'] == username:
+                return True
+            return False
+        except Exception:
+            logger.exception("Couldn't query IPAM whether user exists!")
+
+        return None
+
 
 
 # if __name__ == "__main__":
-#     username = "deterrers-test"
+#     username = "nwintering"
 #     from getpass import getpass
 #     password = getpass()
-#     with ProteusIPAMInterface(username, password, "proteus-clone.rz.uos.de") as ipam:
-#         ipam.add_tag_to_host("FB Test", "131.173.22.2")
+#     with ProteusIPAMInterface(username, password, "proteus.rz.uos.de") as ipam:
+#         print(ipam.user_exists('nwintering'))
