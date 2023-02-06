@@ -427,7 +427,7 @@ class GmpVScannerInterface():
                 Credentials.HULK_SSH_CRED_UUID.value,
                 22,
                 Credentials.HULK_SMB_CRED_UUID.value,
-                PortList.ALL_IANA_TCP_UDP_UUID.value
+                PortList.ALL_TCP_NMAP_1000_UDP_UUID.value
             )
 
             # create/get an alert that sends the report back to the server
@@ -495,7 +495,7 @@ class GmpVScannerInterface():
                 # Limit port scan to all tcp and udp ports registered with IANA.
                 # This will also minimize probability that defense mechanisms against port scans
                 # are triggered on the host.
-                PortList.ALL_IANA_TCP_UDP_UUID.value,
+                PortList.ALL_TCP_NMAP_1000_UDP_UUID.value,
             )
 
             # create/get an alert that sends the report back to the server
@@ -615,7 +615,7 @@ class GmpVScannerInterface():
                     Credentials.HULK_SSH_CRED_UUID.value,
                     22,
                     Credentials.HULK_SMB_CRED_UUID.value,
-                    PortList.ALL_IANA_TCP_UUID.value
+                    PortList.ALL_TCP_NMAP_1000_UDP_UUID.value
                 )
                 schedule_uuid = self.__create_schedule(
                     f"Schedule for task '{self.PERIODIC_TASK_NAME}' | {datetime.now()}",

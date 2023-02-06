@@ -35,10 +35,9 @@
 			</div>
 
 			<div class="col-sm-10">
-				{% block content %}
-
 				{# Display django.contrib.messages as Bootstrap alerts #}
 				{% bootstrap_messages %}
+				{% block content %}
 				
 				{% endblock %}
 				{% block pagination %}
