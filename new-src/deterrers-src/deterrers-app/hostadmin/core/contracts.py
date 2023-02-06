@@ -54,7 +54,7 @@ class HostBasedRuleProtocolContract(Enum):
 
 
 class HostStatusContract(Enum):
-    UNREGISTERED =  'Unscanned' # TODO: should rather be 'Unregistered' but must be changed everywhere
+    UNREGISTERED =  'Unregistered'
     UNDER_REVIEW =  'Under Review'
     BLOCKED =       'Blocked'
     ONLINE =        'Online'

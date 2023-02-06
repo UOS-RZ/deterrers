@@ -22,7 +22,7 @@ from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
-    path('admin/', admin.site.urls), # TODO: remove in production
+    path('admin/', admin.site.urls),
     path('hostadmin/', include('hostadmin.urls')),
     path('', RedirectView.as_view(url='hostadmin/', permanent=True)),
 ]
