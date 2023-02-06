@@ -69,7 +69,7 @@ class HostFWContract(Enum):
     UFW =       'UFW'
     FIREWALLD = 'FirewallD'
     NFTABLES =  'nftables'
-    EMPTY =  ''
+    EMPTY =     ''
 
 
 

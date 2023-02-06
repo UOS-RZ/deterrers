@@ -66,6 +66,7 @@ class ProteusIPAMInterface():
             name = ''
         # parse the properties string
         try:
+            logger.error(entity) # TODO debug
             prop_str = entity['properties'].split('|')
             props = dict([elem.split('=') for elem in prop_str if len(elem.split('='))==2])
             try:
@@ -508,7 +509,7 @@ deterrers_rules={json.dumps([p.to_string() for p in host.host_based_policies])}|
             addtag_url = self.main_url + "addTag?" + addtag_params
             response = requests.post(addtag_url, headers=self.header, timeout=self.TIMEOUT)
             if response.status_code != 200:
-                raise RuntimeError(f"Status code: {response.status_code}")
+                raise RuntimeError(f"Status code of {addtag_url}: {response.status_code}")
 
             return True
         except Exception:
