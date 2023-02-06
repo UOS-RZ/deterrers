@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 import os
 from pathlib import Path
 
-DOMAIN_NAME = os.environ.get('DOMAIN_NAME', 'vm305.rz.uos.de')
+DOMAIN_NAME = os.environ.get('DOMAIN_NAME', 'deterrers.example.com')
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
