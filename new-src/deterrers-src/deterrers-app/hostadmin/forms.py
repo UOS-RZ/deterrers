@@ -14,7 +14,7 @@ class AddHostForm(forms.Form):
         choices = kwargs.pop('choices')
         super(AddHostForm, self).__init__(*args, **kwargs)
         self.fields["admin_tag"] = forms.ChoiceField(
-            choices=list(enumerate(choices)),
+            choices=[(c, c) for c in choices],
             required=True,
             label='Admin(s):',
             help_text="Are you the only admin or should other admins from your department have the same acces as you."
