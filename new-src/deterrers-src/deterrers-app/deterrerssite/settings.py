@@ -36,6 +36,10 @@ DEBUG = os.environ.get('DJANGO_DEBUG', '') != 'False'
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost 127.0.0.1 0.0.0.0 [::1]").split(" ")
 
 CSRF_TRUSTED_ORIGINS = [
+    'https://deterrers.rz.uni-osnabrueck.de',
+    'http://deterrers.rz.uni-osnabrueck.de',
+    'https://deterrers.rz.uos.de',
+    'http://deterrers.rz.uos.de',
     'https://vm305.rz.uos.de',
     'http://vm305.rz.uos.de',
     'https://vm305.rz.uni-osnabrueck.de',
