@@ -281,9 +281,9 @@ def hostadmin_init_view(request):
         if request.method == 'POST':
             form = HostadminForm(request.POST, choices=request.POST['department'])
             if form.is_valid():
-                for k, v in list(enumerate(department_choices)):
-                    if form.cleaned_data['department'] == str(k):
-                        department = v
+                for c in department_choices:
+                    if form.cleaned_data['department'] == c:
+                        department = c
                         break
                 if ipam.create_admin_tag(hostadmin.username, department):
                     return HttpResponseRedirect(reverse('hosts_list'))
