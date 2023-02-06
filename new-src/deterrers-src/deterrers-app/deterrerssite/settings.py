@@ -111,7 +111,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# TODO: Add e-mail support to website, until then e-mails will be printed to console by following line
+# e-mail configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend' # 'django.core.mail.backends.console.EmailBackend'
 DEFAULT_FROM_EMAIL = f'noreply@{DOMAIN_NAME}'
 EMAIL_HOST = os.environ.get('SMTP_URL', 'localhost')

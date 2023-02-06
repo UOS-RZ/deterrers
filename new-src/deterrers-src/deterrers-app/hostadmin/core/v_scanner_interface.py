@@ -21,6 +21,7 @@ class ScanConfig(Enum):
     FULL_FAST_UUID = "daba56c8-73ec-11df-a475-002264764cea"
     FULL_FAST_ULTIMATE_UUID = "698f691e-7489-11df-9d8c-002264764cea"
     FULL_VERY_DEEP_UUID = "708f25c4-7489-11df-8094-002264764cea"
+    FULL_VERY_DEEP_ULTIMATE_UUID = "74db13d6-7489-11df-91b9-002264764cea"
 
 class Scanner(Enum):
     OPENVAS_DEFAULT_SCANNER_UUID = "08b69003-5fc2-4037-a479-93b440211c73"
@@ -41,7 +42,7 @@ class ReportFormat(Enum):
     HTML_UUID = "ffa123c9-a2d2-409e-bbbb-a6c1385dbeaa"
 
 
-# TODO: implement for Open Scanner Protocol https://python-gvm.readthedocs.io/en/latest/usage.html#using-osp
+# TODO: test implement for Open Scanner Protocol https://python-gvm.readthedocs.io/en/latest/usage.html#using-osp
 
 
 class GmpAPIError(Exception):
@@ -138,7 +139,7 @@ class GmpVScannerInterface():
         alterable : bool = False,
         schedule_uuid : str|None  = None,
         hosts_ordering : HostsOrdering = HostsOrdering.RANDOM,
-        max_conc_nvts : int = 16) -> str:
+        max_conc_nvts : int = 64) -> str:
         """
         Create a scan task with given configurations.
 
@@ -426,7 +427,7 @@ class GmpVScannerInterface():
                 Credentials.HULK_SSH_CRED_UUID.value,
                 22,
                 Credentials.HULK_SMB_CRED_UUID.value,
-                PortList.ALL_IANA_TCP_UUID.value
+                PortList.ALL_IANA_TCP_UDP_UUID.value
             )
 
             # create/get an alert that sends the report back to the server
@@ -439,9 +440,10 @@ class GmpVScannerInterface():
             task_uuid = self.__create_task(
                 target_uuid,
                 task_name,
-                ScanConfig.FULL_FAST_UUID.value, # TODO: change back
+                ScanConfig.FULL_FAST_UUID.value,
                 Scanner.OPENVAS_DEFAULT_SCANNER_UUID.value,
                 [alert_uuid,],
+                max_conc_nvts=128
             )
 
             # start task
@@ -493,7 +495,7 @@ class GmpVScannerInterface():
                 # Limit port scan to all tcp and udp ports registered with IANA.
                 # This will also minimize probability that defense mechanisms against port scans
                 # are triggered on the host.
-                PortList.ALL_IANA_TCP_UUID.value, # TODO change to ALL_TCP_Nmap_1000_UDP
+                PortList.ALL_IANA_TCP_UDP_UUID.value,
             )
 
             # create/get an alert that sends the report back to the server
@@ -506,9 +508,10 @@ class GmpVScannerInterface():
             task_uuid = self.__create_task(
                 target_uuid,
                 task_name,
-                ScanConfig.FULL_FAST_UUID.value, #TODO change back
+                ScanConfig.FULL_VERY_DEEP_ULTIMATE_UUID.value,
                 Scanner.OPENVAS_DEFAULT_SCANNER_UUID.value,
                 [alert_uuid,],
+                max_conc_nvts=128
             )
 
             # start task
@@ -626,7 +629,9 @@ class GmpVScannerInterface():
                     Scanner.OPENVAS_DEFAULT_SCANNER_UUID.value,
                     [alert_uuid,],
                     True,
-                    schedule_uuid
+                    schedule_uuid,
+                    hosts_ordering=HostsOrdering.RANDOM,
+                    max_conc_nvts=128
                 )
                 # report_uuid = self.__start_task(task_uuid, self.PERIODIC_TASK_NAME)
                 report_uuid = ""
