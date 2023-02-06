@@ -23,7 +23,7 @@ class ProteusIPAMInterface():
         self.username = username
         self.password = password
         self.ipam_url = ipam_url
-        self.main_url = "http://" + ipam_url + "/Services/REST/v1/" # TODO: change back to https when working with production system
+        self.main_url = "https://" + ipam_url + "/Services/REST/v1/"
         self.header = ''
         self.__tag_group_id = None
 
