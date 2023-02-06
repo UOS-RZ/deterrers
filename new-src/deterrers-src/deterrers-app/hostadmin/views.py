@@ -287,14 +287,16 @@ def hostadmin_init_view(request):
                         break
                 if ipam.create_admin_tag(hostadmin.username, department):
                     return HttpResponseRedirect(reverse('hosts_list'))
+            else:
+                logger.error("Invalid form!")
+
         else:
             form = HostadminForm(choices=department_choices)
-            context = {
-                'form' : form,
-            }
-            return render(request, 'hostadmin_init.html', context)
+    context = {
+        'form' : form,
+    }
+    return render(request, 'hostadmin_init.html', context)
 
-    return HttpResponse("Error", status=500)
 
 
 @login_required

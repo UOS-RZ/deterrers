@@ -433,7 +433,6 @@ class GmpVScannerInterface():
             # create/get an alert that sends the report back to the server
             alert_name = f"DETERRERS - Scan alert for host {host_ip}"
             alert_uuid = self.__create_http_alert(alert_name)
-            # alert_uuid = self.__create_email_alert(host_ip, task_uuid, target_uuid, report_uuid, "hulk@rz.uos.de", "nwintering@uos.de")
 
             # create the task
             task_name = f"DETERRERS - Scan task for host {host_ip}"
@@ -501,14 +500,13 @@ class GmpVScannerInterface():
             # create/get an alert that sends the report back to the server
             alert_name = f"DETERRERS - Registration alert for host {host_ip}"
             alert_uuid = self.__create_http_alert(alert_name)
-            # alert_uuid = self.__create_email_alert(host_ip, task_uuid, target_uuid, report_uuid, "hulk@rz.uos.de", "nwintering@uos.de")
 
             # create the task
             task_name = f"DETERRERS - Registration scan task for host {host_ip}"
             task_uuid = self.__create_task(
                 target_uuid,
                 task_name,
-                ScanConfig.FULL_VERY_DEEP_ULTIMATE_UUID.value,
+                ScanConfig.FULL_FAST_ULTIMATE_UUID.value,
                 Scanner.OPENVAS_DEFAULT_SCANNER_UUID.value,
                 [alert_uuid,],
                 max_conc_nvts=128
