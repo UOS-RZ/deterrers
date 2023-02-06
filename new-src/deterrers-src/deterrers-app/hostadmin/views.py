@@ -279,13 +279,9 @@ def hostadmin_init_view(request):
         department_choices = ipam.get_department_tag_names()
         # do processing based on whether this is GET or POST request
         if request.method == 'POST':
-            form = HostadminForm(request.POST, choices=request.POST['department'])
+            form = HostadminForm(request.POST, choices=department_choices)
             if form.is_valid():
-                for c in department_choices:
-                    if form.cleaned_data['department'] == c:
-                        department = c
-                        break
-                if ipam.create_admin_tag(hostadmin.username, department):
+                if ipam.create_admin_tag(hostadmin.username, form.cleaned_data['department']):
                     return HttpResponseRedirect(reverse('hosts_list'))
             else:
                 logger.error("Invalid form!")
