@@ -442,7 +442,7 @@ class GmpVScannerInterface():
                 ScanConfig.FULL_FAST_UUID.value,
                 Scanner.OPENVAS_DEFAULT_SCANNER_UUID.value,
                 [alert_uuid,],
-                max_conc_nvts=128
+                max_conc_nvts=32
             )
 
             # start task
@@ -509,7 +509,7 @@ class GmpVScannerInterface():
                 ScanConfig.FULL_FAST_ULTIMATE_UUID.value,
                 Scanner.OPENVAS_DEFAULT_SCANNER_UUID.value,
                 [alert_uuid,],
-                max_conc_nvts=128
+                max_conc_nvts=32
             )
 
             # start task
@@ -629,7 +629,7 @@ class GmpVScannerInterface():
                     True,
                     schedule_uuid,
                     hosts_ordering=HostsOrdering.RANDOM,
-                    max_conc_nvts=128
+                    max_conc_nvts=32
                 )
                 # report_uuid = self.__start_task(task_uuid, self.PERIODIC_TASK_NAME)
                 report_uuid = ""
