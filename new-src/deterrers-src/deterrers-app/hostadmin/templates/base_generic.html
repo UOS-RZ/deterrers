@@ -34,11 +34,11 @@
 			{% endblock %}
 			</div>
 
-			{# Display django.contrib.messages as Bootstrap alerts #}
-			{% bootstrap_messages %}
-
 			<div class="col-sm-10">
 				{% block content %}
+
+				{# Display django.contrib.messages as Bootstrap alerts #}
+				{% bootstrap_messages %}
 				
 				{% endblock %}
 				{% block pagination %}
