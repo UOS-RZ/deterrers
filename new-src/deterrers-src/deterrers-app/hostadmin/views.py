@@ -223,14 +223,10 @@ def hosts_list_view(request):
 
         tag_choices = [hostadmin.username, ipam.get_department_to_admin(hostadmin.username)]
         if request.method == 'POST':
-            form = AddHostForm(request.POST, choices=request.POST['admin_tag'])
+            form = AddHostForm(request.POST, choices=tag_choices)
             if form.is_valid():
-                for k, v in list(enumerate(tag_choices)):
-                    if form.cleaned_data['admin_tag'] == str(k):
-                        tag_name = v
-                        break
+                tag_name = form.cleaned_data['admin_tag']
                 host_ip = form.cleaned_data['ip_addr']
-
                 if ipam.add_tag_to_host(tag_name, host_ip):
                     return HttpResponseRedirect(reverse('hosts_list'))
             form.add_error(None, "Couldn't add host! Try again later...")
