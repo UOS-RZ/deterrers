@@ -66,7 +66,6 @@ class ProteusIPAMInterface():
             name = ''
         # parse the properties string
         try:
-            logger.error(entity) # TODO debug
             prop_str = entity['properties'].split('|')
             props = dict([elem.split('=') for elem in prop_str if len(elem.split('='))==2])
             try:
