@@ -35,7 +35,7 @@
 </div>
 <hr>
 <div id="host_rules">
-    <h2> Host-based Firewall Policies: </h2>
+    <h3> Host-based Firewall Policies: </h3>
     <p>
         <table style="width:100%">
             <thead>
@@ -85,7 +85,7 @@
 </div>
 <hr>
 <div>
-    <h2> Increasing the Scan Quality: </h2>
+    <h3> Increasing the Scan Quality: </h3>
     <br>
     <p>
         In order to increase the vulnerability scan results, we recommend to enable SSH access for the vulnerability scanner. This can be achieved by following these steps:
@@ -101,14 +101,14 @@
                     sudo bash -c "mkdir -p /home/greenbone/.ssh && touch /home/greenbone/.ssh/authorized_keys && cat scanner.pub >> /home/greenbone/.ssh/authorized_keys"
                 </code>
             </li>
-            <li>In case you restricted the allowed users for SSH you should add the user <code>greenbone</code> to the AllowUsers list in /etc/ssh/sshdconfig.</li>
+            <li>In case you restricted the allowed users for SSH you should add the user <code>greenbone</code> to the AllowUsers list in <code>/etc/ssh/sshdconfig</code>.</li>
         </ol>
         Now the vulnerability scanner should have SSH access to your host and be able to gather more precise information on possible vulnerabilities of your system.
     </p>
 </div>
 <hr>
 <div id="host_actions">
-    <h2> Available Actions: </h2>
+    <h3> Available Actions: </h3>
     <br>
     <p>
         <p>
