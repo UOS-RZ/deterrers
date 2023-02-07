@@ -32,57 +32,63 @@
             </tbody>
         </table>
     </p>
-    <p>
-        <form action="{{request.path}}update/" method="get">
-            <div class="d-grid gap-2 col-6 mx-auto">
-                {% csrf_token %}
-                {% if can_update %}
-                    {% bootstrap_button name="update_btn" button_type="submit" content="Edit Details" button_class="btn btn-primary btn-lg" %}
-                {% else %}
-                    {% bootstrap_button name="update_btn" button_type="submit" content="Edit Details" button_class="btn btn-primary btn-lg" disabled=True %}
-                {% endif %}
-            </div>
-        </form>
-    </p>
+    <div class="row">
+        <div class="column">
+            <p>
+                <form action="{{request.path}}update/" method="get">
+                    <div class="d-grid gap-2 col-6 mx-auto">
+                        {% csrf_token %}
+                        {% if can_update %}
+                            {% bootstrap_button name="update_btn" button_type="submit" content="Edit Details" button_class="btn btn-primary btn-lg" %}
+                        {% else %}
+                            {% bootstrap_button name="update_btn" button_type="submit" content="Edit Details" button_class="btn btn-primary btn-lg" disabled=True %}
+                        {% endif %}
+                    </div>
+                </form>
+            </p>
+
+            <p>
+                <form action="{{request.path}}block/" method="post">
+                    <div class="d-grid gap-2 col-6 mx-auto">
+                        {% csrf_token %}
+                        {% if can_block %}
+                            {% bootstrap_button name="block_btn" button_type="submit" content="Block" button_class="btn btn-primary btn-lg" %}
+                        {% else %}
+                            {% bootstrap_button name="block_btn" button_type="submit" content="Block" button_class="btn btn-primary btn-lg" disabled=True %}
+                        {% endif %}
+                    </div>
+                </form>
+            </p>
+        </div>
+        <div class="column">
+            <p>
+                <form action="{{request.path}}register/" method="post">
+                    <div class="d-grid gap-2 col-6 mx-auto">
+                        {% csrf_token %}
+                        {% if can_register %}
+                            {% bootstrap_button name="register_btn" button_type="submit" content="Register" button_class="btn btn-primary btn-lg" %}
+                        {% else %}
+                            {% bootstrap_button name="register_btn" button_type="submit" content="Register" button_class="btn btn-primary btn-lg" disabled=True %}
+                        {% endif %}
+                    </div>
+                </form>
+            </p>
+
+            <p>
+                <form action="{{request.path}}scan/" method="post">
+                    <div class="d-grid gap-2 col-6 mx-auto">
+                        {% csrf_token %}
+                        {% if can_scan %}
+                            {% bootstrap_button name="scan_btn" button_type="submit" content="Ordinary Scan" button_class="btn btn-primary btn-lg" %}
+                        {% else %}
+                            {% bootstrap_button name="scan_btn" button_type="submit" content="Ordinary Scan" button_class="btn btn-primary btn-lg" disabled=True %}
+                        {% endif %}
+                    </div>
+                </form>
+            </p>
+        </div>
+      </div>
         
-    <p>
-        <form action="{{request.path}}register/" method="post">
-            <div class="d-grid gap-2 col-6 mx-auto">
-                {% csrf_token %}
-                {% if can_register %}
-                    {% bootstrap_button name="register_btn" button_type="submit" content="Register" button_class="btn btn-primary btn-lg" %}
-                {% else %}
-                    {% bootstrap_button name="register_btn" button_type="submit" content="Register" button_class="btn btn-primary btn-lg" disabled=True %}
-                {% endif %}
-            </div>
-        </form>
-    </p>
-
-    <p>
-        <form action="{{request.path}}scan/" method="post">
-            <div class="d-grid gap-2 col-6 mx-auto">
-                {% csrf_token %}
-                {% if can_scan %}
-                    {% bootstrap_button name="scan_btn" button_type="submit" content="Ordinary Scan" button_class="btn btn-primary btn-lg" %}
-                {% else %}
-                    {% bootstrap_button name="scan_btn" button_type="submit" content="Ordinary Scan" button_class="btn btn-primary btn-lg" disabled=True %}
-                {% endif %}
-            </div>
-        </form>
-    </p>
-
-    <p>
-        <form action="{{request.path}}block/" method="post">
-            <div class="d-grid gap-2 col-6 mx-auto">
-                {% csrf_token %}
-                {% if can_block %}
-                    {% bootstrap_button name="block_btn" button_type="submit" content="Block" button_class="btn btn-primary btn-lg" %}
-                {% else %}
-                    {% bootstrap_button name="block_btn" button_type="submit" content="Block" button_class="btn btn-primary btn-lg" disabled=True %}
-                {% endif %}
-            </div>
-        </form>
-    </p>
 </div>
 <hr>
 <div id="host_rules">
