@@ -194,7 +194,7 @@ def host_detail_view(request, ip):
                 'id' : p.id}
             for p in host.host_based_policies],
         'form' : form,
-        'scanner_key_url' : f"https://{settings.DOMAIN_NAME}" + os.path.join(settings.STATIC_URL, "/files/greenbone-scanner.pub")
+        'scanner_key_url' : f"https://{settings.DOMAIN_NAME}" + os.path.join(settings.STATIC_URL, "files/greenbone-scanner.pub")
     }
 
     # pass flags for available actions into context

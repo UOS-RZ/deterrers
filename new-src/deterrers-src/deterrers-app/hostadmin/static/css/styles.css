@@ -60,3 +60,7 @@ tr:hover {background-color: rgb(57, 96, 96);}
     background-color: rgb(135, 99, 8);
     border-color: rgb(0, 0, 0);
 }
+
+code {
+    color: white;
+}
