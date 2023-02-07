@@ -694,11 +694,11 @@ class GmpVScannerInterface():
                 response_status = int(response.xpath('@status')[0])
                 if response_status != 200:
                     raise GmpAPIError(f"Couldn't get new target {new_target_uuid}! Status: {response_status}")
-                hosts = response.xpath('//hosts')[0].text.split(',')
+                hosts = [h.strip() for h in response.xpath('//hosts')[0].text.split(',')]
                 try:
                     hosts.remove(host_ip)
-                except ValueError():
-                    logger.error("Tried to remove host %s from periodic task. Does not exist!", host_ip)
+                except ValueError:
+                    logger.error(f"Tried to remove host {host_ip} from periodic task with target list {hosts}. Does not exist!")
                 response = self.gmp.modify_target(
                     new_target_uuid,
                     hosts=hosts,
