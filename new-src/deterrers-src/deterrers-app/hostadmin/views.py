@@ -153,6 +153,9 @@ def host_detail_view(request, ip):
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        # check if user has IPAM permission or an admin tag for them exists
+        if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+            raise Http404()
         host = ipam.get_host_info_from_ip(ip) # TODO: could be changed to get_host_info_from_id() for better performance
         # check if host is valid
         if not host or not host.is_valid():
@@ -218,10 +221,14 @@ def hosts_list_view(request):
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
-        if not ipam.admin_tag_exists(hostadmin.username):
+        # check if user has IPAM permission or an admin tag for them exists
+        user_exists = ipam.user_exists(hostadmin.username)
+        admin_tag_exists = ipam.admin_tag_exists(hostadmin.username)
+        if not user_exists and not admin_tag_exists:
+            raise Http404()
+        # if for this admin no tag exists yet, they should be redirected to the init page
+        if not admin_tag_exists:
             return HttpResponseRedirect(reverse('hostadmin_init'))
-
-        logger.error(ipam.user_exists(hostadmin.username))
 
         tag_choices = [hostadmin.username, ipam.get_department_to_admin(hostadmin.username)]
         if request.method == 'POST':
@@ -271,6 +278,10 @@ def hostadmin_init_view(request):
     """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        # hostadmin can only initialize if they are a user in IPAM
+        if not ipam.user_exists(hostadmin.username):
+            raise Http404()
+        # check if hostadmin already has a tag
         if ipam.admin_tag_exists(hostadmin.username):
             return HttpResponseRedirect(reverse('hosts_list'))
 
@@ -313,6 +324,10 @@ def update_host_detail(request, ip : str):
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        # check if user has IPAM permission or an admin tag for them exists
+        if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+            raise Http404()
+        # get host
         host = ipam.get_host_info_from_ip(ip)
         if not host:
             raise Http404()
@@ -398,6 +413,10 @@ def register_host(request, ip):
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        # check if user has IPAM permission or an admin tag for them exists
+        if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+            raise Http404()
+        # get host
         host = ipam.get_host_info_from_ip(ip)
         if not host:
             raise Http404()
@@ -446,6 +465,10 @@ def scan_host(request, ip : str):
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        # check if user has IPAM permission or an admin tag for them exists
+        if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+            raise Http404()
+        # get host
         host = ipam.get_host_info_from_ip(ip)
         if not host:
             raise Http404()
@@ -493,6 +516,10 @@ def block_host(request, ip : str):
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        # check if user has IPAM permission or an admin tag for them exists
+        if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+            raise Http404()
+        # get host
         host = ipam.get_host_info_from_ip(ip)
     if not host:
         raise Http404()
@@ -530,6 +557,10 @@ def delete_host_rule(request, ip : str, rule_id : uuid.UUID):
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        # check if user has IPAM permission or an admin tag for them exists
+        if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+            raise Http404()
+        # get host
         host = ipam.get_host_info_from_ip(ip) # TODO: could be changed to get_host_info_from_id() for better performance
         # check if host is valid
         if not host:
@@ -568,6 +599,10 @@ def get_fw_config(request, ip : str):
     logger.info("Generate fw config script for host %s", ip)
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        # check if user has IPAM permission or an admin tag for them exists
+        if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+            raise Http404()
+        # get host
         host = ipam.get_host_info_from_ip(ip) # TODO: could be changed to get_host_info_from_id() for better performance
         # check if host is valid
         if not host:
