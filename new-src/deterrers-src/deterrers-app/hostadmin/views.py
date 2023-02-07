@@ -221,6 +221,8 @@ def hosts_list_view(request):
         if not ipam.admin_tag_exists(hostadmin.username):
             return HttpResponseRedirect(reverse('hostadmin_init'))
 
+        logger.error(ipam.user_exists(hostadmin.username))
+
         tag_choices = [hostadmin.username, ipam.get_department_to_admin(hostadmin.username)]
         if request.method == 'POST':
             form = AddHostForm(request.POST, choices=tag_choices)

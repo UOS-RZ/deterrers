@@ -587,7 +587,14 @@ deterrers_rules={json.dumps([p.to_string() for p in host.host_based_policies])}|
             bool|None: Returns True if user exists, False if not and None if something went wrong.
         """
         try:
-            entitybyname_parameters = f"name={username}&parentId=0&start=0&type=User"
+            # get configuration_id with getEntitiesByName
+            entitybyname_parameters = "count=1&name=default&parentId=0&start=0&type=Configuration"
+            get_entitiesbyname_url = self.main_url + "getEntitiesByName?" + entitybyname_parameters
+            response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
+            data = response.json()
+            configuration_id = data[0]["id"]
+            # get username if exists
+            entitybyname_parameters = f"name={username}&parentId={configuration_id}&start=0&type=User"
             get_entitiesbyname_url = self.main_url + "getEntityByName?" + entitybyname_parameters
             response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
             data = response.json()
