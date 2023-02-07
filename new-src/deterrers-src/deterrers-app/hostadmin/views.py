@@ -828,5 +828,5 @@ def v_scanner_scan_alert(request):
 @require_http_methods(['GET',])
 def v_scanner_periodic_alert(request):
     # TODO
-    logger.warn("Not implemented yet!")
+    logger.warning("Not implemented yet!")
     raise Http404()
