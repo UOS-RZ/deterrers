@@ -65,3 +65,11 @@ code {
     color: white;
     background-color: rgb(57, 96, 96);
 }
+
+.row {
+    display: flex;
+  }
+  
+  .column {
+    flex: 50%;
+  }
