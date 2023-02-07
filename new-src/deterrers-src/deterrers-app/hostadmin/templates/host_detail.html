@@ -98,9 +98,7 @@
             <li>
                 Add this public key to the authorized keys of user <code>greenbone</code>:<br>
                 <code>
-                    mkdir -p /home/greenbone/.ssh
-                    touch /home/greenbone/.ssh/authorized_keys
-                    cat scanner.pub >> /home/greenbone/.ssh/authorized_keys
+                    sudo bash -c "mkdir -p /home/greenbone/.ssh && touch /home/greenbone/.ssh/authorized_keys && cat scanner.pub >> /home/greenbone/.ssh/authorized_keys"
                 </code>
             </li>
         </ol>
