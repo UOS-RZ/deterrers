@@ -660,25 +660,25 @@ class GmpVScannerInterface():
             try:
                 self.gmp.stop_task(task_id=task_uuid)
             except GvmError as err:
-                logger.warn("Couldn't stop task! Error: %s", str(err))
+                logger.warning("Couldn't stop task! Error: %s", str(err))
                 self.gmp.authenticate(self.username, self.password) # TODO: instead of reauthentication, we could check beforehand if the task is running
         if report_uuid:
             try:
                 self.gmp.delete_report(report_uuid)
             except GvmError as err:
-                logger.warn("Couldn't delete report! Error: %s", str(err))
+                logger.warning("Couldn't delete report! Error: %s", str(err))
                 self.gmp.authenticate(self.username, self.password)
         if task_uuid:
             try:
                 self.gmp.delete_task(task_uuid, ultimate=True)
             except GvmError as err:
-                logger.warn("Couldn't delete task! Error: %s", str(err))
+                logger.warning("Couldn't delete task! Error: %s", str(err))
                 self.gmp.authenticate(self.username, self.password)
         if target_uuid:
             try:
                 self.gmp.delete_target(target_id=target_uuid, ultimate=True)
             except GvmError as err:
-                logger.warn("Couldn't delete target! Error: %s", str(err))
+                logger.warning("Couldn't delete target! Error: %s", str(err))
                 self.gmp.authenticate(self.username, self.password)
         if alert_uuid:
             try:
@@ -688,7 +688,7 @@ class GmpVScannerInterface():
                     for a_uuid in alert_uuid:
                         self.gmp.delete_alert(a_uuid, ultimate=True)
             except GvmError as err:
-                logger.warn("Couldn't delete alert! Error: %s", str(err))
+                logger.warning("Couldn't delete alert! Error: %s", str(err))
                 self.gmp.authenticate(self.username, self.password)
 
 
@@ -708,7 +708,7 @@ class GmpVScannerInterface():
             try:
                 self.gmp.delete_report(uuid)
             except GvmError as err:
-                logger.warn("Couldn't delete report! Error: %s", str(err))
+                logger.warning("Couldn't delete report! Error: %s", str(err))
 
         # delete all tasks by DETERRERS
         logger.info("Deleting all tasks by DETERRERS!")
@@ -721,7 +721,7 @@ class GmpVScannerInterface():
                 self.gmp.stop_task(task_id=uuid)
                 self.gmp.delete_task(uuid, ultimate=True)
             except GvmError as err:
-                logger.warn("Couldn't stop/delete task! Error: %s", str(err))
+                logger.warning("Couldn't stop/delete task! Error: %s", str(err))
 
         # delete all targets by DETERRERS
         logger.info("Deleting all targets by DETERRERS!")
@@ -733,7 +733,7 @@ class GmpVScannerInterface():
             try:
                 self.gmp.delete_target(uuid, ultimate=True)
             except GvmError as err:
-                logger.warn("Couldn't delete target! Error: %s", str(err))
+                logger.warning("Couldn't delete target! Error: %s", str(err))
 
         # delete all alerts by DETERRERS
         logger.info("Deleting all alerts by DETERRERS!")
@@ -745,7 +745,7 @@ class GmpVScannerInterface():
             try:
                 self.gmp.delete_alert(uuid, ultimate=True)
             except GvmError as err:
-                logger.warn("Couldn't delete alert! Error: %s", str(err))
+                logger.warning("Couldn't delete alert! Error: %s", str(err))
 
 
     def get_report_xml(self, report_uuid : str):
