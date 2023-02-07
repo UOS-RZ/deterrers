@@ -703,7 +703,7 @@ def v_scanner_registration_alert(request):
                                 case _:
                                     raise RuntimeError(f"Unknown service profile: {host.service_profile}")
                             if not suc:
-                                raise RuntimeError(f"Couldn't update firewall configuration!")
+                                raise RuntimeError("Couldn't update firewall configuration!")
                         host.status = HostStatusContract.ONLINE
                         if not ipam.update_host_info(host):
                             raise RuntimeError("Couldn't update host information!")
