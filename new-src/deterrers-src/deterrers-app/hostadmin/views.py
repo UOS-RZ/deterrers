@@ -2,6 +2,7 @@ import logging
 import uuid
 import io
 from threading import Thread
+import os
 
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponseRedirect, HttpResponse, FileResponse
@@ -193,6 +194,7 @@ def host_detail_view(request, ip):
                 'id' : p.id}
             for p in host.host_based_policies],
         'form' : form,
+        'scanner_key_url' : f"https://{settings.DOMAIN_NAME}" + os.path.join(settings.STATIC_URL, "greenbone-scanner.pub")
     }
 
     # pass flags for available actions into context
