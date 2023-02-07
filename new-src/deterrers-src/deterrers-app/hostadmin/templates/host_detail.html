@@ -84,6 +84,30 @@
     </p>
 </div>
 <hr>
+<div>
+    <h2> Increasing the Scan Quality: </h2>
+    <br>
+    <p>
+        In order to increase the vulnerability scan results, we recommend to enable SSH access for the vulnerability scanner. This can be achieved by following these steps:
+        <ol>
+            <li>On the target host: Create a user named <code>greenbone</code>.</li>
+            <li>
+                Download the public key that enables key-based SSH access for the vulnerability scanner:<br>
+                <code>curl {{scanner_key_url}} --output scanner.pub</code>
+            </li>
+            <li>
+                Add this public key to the authorized keys of user <code>greenbone</code>:<br>
+                <code>
+                    mkdir -p /home/greenbone/.ssh
+                    touch /home/greenbone/.ssh/authorized_keys
+                    cat scanner.pub >> /home/greenbone/.ssh/authorized_keys
+                </code>
+            </li>
+        </ol>
+        Now the vulnerability scanner should have SSH access to your host and be able to gather more precise information on possible vulnerabilities of your system.
+    </p>
+</div>
+<hr>
 <div id="host_actions">
     <h2> Available Actions: </h2>
     <br>
