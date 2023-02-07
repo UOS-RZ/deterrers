@@ -564,7 +564,8 @@ class GmpVScannerInterface():
                 if running:
                     response = self.gmp.stop_task(task_uuid)
                     response_status = int(response.xpath('@status')[0])
-                    assert response_status != 200
+                    if response_status != 200:
+                        raise GmpAPIError(f"Couldn't resume periodic task before adding {host_ip}.")
                     stopped = True
                 else:
                     stopped = False
@@ -604,7 +605,8 @@ class GmpVScannerInterface():
                 if stopped is True:
                     response = self.gmp.resume_task(task_uuid)
                     response_status = int(response.xpath('@status')[0])
-                    assert response_status != 200
+                    if response_status != 200:
+                        raise GmpAPIError(f"Couldn't resume periodic task after adding {host_ip}.")
             else:
                 # periodic scan task does not exist yet
                 target_uuid = self.__create_target(
@@ -641,7 +643,89 @@ class GmpVScannerInterface():
         return True
 
     def remove_host_from_periodic_scan(self, host_ip : str) -> bool:
-        # TODO: implement
+        """
+        Remove a host from the periodic scan task.
+
+        Args:
+            host_ip (str): IP address of the host that is to be removed.
+
+        Returns:
+            bool: Returns True on success and False on failure.
+        """
+        try:
+            # check whether periodic task exists, if not, IndexError will be raised later
+            filter_str = f'"{self.PERIODIC_TASK_NAME}" rows=-1 first=1'
+            response = self.gmp.get_tasks(filter_string=filter_str)
+            response_status = int(response.xpath('@status')[0])
+            if response_status != 200:
+                raise GmpAPIError(f"Couldn't get tasks! Status: {response_status}")
+            try:
+                # get task uuid and uuid of the existing target
+                task_xml = response.xpath('//task')[0]
+                task_uuid = task_xml.attrib['id']
+                old_target_uuid = task_xml.xpath('//target/@id')[0]
+            except IndexError:
+                task_xml = None
+                task_uuid = None
+                old_target_uuid = None
+            if task_uuid:
+                # periodic scan task does exist
+                task_uuid = task_xml.attrib['id']
+                old_target_uuid = task_xml.xpath('//target/@id')[0]
+                # stop task in case it is running
+                running = (task_xml.xpath('//task/status')[0].text == 'Running')
+                if running:
+                    response = self.gmp.stop_task(task_uuid)
+                    response_status = int(response.xpath('@status')[0])
+                    if response_status != 200:
+                        raise GmpAPIError(f"Couldn't stop periodic task before removing {host_ip}.")
+                    stopped = True
+                else:
+                    stopped = False
+
+                # 1. clone target
+                response = self.gmp.clone_target(old_target_uuid)
+                response_status = int(response.xpath('@status')[0])
+                if response_status != 201:
+                    raise GmpAPIError(f"Couldn't clone target {old_target_uuid}! Status: {response_status}")
+                new_target_uuid = response.xpath('@id')[0]
+                # 2. modify new target with new host added to old host-list
+                response = self.gmp.get_target(new_target_uuid)
+                response_status = int(response.xpath('@status')[0])
+                if response_status != 200:
+                    raise GmpAPIError(f"Couldn't get new target {new_target_uuid}! Status: {response_status}")
+                hosts = response.xpath('//hosts')[0].text.split(',')
+                try:
+                    hosts.remove(host_ip)
+                except ValueError():
+                    logger.error("Tried to remove host %s from periodic task. Does not exist!", host_ip)
+                response = self.gmp.modify_target(
+                    new_target_uuid,
+                    hosts=hosts,
+                    name=f"Target for task '{self.PERIODIC_TASK_NAME}' | {datetime.now()}"
+                )
+                response_status = int(response.xpath('@status')[0])
+                if response_status != 200:
+                    raise GmpAPIError(f"Couldn't modify host list of new target {new_target_uuid}! Status: {response_status}")
+                # 3. modify task so that it uses new target
+                response = self.gmp.modify_task(task_uuid, target_id=new_target_uuid)
+                response_status = int(response.xpath('@status')[0])
+                if response_status != 200:
+                    raise GmpAPIError(f"Couldn't assign new target to task {task_uuid}! Status: {response_status}")
+                # 4. delete old target
+                response = self.gmp.delete_target(old_target_uuid, ultimate=True)
+                response_status = int(response.xpath('@status')[0])
+                if response_status != 200:
+                    raise GmpAPIError(f"Couldn't delete target {old_target_uuid}! Status: {response_status}")
+
+                if stopped is True:
+                    response = self.gmp.resume_task(task_uuid)
+                    response_status = int(response.xpath('@status')[0])
+                    if response_status != 200:
+                        raise GmpAPIError(f"Couldn't resume periodic task after removing {host_ip}.")
+        except GmpAPIError:
+            logger.exception("Couldn't add host to periodic scan task.")
+            return False
         return True
 
 
