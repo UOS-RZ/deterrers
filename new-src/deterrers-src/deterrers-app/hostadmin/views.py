@@ -662,7 +662,7 @@ def v_scanner_registration_alert(request):
             alert_uuid = request.GET['alert_uuid']
             with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
                 report_xml = scanner.get_report_xml(report_uuid)
-                scan_start, highest_severity, results = scanner.extract_report_data(report_xml)
+                scan_start, highest_cvss, results = scanner.extract_report_data(report_xml)
                 if highest_cvss < 0.1:
                     severity = 'None'
                 elif highest_cvss >= 0.1 and highest_cvss < 4.0:
