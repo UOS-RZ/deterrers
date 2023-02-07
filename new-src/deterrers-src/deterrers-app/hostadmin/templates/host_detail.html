@@ -111,7 +111,11 @@
                         <td>{{rule.allow_src}}</td>
                         <td>{{rule.allow_ports|join:", "}}</td>
                         <td>{{rule.allow_proto}}</td>
-                        <td>{% bootstrap_button button_type="submit" content="Delete" %}</td>
+                        <td>
+                            <div class="d-grid gap-2 col-6 mx-auto">
+                                {% bootstrap_button button_type="submit" content="Delete" button_class="btn btn-primary" %}
+                            </div>
+                        </td>
                     </tr>
                 </form>
             {% endfor %}
@@ -130,7 +134,9 @@
                             {% bootstrap_field form.protocol show_label=False %}
                         </td>
                         <td>
-                            {% bootstrap_button button_type="submit" content="Add" %}
+                            <div class="d-grid gap-2 col-6 mx-auto">
+                                {% bootstrap_button button_type="submit" content="Add" button_class="btn btn-primary" %}
+                            </div>
                             {% bootstrap_form_errors form %}
                         </td>
                     </tr>
