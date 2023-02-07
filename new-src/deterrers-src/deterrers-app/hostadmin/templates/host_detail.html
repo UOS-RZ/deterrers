@@ -39,9 +39,9 @@
                     <div class="d-grid gap-2 col-6 mx-auto">
                         {% csrf_token %}
                         {% if can_update %}
-                            {% bootstrap_button name="update_btn" button_type="submit" content="Edit Details" button_class="btn btn-primary btn-lg" %}
+                            {% bootstrap_button name="update_btn" button_type="submit" content="Edit Details" button_class="btn btn-primary" %}
                         {% else %}
-                            {% bootstrap_button name="update_btn" button_type="submit" content="Edit Details" button_class="btn btn-primary btn-lg" disabled=True %}
+                            {% bootstrap_button name="update_btn" button_type="submit" content="Edit Details" button_class="btn btn-primary" disabled=True %}
                         {% endif %}
                     </div>
                 </form>
@@ -52,9 +52,9 @@
                     <div class="d-grid gap-2 col-6 mx-auto">
                         {% csrf_token %}
                         {% if can_block %}
-                            {% bootstrap_button name="block_btn" button_type="submit" content="Block" button_class="btn btn-primary btn-lg" %}
+                            {% bootstrap_button name="block_btn" button_type="submit" content="Block" button_class="btn btn-primary" %}
                         {% else %}
-                            {% bootstrap_button name="block_btn" button_type="submit" content="Block" button_class="btn btn-primary btn-lg" disabled=True %}
+                            {% bootstrap_button name="block_btn" button_type="submit" content="Block" button_class="btn btn-primary" disabled=True %}
                         {% endif %}
                     </div>
                 </form>
@@ -66,9 +66,9 @@
                     <div class="d-grid gap-2 col-6 mx-auto">
                         {% csrf_token %}
                         {% if can_register %}
-                            {% bootstrap_button name="register_btn" button_type="submit" content="Register" button_class="btn btn-primary btn-lg" %}
+                            {% bootstrap_button name="register_btn" button_type="submit" content="Register" button_class="btn btn-primary" %}
                         {% else %}
-                            {% bootstrap_button name="register_btn" button_type="submit" content="Register" button_class="btn btn-primary btn-lg" disabled=True %}
+                            {% bootstrap_button name="register_btn" button_type="submit" content="Register" button_class="btn btn-primary" disabled=True %}
                         {% endif %}
                     </div>
                 </form>
@@ -79,9 +79,9 @@
                     <div class="d-grid gap-2 col-6 mx-auto">
                         {% csrf_token %}
                         {% if can_scan %}
-                            {% bootstrap_button name="scan_btn" button_type="submit" content="Ordinary Scan" button_class="btn btn-primary btn-lg" %}
+                            {% bootstrap_button name="scan_btn" button_type="submit" content="Ordinary Scan" button_class="btn btn-primary" %}
                         {% else %}
-                            {% bootstrap_button name="scan_btn" button_type="submit" content="Ordinary Scan" button_class="btn btn-primary btn-lg" disabled=True %}
+                            {% bootstrap_button name="scan_btn" button_type="submit" content="Ordinary Scan" button_class="btn btn-primary" disabled=True %}
                         {% endif %}
                     </div>
                 </form>
@@ -111,11 +111,7 @@
                         <td>{{rule.allow_src}}</td>
                         <td>{{rule.allow_ports|join:", "}}</td>
                         <td>{{rule.allow_proto}}</td>
-                        <td>
-                            <div class="d-grid gap-2 col-6 mx-auto">
-                                {% bootstrap_button button_type="submit" content="Delete" button_class="btn btn-primary" %}
-                            </div>
-                        </td>
+                        <td>{% bootstrap_button button_type="submit" content="Delete" %}</td>
                     </tr>
                 </form>
             {% endfor %}
@@ -134,9 +130,7 @@
                             {% bootstrap_field form.protocol show_label=False %}
                         </td>
                         <td>
-                            <div class="d-grid gap-2 col-6 mx-auto">
-                                {% bootstrap_button button_type="submit" content="Add" button_class="btn btn-primary" %}
-                            </div>
+                            {% bootstrap_button button_type="submit" content="Add" %}
                             {% bootstrap_form_errors form %}
                         </td>
                     </tr>
@@ -150,9 +144,9 @@
             <div class="d-grid gap-2 col-6 mx-auto">
                 {% csrf_token %}
                 {% if can_download_config %}
-                    {% bootstrap_button name="fw_config_btn" button_type="submit" content="Download Firewall Configuration Script" button_class="btn btn-primary btn-lg" %}
+                    {% bootstrap_button name="fw_config_btn" button_type="submit" content="Download Firewall Configuration Script" button_class="btn btn-primary" %}
                 {% else %}
-                    {% bootstrap_button name="fw_config_btn" button_type="submit" content="Download Firewall Configuration Script" button_class="btn btn-primary btn-lg" disabled=True %}
+                    {% bootstrap_button name="fw_config_btn" button_type="submit" content="Download Firewall Configuration Script" button_class="btn btn-primary" disabled=True %}
                 {% endif %}
             </div>
         </form>
