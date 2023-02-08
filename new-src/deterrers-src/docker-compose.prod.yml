@@ -11,8 +11,8 @@ services:
     restart: unless-stopped
     security_opt:
       - label:disable
-    # ports:
-    #   - 8000:8000
+    ports:
+      - 127.0.0.1:8000:8000
     volumes:
       - /dev/net/tun:/dev/net/tun
       - ./vpn:/vpn
@@ -48,8 +48,8 @@ services:
       - static_volume:/home/app/microservice/static
       - ./db:/home/app/microservice/db
       - ./logs:/home/app/microservice/logs
-    expose:
-      - 8000
+    # expose:
+    #   - 8000
     restart: "on-failure"
 
 volumes:
