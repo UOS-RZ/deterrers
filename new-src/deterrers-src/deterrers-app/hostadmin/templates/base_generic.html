@@ -25,7 +25,8 @@
 				{% if user.is_authenticated %}
 				<p>
 					User: <strong>{{ user.get_username }} </strong>
-					<a href="{% url 'hosts_list' %}">Overview</a>
+					<a href="{% url 'hosts_list' %}">Hosts Overview</a>
+					<a href="https://cryptpad.rz.uni-osnabrueck.de/form/#/2/form/view/2RKGx3NOFFV6WdegC+b+CyE3e+maqMjDBVpmETEwvW4/">Survey</a>
 					<a href="{% url 'logout' %}">Logout</a>
 				</p>
 				{% else %}
