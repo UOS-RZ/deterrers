@@ -22,53 +22,77 @@
             <li>Several actions can be performed on a host:</li>
                 <ul>
                     <li>
-                        Register:
-                        <br>
-                        The host will be scanned thoroughly for vulnerabilities <s>and unblocked by the perimeter firewall on success</s><i>(not supported yet)</i>. 
-                        <s>In case there are security risks, the host remains blocked.</s> <i>(not supported yet)</i><br>
-                        Information on the scan results will be send via e-mail to the admin(s).<br>
-                        Additionally, the host will be scanned periodically.
+                        <b>Register:</b>
+                        <p>
+                            The host will be scanned thoroughly for vulnerabilities <s>and unblocked by the perimeter firewall on success</s><i>(not supported yet)</i>. 
+                            <s>In case there are security risks, the host remains blocked.</s> <i>(not supported yet)</i><br>
+                            Information on the scan results will be send via e-mail to the admin(s).
+                        </p>
                     </li>
                     <li>
-                        Ordinary Scan:
-                        <br>
-                        The host will be scanned for vulnerabilities but not as thoroughly as with registration.<br>
-                        No changes to the perimeter firewall will be made.<br>
-                        This is feature that enables you to assess your hosts risk level without making any changes to further infrastructure.
+                        <b>Ordinary Scan:</b>
+                        <p>
+                            The host will be scanned for vulnerabilities but not as thoroughly as on registration.<br>
+                            No changes to the perimeter firewall will be made.<br>
+                            This feature enables you to assess your hosts risk level without making any changes to further infrastructure.
+                        </p>
                     </li>
                     <li>
-                        Block:
-                        <br>
-                        Remove host from periodic scan <s>and block the host at the perimeter firewall.</s><i>(not supported yet)</i>
+                        <b>Block:</b>
+                        <p>
+                            Remove host from periodic scan <s>and block the host at the perimeter firewall.</s><i>(not supported yet)</i>
+                        </p>
                     </li>
                     <li>
-                        Edit Details:
-                        <br>
-                        Choose a profile for the service the host provides and choose the host-based firewall program running on the host.<br>
-                        This information is used for configuring the perimeter firewall to only allow traffic corresponding to the chosen service profile.<br>
-                        This information is also used for generating the host-based firewall configuration script.<br>
-                        Each time this information is changed the host-based firewall policies are adapted.
+                        <b>Edit Details:</b>
+                        <p>
+                            Choose a profile for the service the host provides to the internet and choose the host-based firewall program running on the host.<br>
+                            This information is used for configuring the perimeter firewall to only allow traffic corresponding to the chosen service profile.<br>
+                            This information is also used for generating the host-based firewall configuration script.
+                        </p>
                     </li>
                     <li>
-                        Edit host-based firewall policies:
-                        <br>
-                        Specify policies for more precise control over the host-based firewall configuration.<br>
-                        These policies are aimed at the host-based firewall and do not have an impact on the perimeter firewall.
-                        This implies that they will also affect traffic from inside the university network!
-                        Pay attention when you edit policies that, e.g., regard SSH traffic (port 22).
+                        <b>Edit host-based firewall policies:</b>
+                        <p>
+                            Specify policies for more precise control over the host-based firewall configuration.<br>
+                            These policies are aimed at the host-based firewall and do not have an impact on the perimeter firewall.
+                            This implies that they will also affect traffic from inside the university network!
+                            Pay attention when you edit policies that, e.g., regard SSH traffic (port 22).
+                        </p>
                     </li>
                     <li>
-                        Download host-based firewall configuration script:
-                        <br>
-                        Generate and download the configuration script.
+                        <b>Download host-based firewall configuration script:</b>
+                        <p>
+                            Generate and download the configuration script.
+                        </p>
                     </li>
                 </ul>
-            <li>A host may be in 4 different states:</li>
+            <li>A host can be in one of four different states:</li>
                 <ul>
-                    <li>Unregistered</li>
-                    <li>Under Review</li>
-                    <li>Blocked</li>
-                    <li>Online</li>
+                    <li>
+                        <b>Unregistered</b>
+                        <p>
+                            Initial state of every host.
+                        </p>
+                    </li>
+                    <li>
+                        <b>Under Review</b>
+                        <p>
+                            Some scan is running for this host. This might take a while.
+                        </p>
+                    </li>
+                    <li>
+                        <b>Blocked</b>
+                        <p>
+                            The host is blocked from the internet and will not be scanned periodically.
+                        </p>
+                    </li>
+                    <li>
+                        <b>Online</b>
+                        <p>
+                            The host is online and connected to the internet. It will be scanned periodically (once a week).
+                        </p>
+                    </li>
                 </ul>
         </ol>
     </p>
