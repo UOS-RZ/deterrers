@@ -10,8 +10,8 @@ class HostBasedRuleSubnetContract(Enum):
         'name' : 'RZ Intern',
         'range' : ['131.173.61.0/24', '131.173.245.32/27']
     }
-    VM_BACKBONE = {
-        'name' : 'Uni VM-Backbone',
+    VM_INTERN = {
+        'name' : 'Uni Intern',
         'range' : [
             '131.173.0.0/19',
             '131.173.32.0/20',
