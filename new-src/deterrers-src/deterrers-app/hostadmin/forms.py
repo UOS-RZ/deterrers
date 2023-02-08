@@ -17,14 +17,14 @@ class AddHostForm(forms.Form):
             choices=[(c, c) for c in choices],
             required=True,
             label='Admin(s):',
-            help_text="Are you the only admin or should other admins from your department have the same acces as you."
+            help_text="Are you the only admin or should other admins from your department have the same access as you."
         )
 
     ip_addr = forms.GenericIPAddressField(
         protocol='IPv4',
         unpack_ipv4=False,
         label='IP Address',
-        help_text='IPv4 Address of the host.',
+        help_text='IPv4 address of the host.',
         required=True,
     )
 
@@ -95,7 +95,7 @@ class AddHostRulesForm(forms.Form):
     ports = PortsField(
         label='Ports:',
         help_text='Allow incoming traffic on these ports.\n' \
-            'Multiple ports must be seperated by commas. Port ranges can be specified with a collon.',
+            'Multiple ports must be seperated by commas. Port ranges can be specified with a colon "1000:4242".',
         required=True,
         widget=forms.TextInput,
     )
