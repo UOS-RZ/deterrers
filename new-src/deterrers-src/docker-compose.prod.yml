@@ -27,6 +27,7 @@ services:
       - 443:443
     volumes:
       - static_volume:/home/app/microservice/static
+      - /etc/ssl:/etc/ssl
     depends_on:
       - web
     restart: "on-failure"
