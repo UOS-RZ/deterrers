@@ -15,8 +15,11 @@ class HostBasedPolicy():
     """ 
     SEPERATOR = '___'
 
-    def __init__(self, allow_srcs : dict, allow_ports : set[str], allow_proto : str, id : str = str(uuid.uuid4())):
-        self.id = id
+    def __init__(self, allow_srcs : dict, allow_ports : set[str], allow_proto : str, id : str|None = None):
+        if not id:
+            self.id = str(uuid.uuid4())
+        else:
+            self.id = id
         self.allow_srcs = allow_srcs
         self.allow_ports = set(allow_ports)
         self.allow_proto = allow_proto
