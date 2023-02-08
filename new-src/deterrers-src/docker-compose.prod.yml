@@ -12,7 +12,10 @@ services:
     security_opt:
       - label:disable
     ports:
-      - 127.0.0.1:8000:8000
+      - 80:80
+      - 443:443
+    expose:
+      - 8000
     volumes:
       - /dev/net/tun:/dev/net/tun
       - ./vpn:/vpn
@@ -21,15 +24,16 @@ services:
     entrypoint: ["/sbin/tini", "--", "/usr/bin/openvpn.sh", "-d"]
 
   nginx:
+    depends_on:
+      - vpn
     build: ./nginx
-    ports:
-      - 80:80
-      - 443:443
+    # ports:
+    #   - 80:80
+    #   - 443:443
+    network_mode: "service:vpn"
     volumes:
       - static_volume:/home/app/microservice/static
       - /etc/ssl:/etc/ssl
-    depends_on:
-      - web
     restart: "on-failure"
 
   web:
