@@ -159,7 +159,12 @@
     <p>
         In order to increase the vulnerability scan results, we recommend to enable SSH access for the vulnerability scanner. This can be achieved by following these steps:
         <ol>
-            <li>On the target host: Create a user named <code>greenbone</code>.</li>
+            <li>
+                On the target host: Create a user named <code>greenbone</code>.<br>
+                <code>
+                    sudo adduser greenbone
+                </code>
+            </li>
             <li>
                 Download the public key that enables key-based SSH access for the vulnerability scanner:<br>
                 <code>curl {{scanner_key_url}} --output scanner.pub</code>
@@ -167,7 +172,7 @@
             <li>
                 Add this public key to the authorized keys of user <code>greenbone</code>:<br>
                 <code>
-                    sudo bash -c "mkdir -p /home/greenbone/.ssh && touch /home/greenbone/.ssh/authorized_keys && cat scanner.pub >> /home/greenbone/.ssh/authorized_keys"
+                    sudo bash -c "mkdir -p /home/greenbone/.ssh && chown -R greenbone:greenbone /home/greenbone/.ssh && chmod 700 /home/greenbone/.ssh && touch /home/greenbone/.ssh/authorized_keys && cat scanner.pub >> /home/greenbone/.ssh/authorized_keys"
                 </code>
             </li>
             <li>In case you restricted the allowed users for SSH you should add the user <code>greenbone</code> to the AllowUsers list in <code>/etc/ssh/sshdconfig</code>.</li>
