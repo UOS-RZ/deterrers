@@ -70,7 +70,7 @@ LOGGING = {
         },
     },
     "loggers": {
-        "django": {
+        "": {
             "handlers": ["web_app_log_file", "console"],
             "level": os.environ.get('LOG_LEVEL', 'INFO'),
             'propagate': True,
