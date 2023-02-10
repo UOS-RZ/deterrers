@@ -686,15 +686,14 @@ def v_scanner_registration_alert(request):
                 else:
                     passed_scan = False
 
-                if passed_scan:
-                    passed_str_rep = 'passed'
-                    logger.info("Host %s passed the registration scan and will be set online!", host_ip)
-                    own_url = request.get_host() + reverse('v_scanner_periodic_alert')
-                    if not scanner.add_host_to_periodic_scan(host_ip=host_ip, deterrers_url=own_url):
-                        raise RuntimeError(f"Couldn't add host {host_ip} to periodic scan!")
-                    # get the service profile of this host
-                    with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
-                        host = ipam.get_host_info_from_ip(host_ip)
+                with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+                    host = ipam.get_host_info_from_ip(host_ip)
+                    if passed_scan:
+                        passed_str_rep = 'passed'
+                        logger.info("Host %s passed the registration scan and will be set online!", host_ip)
+                        own_url = request.get_host() + reverse('v_scanner_periodic_alert')
+                        if not scanner.add_host_to_periodic_scan(host_ip=host_ip, deterrers_url=own_url):
+                            raise RuntimeError(f"Couldn't add host {host_ip} to periodic scan!")
                         # change the perimeter firewall configuration so that only hosts service profile is allowed
                         with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
                             match host.service_profile:
@@ -711,25 +710,25 @@ def v_scanner_registration_alert(request):
                         host.status = HostStatusContract.ONLINE
                         if not ipam.update_host_info(host):
                             raise RuntimeError("Couldn't update host information!")
-                        # get all department names for use below
-                        departments = ipam.get_department_tag_names()
-                else:
-                    passed_str_rep = 'not passed'
-                    logger.info("Host %s did not pass the registration and will be blocked.", host_ip)
-                    if not __block_host(host_ip):
-                        raise RuntimeError("Couldn't block host")
+                    else:
+                        passed_str_rep = 'not passed'
+                        logger.info("Host %s did not pass the registration and will be blocked.", host_ip)
+                        if not __block_host(host_ip):
+                            raise RuntimeError("Couldn't block host")
 
-                # get HTML report and send via e-mail to admin
-                report_html = scanner.get_report_html(report_uuid)
-                # deduce admin email addr and filter out departments
-                admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments]
-                logger.debug("Admin addresses: %s", str(admin_addresses))
-                __send_report_email(
-                    report_html,
-                    f"DETERRERS - Vulnerability scan report of host {host_ip}",
-                    f"The scan was {passed_str_rep}.Severity of host {host_ip} is {severity}! You find the report of the vulnerability scan attached to this e-mail.", # TODO
-                    admin_addresses,
-                )
+                    # get HTML report and send via e-mail to admin
+                    report_html = scanner.get_report_html(report_uuid)
+                    # deduce admin email addr and filter out departments
+                    admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments]
+                    # get all department names for use below
+                    departments = ipam.get_department_tag_names()
+                    logger.debug("Admin addresses: %s", str(admin_addresses))
+                    __send_report_email(
+                        report_html,
+                        f"DETERRERS - Vulnerability scan report of host {host_ip}",
+                        f"The scan was {passed_str_rep}.Severity of host {host_ip} is {severity}! You find the report of the vulnerability scan attached to this e-mail.", # TODO
+                        admin_addresses,
+                    )
 
                 scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
         except Exception:
