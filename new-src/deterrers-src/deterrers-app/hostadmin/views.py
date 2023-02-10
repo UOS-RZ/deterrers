@@ -711,7 +711,7 @@ def v_scanner_registration_alert(request):
                         if not ipam.update_host_info(host):
                             raise RuntimeError("Couldn't update host information!")
                     else:
-                        passed_str_rep = 'not passed'
+                        passed_str_rep = 'not passed because severity is higher than 5.0'
                         logger.info("Host %s did not pass the registration and will be blocked.", host_ip)
                         if not __block_host(host_ip):
                             raise RuntimeError("Couldn't block host")
