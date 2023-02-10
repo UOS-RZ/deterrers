@@ -866,7 +866,7 @@ class GmpVScannerInterface():
         Returns:
             _type_: HTML string of the report.
         """
-        rep_filter = "status=Done apply_overrides=0 rows=-1 min_qod=70 first=1"
+        rep_filter = "status=Done apply_overrides=0 rows=-1 min_qod=70 first=1 sort-reverse=severity"
         try:
             response = self.gmp.get_report(report_uuid, filter_string=rep_filter, report_format_id=ReportFormat.HTML_UUID.value, details=True, ignore_pagination=True)
             response = response.find("report")
