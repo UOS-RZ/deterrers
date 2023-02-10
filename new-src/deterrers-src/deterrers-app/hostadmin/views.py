@@ -74,7 +74,7 @@ def __get_available_actions(host : MyHost) -> dict:
     match host.status:
         case HostStatusContract.UNREGISTERED:
             flags['can_update'] = True
-            flags['can_register'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
+            flags['can_register'] = host.service_profile != HostServiceContract.EMPTY
             flags['can_scan'] = True
             flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
             flags['can_block'] = False
@@ -86,7 +86,7 @@ def __get_available_actions(host : MyHost) -> dict:
             flags['can_block'] = False
         case HostStatusContract.BLOCKED:
             flags['can_update'] = True
-            flags['can_register'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
+            flags['can_register'] = host.service_profile != HostServiceContract.EMPTY
             flags['can_scan'] = True
             flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
             flags['can_block'] = False
