@@ -681,9 +681,13 @@ def v_scanner_registration_alert(request):
 
                 # TODO: Risk assessment
                 risk = compute_risk_of_network_exposure(results)
-                passed_scan = True
+                if highest_cvss <= 5.0:
+                    passed_scan = True
+                else:
+                    passed_scan = False
 
                 if passed_scan:
+                    passed_str_rep = 'passed'
                     logger.info("Host %s passed the registration scan and will be set online!", host_ip)
                     own_url = request.get_host() + reverse('v_scanner_periodic_alert')
                     if not scanner.add_host_to_periodic_scan(host_ip=host_ip, deterrers_url=own_url):
@@ -710,6 +714,7 @@ def v_scanner_registration_alert(request):
                         # get all department names for use below
                         departments = ipam.get_department_tag_names()
                 else:
+                    passed_str_rep = 'not passed'
                     logger.info("Host %s did not pass the registration and will be blocked.", host_ip)
                     if not __block_host(host_ip):
                         raise RuntimeError("Couldn't block host")
@@ -722,7 +727,7 @@ def v_scanner_registration_alert(request):
                 __send_report_email(
                     report_html,
                     f"DETERRERS - Vulnerability scan report of host {host_ip}",
-                    f"Severity of host {host_ip} is {severity}! You find the report of the vulnerability scan attached to this e-mail.", # TODO
+                    f"The scan was {passed_str_rep}.Severity of host {host_ip} is {severity}! You find the report of the vulnerability scan attached to this e-mail.", # TODO
                     admin_addresses,
                 )
 
