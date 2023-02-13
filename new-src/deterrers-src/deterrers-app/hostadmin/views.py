@@ -355,9 +355,8 @@ def update_host_detail(request, ip : str):
                     case HostServiceContract.EMPTY:
                         pass
                     case (HostServiceContract.SSH | HostServiceContract.HTTP) as s_p:
-                        # allow SSH standard port 22 over TCP and UDP if a service profile is specified
+                        # allow SSH standard port 22 over TCP if a service profile is specified
                         host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['22'], HostBasedRuleProtocolContract.TCP.value)
-                        host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['22'], HostBasedRuleProtocolContract.UDP.value)
                         match s_p:
                             case HostServiceContract.SSH:
                                 # since SSH rules have already been added do nothing else
