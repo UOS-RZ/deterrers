@@ -78,16 +78,15 @@ class MyHost():
         except ValueError:
             return False
 
-        # check for valid mac address format
-        if self.mac_addr == '':
-            return False
-        if len(self.mac_addr.split('-')) != 6:
-            return False
-        for hex in self.mac_addr.split('-'):
-            try:
-                int(hex, 16)
-            except ValueError:
+        # check for valid mac address format if mac is set
+        if self.mac_addr != '':
+            if len(self.mac_addr.split('-')) != 6:
                 return False
+            for hex in self.mac_addr.split('-'):
+                try:
+                    int(hex, 16)
+                except ValueError:
+                    return False
         
         if self.status not in HostStatusContract:
             return False
