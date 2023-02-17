@@ -410,7 +410,7 @@ class ProteusIPAMInterface():
                 update_host_url = f"{self.main_url}update"
                 update_host_body = {
                     'id': host.entity_id,
-                    'name': host.name,
+                    'name': host.name, # NOTE: Do not remove this or else IP Address Name field is overwritten with empty string
                     'type': 'IP4Address',
                     'properties': f'macAddress={self.__escape_user_input(host.mac_addr)}|\
 deterrers_service_profile={self.__escape_user_input(host.get_service_profile_display())}|\
