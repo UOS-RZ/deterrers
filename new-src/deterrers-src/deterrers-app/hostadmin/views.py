@@ -137,7 +137,7 @@ def about_view(request):
 
 @login_required
 @require_http_methods(['GET', 'POST'])
-def host_detail_view(request, ip):
+def host_detail_view(request, ip : str):
     """
     Function-based view for showing host details. Only available to logged in users.
 
@@ -151,6 +151,7 @@ def host_detail_view(request, ip):
     Returns:
         HTTPResponse: Rendered HTML page.
     """
+    logger.info("Request: Get details for host %s for user %s", ip, request.user.username)
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
@@ -218,6 +219,7 @@ def hosts_list_view(request):
     Returns:
         HttpResponse: Rendered HTML page.
     """
+    logger.info("Request: List hosts for user %s", request.user.username)
 
     PAGINATE = 20
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
@@ -278,6 +280,7 @@ def hostadmin_init_view(request):
     Returns:
         HttpResponse: Rendered HTML page or redirect.
     """
+    logger.info("Request: Initialize hostadmin %s", request.user.username)
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
         # hostadmin can only initialize if they are a user in IPAM
@@ -323,6 +326,7 @@ def update_host_detail(request, ip : str):
     Returns:
         HTTPResponse: Rendered HTML page.
     """
+    logger.info("Request: Update host %s with method %s by user %s", ip, str(request.method), request.user.username)
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
@@ -397,7 +401,7 @@ def update_host_detail(request, ip : str):
 
 @login_required
 @require_http_methods(['POST', ])
-def register_host(request, ip):
+def register_host(request, ip : str):
     """
     Processes requests for performing a registration on a host.
 
@@ -411,6 +415,7 @@ def register_host(request, ip):
     Returns:
         HttpResponseRedirect: Redirect to the detail page of the host.
     """
+    logger.info("Request: Register host %s by user %s", ip, request.user.username)
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
@@ -463,6 +468,7 @@ def scan_host(request, ip : str):
     Returns:
         HttpResponseRedirect: Redirect to the detail page of the host.
     """
+    logger.info("Request: Ordinary scan for host %s by user %s", ip, request.user.username)
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
@@ -514,6 +520,7 @@ def block_host(request, ip : str):
     Returns:
         HttpResponseRedirect: Redirect to the detail page of the host.
     """
+    logger.info("Request: Block host %s by user %s", ip, request.user.username)
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
@@ -555,6 +562,7 @@ def delete_host_rule(request, ip : str, rule_id : uuid.UUID):
     Returns:
         HttpResponseRedirect: Redirect to the detail page of the host.
     """
+    logger.info("Request: Delete rule %s for host %s by user %s", str(rule_id), ip, request.user.username)
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
@@ -597,7 +605,7 @@ def get_fw_config(request, ip : str):
     Returns:
         FileResponse: Returns the firewall configuration script for the queried host as file.
     """
-    logger.info("Generate fw config script for host %s", ip)
+    logger.info("Request: Generate fw config script for host %s by user %s", ip, request.user.username)
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
         # check if user has IPAM permission or an admin tag for them exists
@@ -645,6 +653,8 @@ def v_scanner_registration_alert(request):
             happens independently in daemon thread.
     """
     logger.info("Received notification from v-scanner that a registration completed.")
+
+    # TODO: check request origin to be scanner
 
     def proc_registration_alert(request):
         """
@@ -753,6 +763,8 @@ def v_scanner_scan_alert(request):
             happens independently in daemon thread.
     """
     logger.info("Received notification from v-scanner that an ordinary scan completed.")
+
+    # TODO: check request origin to be scanner
 
     def proc_scan_alert(request):
         """
