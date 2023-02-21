@@ -12,7 +12,7 @@ services:
     security_opt:
       - label:disable
     ports:
-      - 80:80
+      - 89:89
     expose:
       - 8000
     volumes:
@@ -29,9 +29,9 @@ services:
     build: 
       context: ./deterrers-app
       dockerfile: Dockerfile
-    command: python manage.py runserver 0.0.0.0:80
+    command: python manage.py runserver 0.0.0.0:89
     env_file:
-      - ./.env.dev
+      - ./.env.prod
     image: deterrers-application
     volumes:
       - .:/microservice:rw # map data and files from parent directory in host to microservice directory in docker containe
