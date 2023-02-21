@@ -4,7 +4,7 @@ from lxml import etree
 import time
 from threading import Thread
 
-from .contracts import HostStatusContract, AddressGroup
+from .contracts import HostStatusContract, PaloAltoAddressGroup
 
 
 logger = logging.getLogger(__name__)
@@ -157,7 +157,7 @@ class PaloAltoInterface():
 
         return obj_name
 
-    def __get_addr_grp_properties(self, addr_grp : AddressGroup) -> dict:
+    def __get_addr_grp_properties(self, addr_grp : PaloAltoAddressGroup) -> dict:
         """
         Query the properties of an AddressGroup.
 
@@ -240,7 +240,7 @@ from firewall! Status code: {response.status_code}. Status: {data.get('@status')
 
 
 
-    def add_addr_obj_to_addr_grps(self, ip_addr : str, addr_grps : set[AddressGroup]) -> bool:
+    def add_addr_obj_to_addr_grps(self, ip_addr : str, addr_grps : set[PaloAltoAddressGroup]) -> bool:
         """
         Creates an AddressObject for an IP address if necessary and adds it to some AddressGroups.
 
@@ -250,6 +250,7 @@ from firewall! Status code: {response.status_code}. Status: {data.get('@status')
 
         Returns:
             bool: Returns True on success and False if something went wrong.
+            Not completely trustworthy because commit is not checked for time reasons.
         """
         try:
             addr_obj_name = self.__get_addr_obj(ip_addr)
@@ -289,7 +290,7 @@ Status code: {response.status_code}. Status: {data.get('@status')}")
         return True
 
 
-    def remove_addr_obj_from_addr_grps(self, ip_addr : str, addr_grps : set[AddressGroup]):
+    def remove_addr_obj_from_addr_grps(self, ip_addr : str, addr_grps : set[PaloAltoAddressGroup]):
         """
         Removes an AddressObject from some AddressGroups.
 
@@ -299,6 +300,7 @@ Status code: {response.status_code}. Status: {data.get('@status')}")
 
         Returns:
             bool: Returns True on success and False if something went wrong.
+            Not completely trustworthy because commit is not checked for time reasons.
         """
         try:
             addr_obj_name = self.__get_addr_obj(ip_addr)
@@ -345,7 +347,7 @@ Status code: {response.status_code}. Status: {data.get('@status')}")
                 # if addr_obj does not exist yet, the host has not been registered
                 return HostStatusContract.UNREGISTERED
             
-            for addr_grp in AddressGroup:
+            for addr_grp in PaloAltoAddressGroup:
                 # get all properties of the address group
                 addr_grp_obj = self.__get_addr_grp_properties(addr_grp)
                 if addr_obj_name in addr_grp_obj['static']['member']:
