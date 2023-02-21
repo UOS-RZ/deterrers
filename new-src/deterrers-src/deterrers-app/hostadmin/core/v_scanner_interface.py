@@ -698,7 +698,7 @@ class GmpVScannerInterface():
                 try:
                     hosts.remove(host_ip)
                 except ValueError:
-                    logger.error(f"Tried to remove host {host_ip} from periodic task with target list {hosts}. Does not exist!")
+                    logger.warning(f"Tried to remove host {host_ip} from periodic task with target list {hosts}. Does not exist!")
                 response = self.gmp.modify_target(
                     new_target_uuid,
                     hosts=hosts,
