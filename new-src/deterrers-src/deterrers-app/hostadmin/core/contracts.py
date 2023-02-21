@@ -62,6 +62,7 @@ class HostStatusContract(Enum):
 class HostServiceContract(Enum):
     HTTP =          'HTTP'
     SSH =           'SSH'
+    HTTP_SSH =      'HTTP+SSH'
     MULTIPURPOSE =  'Multipurpose'
     EMPTY =         ''
 
@@ -74,10 +75,10 @@ class HostFWContract(Enum):
 
 
 
-class AddressGroup(Enum):
+class PaloAltoAddressGroup(Enum):
     """
     Enumeration of the different AddressGroup names which specify the service profiles in the
-    firewall configuration.
+    PaloAlto firewall configuration.
     """
     HTTP = "FWP1-WEB"
     SSH = "FWP2-SSH"

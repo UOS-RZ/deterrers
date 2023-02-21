@@ -21,7 +21,7 @@ from .core.fw_interface import PaloAltoInterface
 from .core.risk_assessor import compute_risk_of_network_exposure
 from .core.rule_generator import generate_rule
 from .core.host import MyHost
-from .core.contracts import HostBasedRuleSubnetContract, HostBasedRuleProtocolContract, HostStatusContract, HostServiceContract, HostFWContract, AddressGroup
+from .core.contracts import HostBasedRuleSubnetContract, HostBasedRuleProtocolContract, HostStatusContract, HostServiceContract, HostFWContract, PaloAltoAddressGroup
 
 
 from myuser.models import MyUser
@@ -29,6 +29,14 @@ from myuser.models import MyUser
 logger = logging.getLogger(__name__)
 
 
+
+
+def __add_notifications(request):
+    notifications = [
+        "New: Internet service profile 'HTTP+SSH' was added for hosts which should provide both HTTP and SSH to the internet.", # TODO: added 2023-02-21
+    ]
+    for msg in notifications:
+        messages.info(request, msg)
 
 
 def __block_host(host_ip : str) -> bool:
@@ -46,7 +54,7 @@ def __block_host(host_ip : str) -> bool:
         host = ipam.get_host_info_from_ip(host_ip)
         # change the perimeter firewall configuration so that host is blocked
         with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
-            if not fw.remove_addr_obj_from_addr_grps(host_ip, {AddressGroup.HTTP, AddressGroup.SSH, AddressGroup.OPEN}):
+            if not fw.remove_addr_obj_from_addr_grps(host_ip, {ag for ag in PaloAltoAddressGroup}):
                 return False
         host.status = HostStatusContract.BLOCKED
         if not ipam.update_host_info(host):
@@ -132,6 +140,7 @@ def __send_report_email(report_html : str, subject : str, str_body : str, to : l
 @require_http_methods(['GET',])
 def about_view(request):
     context = {}
+    __add_notifications(request)
     return render(request, 'about.html', context)
 
 
@@ -220,6 +229,8 @@ def hosts_list_view(request):
         HttpResponse: Rendered HTML page.
     """
     logger.info("Request: List hosts for user %s", request.user.username)
+
+    __add_notifications(request)
 
     PAGINATE = 20
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
@@ -358,14 +369,14 @@ def update_host_detail(request, ip : str):
                 match host.service_profile:
                     case HostServiceContract.EMPTY:
                         pass
-                    case (HostServiceContract.SSH | HostServiceContract.HTTP) as s_p:
+                    case (HostServiceContract.SSH | HostServiceContract.HTTP | HostServiceContract.HTTP_SSH) as s_p:
                         # allow SSH standard port 22 over TCP if a service profile is specified
                         host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['22'], HostBasedRuleProtocolContract.TCP.value)
                         match s_p:
                             case HostServiceContract.SSH:
                                 # since SSH rules have already been added do nothing else
                                 pass
-                            case HostServiceContract.HTTP:
+                            case (HostServiceContract.HTTP | HostServiceContract.HTTP_SSH):
                                 # allow HTTP and HTTPS standard ports 80 and 443 over TCP
                                 host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['80'], HostBasedRuleProtocolContract.TCP.value)
                                 host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['443'], HostBasedRuleProtocolContract.TCP.value)
@@ -705,13 +716,19 @@ def v_scanner_registration_alert(request):
                             raise RuntimeError(f"Couldn't add host {host_ip} to periodic scan!")
                         # change the perimeter firewall configuration so that only hosts service profile is allowed
                         with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
+                            # first make sure ip is not already in any AddressGroups
+                            suc = fw.remove_addr_obj_from_addr_grps(host_ip, {ag for ag in PaloAltoAddressGroup})
+                            if not suc:
+                                raise RuntimeError("Couldn't update firewall configuration!")
                             match host.service_profile:
                                 case HostServiceContract.HTTP:
-                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroup.HTTP,})
+                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {PaloAltoAddressGroup.HTTP,})
                                 case HostServiceContract.SSH:
-                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroup.SSH,})
+                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {PaloAltoAddressGroup.SSH,})
                                 case HostServiceContract.MULTIPURPOSE:
-                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {AddressGroup.OPEN,})
+                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {PaloAltoAddressGroup.OPEN,})
+                                case HostServiceContract.HTTP_SSH:
+                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {PaloAltoAddressGroup.HTTP, PaloAltoAddressGroup.SSH})
                                 case _:
                                     raise RuntimeError(f"Unknown service profile: {host.service_profile}")
                             if not suc:
