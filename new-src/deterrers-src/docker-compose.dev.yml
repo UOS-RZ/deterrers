@@ -22,8 +22,8 @@ services:
 
   dev-web:
     depends_on:
-      - vpn
-    network_mode: "service:vpn"
+      - dev-vpn
+    network_mode: "service:dev-vpn"
     build: 
       context: ./deterrers-app
       dockerfile: Dockerfile
