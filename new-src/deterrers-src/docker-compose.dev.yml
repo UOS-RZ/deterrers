@@ -7,12 +7,14 @@ services:
     cap_add:
       - net_admin
     networks:
-      - default
+      - vpn_bridge
     restart: unless-stopped
     security_opt:
       - label:disable
     ports:
       - 80:80
+    expose:
+      - 8000
     volumes:
       - /dev/net/tun:/dev/net/tun
       - ./vpn:/vpn
@@ -28,20 +30,18 @@ services:
       context: ./deterrers-app
       dockerfile: Dockerfile
     command: python manage.py runserver 0.0.0.0:80
-    volumes:
-      - .:/microservice:rw # map data and files from parent directory in host to microservice directory in docker containe
-      - static_volume:/home/app/microservice/static
-      - ./db:/home/app/microservice/db
-      - ./logs:/home/app/microservice/logs
-    # ports:
-    #   - 80:80
     env_file:
       - ./.env.dev
     image: deterrers-application
+    volumes:
+      - .:/microservice:rw # map data and files from parent directory in host to microservice directory in docker containe
+      - static_volume:/home/app/microservice/static
+      # - ./db:/home/app/microservice/db
+      # - ./logs:/home/app/microservice/logs
     restart: "on-failure"
 
 volumes:
  static_volume:
 
 networks:
-  default:
+  vpn_bridge:
