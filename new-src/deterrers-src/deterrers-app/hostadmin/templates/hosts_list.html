@@ -12,7 +12,7 @@
 		<thead>
 			<tr>
 				<th>IP Address</th>
-				<th>Name</th>
+				<th>DNS Names</th>
 				<th>Profile</th>
 				<th>Status</th>
 			</tr>
@@ -21,7 +21,7 @@
 		<tbody>
 			<tr>
 				<td><a href="{{ host.get_absolute_url }}">{{host.ip_addr}}</a></td>
-				<td>{{host.name}}</td>
+				<td>{{host.get_dns_rcs_display}}</td>
 				<td>{{host.get_service_profile_display}}</td>
 				<td>{{host.get_status_display}}</td>
 			</tr>
