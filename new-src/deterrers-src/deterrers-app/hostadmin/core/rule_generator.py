@@ -79,7 +79,7 @@ class HostBasedPolicy():
             bool: Returns True if valid and False if not valid.
         """
         # check types
-        if (isinstance(self.id, str) and
+        if not (isinstance(self.id, str) and
             isinstance(self.allow_srcs, dict) and
             isinstance(self.allow_ports, set) and
             isinstance(self.allow_proto, str)):
