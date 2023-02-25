@@ -83,29 +83,40 @@ class HostBasedPolicy():
             isinstance(self.allow_srcs, dict) and
             isinstance(self.allow_ports, set) and
             isinstance(self.allow_proto, str)):
+            logger.warning("Property of HostBasedPolicy has wrong type!")
             return False
         
         # check value sanity
         try:
             uuid.UUID(self.id)
         except ValueError:
+            logger.warning("UUID of policy is invalid: '%s", self.id)
             return False
         
         if not self.allow_srcs.get('name') or not self.allow_srcs.get('range'):
+            logger.warning("Policy's allow_srcs has no field 'name' or 'range'!")
             return False
         for src_range in self.allow_srcs.get('range'):
             try:
                 ipaddress.ip_network(src_range)
             except ValueError:
+                logger.warning("Policy's allow_srcs range '%s' is invalid!", src_range)
                 return False
         
-        for port in self.allow_ports:
+        for p in self.allow_ports:
             try:
-                int(port)
+                if ':' in p:
+                    ps = p.split(':')
+                    int(ps[0])
+                    int(ps[1])
+                else:
+                    int(p)
             except ValueError:
+                logger.warning("Policy's allow_port is invalid: '%s'", p)
                 return False
             
         if self.allow_proto.lower() not in ('tcp', 'udp'):
+            logger.warning("Policy's allow_proto is invalid: '%s'", self.allow_proto)
             return False
 
         return True
