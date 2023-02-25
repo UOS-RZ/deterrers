@@ -225,8 +225,11 @@ class ProteusIPAMInterface():
             record_props = record.get('properties', '').split('|')
             for prop in record_props:
                 key_val = prop.split('=')
-                if key_val[0] == 'absoluteName':
-                    return key_val[1]
+                try:
+                    if key_val[0] == 'absoluteName':
+                        return key_val[1]
+                except IndexError:
+                    return None
             return None
 
         def __get_alias_records(record_id : int) -> list:
@@ -267,7 +270,7 @@ class ProteusIPAMInterface():
         except Exception:
             logger.exception("Error while querying host names of host %d", host_id)
                 
-        return set(dns_names)
+        return dns_names
 
 
     def get_host_info_from_ip(self, ip : str):

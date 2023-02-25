@@ -4,7 +4,7 @@ import uuid
 import json
 import ipaddress
 
-from.contracts import HostFWContract
+from .contracts import HostFWContract
 
 
 logger = logging.getLogger(__name__)
@@ -25,7 +25,16 @@ class HostBasedPolicy():
         self.allow_proto = allow_proto
 
     @classmethod
-    def from_string(cls, string : str) -> HostBasedPolicy:
+    def from_string(cls, string : str) -> HostBasedPolicy|None:
+        """
+        Construct an instance of HostBasedPolicy from its string representation.
+
+        Args:
+            string (str): String representation of a HostBasedPolicy object.
+
+        Returns:
+            HostBasedPolicy|None: Returns the constructed object or None if something goes wrong.
+        """
         elems = string.split(cls.SEPERATOR)
         if len(elems) == 4:
             p_id = elems[0]
@@ -37,6 +46,12 @@ class HostBasedPolicy():
         return None
 
     def to_string(self) -> str:
+        """
+        Transform an instance of HostBasedPolicy into its string representation.
+
+        Returns:
+            str: Returns the string representation.
+        """
         return self.id + self.SEPERATOR + json.dumps(self.allow_srcs) + self.SEPERATOR + json.dumps(list(self.allow_ports)) + self.SEPERATOR + self.allow_proto
 
     def is_subset_of(self, p : HostBasedPolicy) -> bool:
@@ -55,6 +70,46 @@ class HostBasedPolicy():
         if same_src and same_proto and ports_are_subset:
             return True
         return False
+    
+    def is_valid(self) -> bool:
+        """
+        Check if this policy has valid values.
+
+        Returns:
+            bool: Returns True if valid and False if not valid.
+        """
+        
+        # check types
+        if (isinstance(self.id, str) and
+            isinstance(self.allow_srcs, dict) and
+            isinstance(self.allow_ports, set) and
+            isinstance(self.allow_proto, str)):
+            return False
+        
+        # check value sanity
+        try:
+            uuid.UUID(self.id)
+        except ValueError:
+            return False
+        
+        if not self.allow_srcs.get('name') or not self.allow_srcs.get('range'):
+            return False
+        for src in self.allow_srcs:
+            try:
+                ipaddress.ip_network(src)
+            except ValueError:
+                return False
+        
+        for port in self.allow_ports:
+            try:
+                int(port)
+            except ValueError:
+                return False
+            
+        if self.allow_proto.lower() not in ('tcp', 'udp'):
+            return False
+
+        return True
 
 
 FW_PROGRAM_CHECK = \

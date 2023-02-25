@@ -62,7 +62,7 @@ class MyHost():
     def get_dns_rcs_display(self) -> str:
         return ", ".join(self.dns_rcs)
 
-    def add_host_based_policy(self, subnets : list[str], ports : list[str], proto : str) -> bool:
+    def add_host_based_policy(self, subnets : dict, ports : list[str], proto : str) -> bool:
         new_policy = HostBasedPolicy(subnets, ports, proto)
         for policy in self.host_based_policies:
             if new_policy.is_subset_of(policy):
@@ -102,6 +102,8 @@ class MyHost():
         if self.fw not in HostFWContract:
             return False
 
-        # TODO: check validity of intranet_rules
+        for policy in self.host_based_policies:
+            if not policy.is_valid():
+                return False
         
         return True
