@@ -83,7 +83,7 @@ class HostBasedPolicy():
             isinstance(self.allow_srcs, dict) and
             isinstance(self.allow_ports, set) and
             isinstance(self.allow_proto, str)):
-            logger.warning("Property of HostBasedPolicy has wrong type!")
+            logger.warning("Property of HostBasedPolicy has wrong type! id: %s allow_srcs: %s allow_ports: %s allow_proto: %s", str(type(self.id)), str(type(self.allow_srcs)), str(type(self.allow_ports)), str(type(self.allow_proto)))
             return False
         
         # check value sanity
