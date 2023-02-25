@@ -317,7 +317,7 @@ class ProteusIPAMInterface():
             if my_host.is_valid():
                 return my_host
             else:
-                logger.warning("Host %s is not valid!", str(my_host))
+                logger.warning("Host '%s' is not valid!", str(my_host))
         except requests.exceptions.ConnectTimeout:
             logger.exception('Connection to %s timed out!', self.main_url)
         except requests.exceptions.ConnectionError:
@@ -364,7 +364,7 @@ class ProteusIPAMInterface():
             if my_host.is_valid():
                 return my_host
             else:
-                logger.warning("Host %s is not valid!", str(my_host))
+                logger.warning("Host '%s' is not valid!", str(my_host))
         except requests.exceptions.ConnectTimeout:
             logger.exception('Connection to %s timed out!', self.main_url)
         except requests.exceptions.ConnectionError:
@@ -419,7 +419,7 @@ class ProteusIPAMInterface():
                     if my_host.is_valid():
                         hosts.append(my_host)
                     else:
-                        logger.warning("Host %s is not valid!", str(my_host))
+                        logger.warning("Host '%s' is not valid!", str(my_host))
                 ret_cnt = len(data)
             return hosts
 

@@ -170,7 +170,7 @@ def host_detail_view(request, ip : str):
         host = ipam.get_host_info_from_ip(ip) # TODO: could be changed to get_host_info_from_id() for better performance
         # check if host is valid
         if not host or not host.is_valid():
-            logger.warning("Host %s is not valid!", str(host))
+            logger.warning("Host '%s' is not valid!", str(host))
             raise Http404()
         # check if user is admin of this host
         if not hostadmin.username in host.admin_ids:
@@ -445,7 +445,7 @@ def register_host(request, ip : str):
         if not __get_available_actions(host).get('can_register'):
             raise Http404()
         if not host.is_valid():
-            logger.warning("Host %s is not valid!", str(host))
+            logger.warning("Host '%s' is not valid!", str(host))
             messages.error(request, "Host is not valid!")
         else:
             # create an initial scan of the host
@@ -499,7 +499,7 @@ def scan_host(request, ip : str):
         if not __get_available_actions(host).get('can_scan'):
             raise Http404()
         if not host.is_valid():
-            logger.warning("Host %s is not valid!", str(host))
+            logger.warning("Host '%s' is not valid!", str(host))
             messages.error(request, "Host is not valid!")
         else:
             # create an initial scan of the host
@@ -634,7 +634,7 @@ def get_fw_config(request, ip : str):
         if not hostadmin.username in host.admin_ids:
             raise Http404()
         if not host.is_valid():
-            logger.warning("Host %s is not valid!", str(host))
+            logger.warning("Host '%s' is not valid!", str(host))
             messages.error(request, "Host is not valid!")
             return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
 
