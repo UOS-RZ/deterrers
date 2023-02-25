@@ -78,7 +78,6 @@ class HostBasedPolicy():
         Returns:
             bool: Returns True if valid and False if not valid.
         """
-        
         # check types
         if (isinstance(self.id, str) and
             isinstance(self.allow_srcs, dict) and
@@ -94,9 +93,9 @@ class HostBasedPolicy():
         
         if not self.allow_srcs.get('name') or not self.allow_srcs.get('range'):
             return False
-        for src in self.allow_srcs:
+        for src_range in self.allow_srcs.get('range'):
             try:
-                ipaddress.ip_network(src)
+                ipaddress.ip_network(src_range)
             except ValueError:
                 return False
         
