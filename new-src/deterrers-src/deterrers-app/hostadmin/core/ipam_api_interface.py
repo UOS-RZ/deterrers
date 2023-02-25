@@ -218,6 +218,59 @@ class ProteusIPAMInterface():
         response = requests.get(get_ip4adress_url, headers = self.header, timeout=self.TIMEOUT)
         data = response.json()
         return data
+    
+    def __get_linked_dns_records(self, host_id : int) -> list[str]:
+
+        def __get_record_name(record : dict) -> str:
+            record_props = record.get('properties', '').split('|')
+            for prop in record_props:
+                key_val = prop.split('=')
+                try:
+                    if key_val[0] == 'absoluteName':
+                        return key_val[1]
+                except IndexError:
+                    return None
+            return None
+
+        def __get_alias_records(record_id : int) -> list:
+            alias_records = []
+            get_linked_entity_url= self.main_url + "getLinkedEntities?" + \
+                f"count=100&entityId={record_id}&start={0}&type=AliasRecord"
+            response = requests.get(get_linked_entity_url, headers = self.header, timeout=self.TIMEOUT)
+            data = response.json()
+            alias_records.extend(data)
+            for alias_r in data:
+                alias_r_id = alias_r.get('id', None)
+                if alias_r_id:
+                    alias_records.extend(__get_alias_records(int(alias_r_id)))
+            return alias_records
+
+        dns_names = set()
+        try:
+            host_id = int(host_id)
+            get_linked_entity_url= self.main_url + "getLinkedEntities?" + \
+                f"count=100&entityId={host_id}&start={0}&type=HostRecord"
+            response = requests.get(get_linked_entity_url, headers = self.header, timeout=self.TIMEOUT)
+            data = response.json()
+            for record in data:
+                host_record_id = record.get('id', None)
+                if host_record_id:
+                    host_record_id = int(host_record_id)
+                    host_record_name = __get_record_name(record)
+                    if host_record_name:
+                        dns_names.add(host_record_name)
+                    # get CNAMES
+                    data = __get_alias_records(host_record_id)
+                    for alias_record in data:
+                        alias_record_id = alias_record.get('id', None)
+                        if alias_record_id:
+                            alias_record_name = __get_record_name(alias_record)
+                            if alias_record_name:
+                                dns_names.add(alias_record_name)
+        except Exception:
+            logger.exception("Error while querying host names of host %d", host_id)
+                
+        return dns_names
 
 
     def get_host_info_from_ip(self, ip : str):
@@ -244,9 +297,10 @@ class ProteusIPAMInterface():
         try:
             data = self.__get_IP4Address(ip)
             host_id, name, ip, mac, status, service, fw, rules = self.__parse_ipam_host_entity(data)
-
             # get all tagged admins
             tagged_admins = self.__get_tagged_admins(host_id)
+            # get dns records
+            dns_rcs = self.__get_linked_dns_records(host_id)
 
             my_host = MyHost(
                 ip=ip,
@@ -254,6 +308,7 @@ class ProteusIPAMInterface():
                 admin_ids=tagged_admins,
                 status=status,
                 name=name,
+                dns_rcs=dns_rcs,
                 service=service,
                 fw=fw,
                 policies=rules,
@@ -289,6 +344,8 @@ class ProteusIPAMInterface():
             host_id, name, ip, mac, status, service, fw, rules = self.__parse_ipam_host_entity(data)
             # get all tagged admins
             tagged_admins = self.__get_tagged_admins(host_id)
+            # get dns records
+            dns_rcs = self.__get_linked_dns_records(host_id)
 
             my_host = MyHost(
                 ip=ip,
@@ -296,6 +353,7 @@ class ProteusIPAMInterface():
                 admin_ids=tagged_admins,
                 status=status,
                 name=name,
+                dns_rcs=dns_rcs,
                 service=service,
                 fw=fw,
                 policies=rules,
@@ -341,12 +399,15 @@ class ProteusIPAMInterface():
                     host_id, name, ip, mac, status, service, fw, rules = self.__parse_ipam_host_entity(host_e)
                     # get all tagged admins
                     tagged_admins = self.__get_tagged_admins(host_id)
+                    # get dns records
+                    dns_rcs = self.__get_linked_dns_records(host_id)
                     my_host = MyHost(
                         ip=ip,
                         mac=mac,
                         admin_ids=tagged_admins,
                         status=status,
                         name=name,
+                        dns_rcs=dns_rcs,
                         service=service,
                         fw=fw,
                         policies=rules,
