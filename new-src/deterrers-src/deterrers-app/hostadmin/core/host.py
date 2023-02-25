@@ -39,7 +39,7 @@ class MyHost():
 
 
     def __str__(self) -> str:
-        return f"Host: {self.ip_addr} ({self.name}) Status: {self.get_status_display()} Service Profile: {self.get_service_profile_display()} FW: {self.get_fw_display()}"
+        return f"Host: {self.ip_addr} ({self.get_dns_rcs_display()}) Status: {self.get_status_display()} Service Profile: {self.get_service_profile_display()} FW: {self.get_fw_display()}"
 
     def get_ip_escaped(self) -> str:
         return str(self.ip_addr).replace('.', '_')
