@@ -13,7 +13,8 @@
 			<tr>
 				<th>IP Address</th>
 				<th>DNS Names</th>
-				<th>Profile</th>
+				<th>Admin(s)</th>
+				<th>Internet Service Profile</th>
 				<th>Status</th>
 			</tr>
 		</thead>
@@ -22,6 +23,7 @@
 			<tr>
 				<td><a href="{{ host.get_absolute_url }}">{{host.ip_addr}}</a></td>
 				<td>{{host.get_dns_rcs_display}}</td>
+				<td>{{host.admin_ids|join:", "}}</td>
 				<td>{{host.get_service_profile_display}}</td>
 				<td>{{host.get_status_display}}</td>
 			</tr>
