@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 def __add_notifications(request):
     notifications = [
         "New: Internet service profile 'HTTP+SSH' was added for hosts which should provide both HTTP and SSH to the internet.", # TODO: added 2023-02-21
+        "New: DNS names are now displayed per host.", # TODO: added 2023-02-21
     ]
     for msg in notifications:
         messages.info(request, msg)
