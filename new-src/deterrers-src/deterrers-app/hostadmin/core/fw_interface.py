@@ -160,6 +160,7 @@ class PaloAltoInterface():
     def __get_addr_grp_properties(self, addr_grp : PaloAltoAddressGroup) -> dict:
         """
         Query the properties of an AddressGroup.
+        TODO: try-catch for .json()-method/everything (threw error previously on 2023-02-23, probably connection failure)
 
         Args:
             addr_grp (AddressGroup): Enum instance of the AddressGroup to query.
