@@ -5,6 +5,11 @@ def compute_risk_of_network_exposure(vuls : list[dict]):
     """
     Compute the combined risk of network exposure for a list of vulnerabilities.
 
+    Important meta data:
+        - cvss vectors
+        - Quality of Detection values
+        - overall severity of the network
+
     Args:
         vuls (list[dict]): List of vulnerabilities on one host.
             Vulnerabilities come as dicts of form:
