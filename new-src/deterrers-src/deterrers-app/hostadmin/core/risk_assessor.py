@@ -19,8 +19,8 @@ def compute_risk_of_network_exposure(vuls : list[dict]):
                     'hostname' : hostname,
                     'nvt_name' : nvt_name,
                     'nvt_oid' : nvt_oid,
-                    'cvss_base' : cvss_base,
-                    'cvss_base_vector' : cvss_base_vector
+                    'qod' : qod,
+                    'cvss_severities' : cvss_severities,
                 }
     """
     # TODO: implement
