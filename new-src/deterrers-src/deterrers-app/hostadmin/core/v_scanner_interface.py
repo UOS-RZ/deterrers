@@ -53,7 +53,7 @@ class GmpVScannerInterface():
     Interface to the Greenbone Vulnerability Scanner via Greenbone Management Protocol (GMP) v22.4.
     Communication uses the python-gvm API package.
     """
-    TIMEOUT = 20
+    TIMEOUT = 60*5
 
     PERIODIC_TASK_NAME = "DETERRERS - Periodic task for registered hosts"
 
@@ -832,7 +832,7 @@ class GmpVScannerInterface():
                 logger.warning("Couldn't delete alert! Error: %s", str(err))
 
 
-    def get_report_xml(self, report_uuid : str):
+    def get_report_xml(self, report_uuid : str, min_qod : int = 70):
         """
         Query the XML report for some report UUID.
 
@@ -842,7 +842,7 @@ class GmpVScannerInterface():
         Returns:
             _type_: XML etree object of the report.
         """
-        rep_filter = "status=Done apply_overrides=0 rows=-1 min_qod=70 first=1"
+        rep_filter = f"status=Done apply_overrides=0 rows=-1 min_qod={min_qod} first=1 sort-reverse=severity"
         try:
             response = self.gmp.get_report(report_uuid, filter_string=rep_filter, ignore_pagination=True, details=True)
             response_status = int(response.xpath('@status')[0])
@@ -856,7 +856,7 @@ class GmpVScannerInterface():
 
         return None
 
-    def get_report_html(self, report_uuid : str):
+    def get_report_html(self, report_uuid : str, min_qod : int = 70):
         """
         Query the HTML report for some report UUID.
 
@@ -866,7 +866,7 @@ class GmpVScannerInterface():
         Returns:
             _type_: HTML string of the report.
         """
-        rep_filter = "status=Done apply_overrides=0 rows=-1 min_qod=70 first=1 sort-reverse=severity"
+        rep_filter = f"status=Done apply_overrides=0 rows=-1 min_qod={min_qod} first=1 sort-reverse=severity"
         try:
             response = self.gmp.get_report(report_uuid, filter_string=rep_filter, report_format_id=ReportFormat.HTML_UUID.value, details=True, ignore_pagination=True)
             response = response.find("report")
@@ -879,7 +879,6 @@ class GmpVScannerInterface():
         except GmpAPIError:
             logger.exception("Get report as HTML failed.")
         return None
-
 
     def extract_report_data(self, report) -> tuple:
         """
@@ -896,9 +895,9 @@ class GmpVScannerInterface():
         try:
             scan_start = report.xpath('//scan_start')[0].text
 
-            highest_severity_filtered = report.xpath('//severity/filtered')[0].text
+            highest_severity_filtered = report.xpath('report/report/severity/filtered')[0].text
 
-            results_xml = report.xpath('//results/result')
+            results_xml = report.xpath('report/report/results/result')
             results = []
 
             for result_xml in results_xml:
@@ -907,8 +906,17 @@ class GmpVScannerInterface():
                 hostname = result_xml.xpath('host/hostname')[0].text
                 nvt_name = result_xml.xpath('nvt/name')[0].text
                 nvt_oid = result_xml.xpath('nvt')[0].attrib['oid']
-                cvss_base = float(result_xml.xpath('nvt/cvss_base')[0].text)
-                cvss_base_vector = result_xml.xpath('nvt/severities/severity/value')[0].text
+                qod = result_xml.xpath('qod/value')[0].text
+                severities = result_xml.xpath('nvt/severities/severity')
+                cvss_severities = []
+                for severity in severities:
+                    cvss_severities.append(
+                        {
+                            'type' : severity.attrib['type'],
+                            'base_score' : severity.xpath('score')[0].text,
+                            'base_vector' : severity.xpath('value')[0].text,
+                        }
+                    )
 
                 res = {
                     'uuid' : result_uuid,
@@ -916,8 +924,8 @@ class GmpVScannerInterface():
                     'hostname' : hostname,
                     'nvt_name' : nvt_name,
                     'nvt_oid' : nvt_oid,
-                    'cvss_base' : cvss_base,
-                    'cvss_base_vector' : cvss_base_vector
+                    'qod' : qod,
+                    'cvss_severities' : cvss_severities,
                 }
                 results.append(res)
 
