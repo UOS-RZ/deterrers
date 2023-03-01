@@ -889,8 +889,9 @@ class GmpVScannerInterface():
             report (_type_): XML etree report objcet.
 
         Returns:
-            tuple: Tuple consisting of the scan start time and a list of dictionaries which hold
-                the result information. On error, (None, None) is returned.
+            tuple: Tuple consisting of the scan start time, the highsest severity and a list of
+                dictionaries which hold the result information. On error, (None, None, None) is
+                returned.
         """
         try:
             scan_start = report.xpath('//scan_start')[0].text
@@ -907,7 +908,7 @@ class GmpVScannerInterface():
                 nvt_name = result_xml.xpath('nvt/name')[0].text
                 nvt_oid = result_xml.xpath('nvt')[0].attrib['oid']
                 cvss_base = float(result_xml.xpath('nvt/cvss_base')[0].text)
-                cvss_vector = result_xml.xpath('nvt/severities/severity/value')[0].text
+                cvss_base_vector = result_xml.xpath('nvt/severities/severity/value')[0].text
 
                 res = {
                     'uuid' : result_uuid,
@@ -916,7 +917,7 @@ class GmpVScannerInterface():
                     'nvt_name' : nvt_name,
                     'nvt_oid' : nvt_oid,
                     'cvss_base' : cvss_base,
-                    'cvss_vector' : cvss_vector
+                    'cvss_base_vector' : cvss_base_vector
                 }
                 results.append(res)
 
@@ -925,32 +926,3 @@ class GmpVScannerInterface():
             logger.exception("Couldn't extract data from report!")
         
         return None, None, None
-
-
-
-# if __name__ == "__main__":
-#     username = 'DETERRERS'
-#     from getpass import getpass
-#     password = getpass()
-
-#     with GmpVScannerInterface(username, password, '172.17.207.232') as interf:
-#         test_host_ip = "131.173.22.184"
-
-#         target_uuid, task_uuid, report_uuid, alert_uuid = interf.create_registration_scan(test_host_ip, "172.17.22.27")
-#         input("Enter anything to delete everything: ")
-#         interf.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
-#         input("Enter anything to delete everything: ")
-        # try:
-        #     interf.clean_up_all_history()
-        # except Exception as err:
-        #     logger.error("%s", repr(err))
-
-        # test_report_id = "7462913f-1bd9-4fbd-a29b-5c678ccc4467"
-        # report = interf.get_report_xml(test_report_id)
-        # with open('test_report_xml.txt', 'w') as f:
-        #     pretty_print(report, f)
-        # scan_start, overall_sev, results = interf.extract_report_data(report)
-        # print(overall_sev)
-
-        # interf.add_host_to_periodic_task(test_host_ip)
-        # interf.add_host_to_periodic_task("131.173.23.44")
