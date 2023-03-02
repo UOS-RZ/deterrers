@@ -44,6 +44,7 @@ def __block_host(host_ip : str) -> bool:
     """
     Block a host at the perimeter firewall and update the status in the IPAM.
     Removes host also from periodic scan.
+    TODO: for better performance make it so that a list can be given
 
     Args:
         host_ip (str): IP address of the host.
@@ -113,7 +114,7 @@ def __get_available_actions(host : MyHost) -> dict:
             flags['can_block'] = False
     return flags
 
-def __send_report_email(report_html : str, subject : str, str_body : str, to : list):
+def __send_report_email(report_html : str|None, subject : str, str_body : str, to : list):
     """
     Utility method for sending e-mail.
 
@@ -129,7 +130,8 @@ def __send_report_email(report_html : str, subject : str, str_body : str, to : l
         None,
         to
     )
-    email.attach("report.html", report_html, "text/html")
+    if report_html:
+        email.attach("report.html", report_html, "text/html")
     try:
         email.send()
     except Exception:
@@ -688,32 +690,14 @@ def v_scanner_registration_alert(request):
             with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
                 report_xml = scanner.get_report_xml(report_uuid)
                 scan_start, highest_cvss, results = scanner.extract_report_data(report_xml)
-                if highest_cvss < 0.1:
-                    severity = 'None'
-                elif highest_cvss >= 0.1 and highest_cvss < 4.0:
-                    severity = 'Low'
-                elif highest_cvss >= 4.0 and highest_cvss < 7.0:
-                    severity = 'Medium'
-                elif highest_cvss >=7.0 and highest_cvss < 9.0:
-                    severity = 'High'
-                elif highest_cvss >= 9.0:
-                    severity = 'Critical'
-                else:
-                    severity = 'Unknown'
-
                 if results is None:
                     return
-
-                # TODO: Risk assessment
-                risk = compute_risk_of_network_exposure(results)
-                if highest_cvss <= 5.0:
-                    passed_scan = True
-                else:
-                    passed_scan = False
+                # Risk assessment
+                hosts_to_block, block_reasons = compute_risk_of_network_exposure(results)
 
                 with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
                     host = ipam.get_host_info_from_ip(host_ip)
-                    if passed_scan:
+                    if host.ip_addr in hosts_to_block:
                         passed_str_rep = 'passed'
                         logger.info("Host %s passed the registration scan and will be set online!", host_ip)
                         own_url = request.get_host() + reverse('v_scanner_periodic_alert')
@@ -747,17 +731,29 @@ def v_scanner_registration_alert(request):
                         if not __block_host(host_ip):
                             raise RuntimeError("Couldn't block host")
 
+                    # get string representation of cvss severity
+                    if highest_cvss < 0.1:
+                        severity = 'None'
+                    elif highest_cvss >= 0.1 and highest_cvss < 4.0:
+                        severity = 'Low'
+                    elif highest_cvss >= 4.0 and highest_cvss < 7.0:
+                        severity = 'Medium'
+                    elif highest_cvss >=7.0 and highest_cvss < 9.0:
+                        severity = 'High'
+                    elif highest_cvss >= 9.0:
+                        severity = 'Critical'
+                    else:
+                        severity = 'Unknown'
                     # get HTML report and send via e-mail to admin
                     report_html = scanner.get_report_html(report_uuid)
                     # get all department names for use below
                     departments = ipam.get_department_tag_names()
                     # deduce admin email addr and filter out departments
                     admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments]
-                    logger.debug("Admin addresses: %s", str(admin_addresses))
                     __send_report_email(
                         report_html,
                         f"DETERRERS - Vulnerability scan report of host {host_ip}",
-                        f"The scan was {passed_str_rep}.Severity of host {host_ip} is {severity}! You find the report of the vulnerability scan attached to this e-mail.", # TODO
+                        f"The scan was {passed_str_rep}. Severity of host {host_ip} is {severity}! You find the report of the vulnerability scan attached to this e-mail.", # TODO
                         admin_addresses,
                     )
 
@@ -804,6 +800,22 @@ def v_scanner_scan_alert(request):
             with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
                 report_xml = scanner.get_report_xml(report_uuid)
                 scan_start, highest_cvss, results = scanner.extract_report_data(report_xml)
+                if results is None:
+                    return
+                # Risk assessment
+                hosts_to_block, block_reasons = compute_risk_of_network_exposure(results)
+                
+                # reset hosts status
+                with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+                    host = ipam.get_host_info_from_ip(host_ip)
+                    with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
+                        host.status = fw.get_host_status(host.ip_addr)
+                    if not ipam.update_host_info(host):
+                        raise RuntimeError("Couldn't update host information!")
+                    # get all department names for use below
+                    departments = ipam.get_department_tag_names()
+
+                # get string representation of cvss severity
                 if highest_cvss < 0.1:
                     severity = 'None'
                 elif highest_cvss >= 0.1 and highest_cvss < 4.0:
@@ -816,34 +828,10 @@ def v_scanner_scan_alert(request):
                     severity = 'Critical'
                 else:
                     severity = 'Unknown'
-
-                if results is None:
-                    return
-
-                # TODO: Risk assessment
-                risk = compute_risk_of_network_exposure(results)
-                passed_scan = True
-
-                if passed_scan:
-                    logger.info("Host %s passed the scan!", host_ip)
-                else:
-                    logger.info("Host %s did not pass the scan.", host_ip)
-
-                # reset hosts status
-                with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
-                    host = ipam.get_host_info_from_ip(host_ip)
-                    with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
-                        host.status = fw.get_host_status(host.ip_addr)
-                    if not ipam.update_host_info(host):
-                        raise RuntimeError("Couldn't update host information!")
-                    # get all department names for use below
-                    departments = ipam.get_department_tag_names()
-
                 # get HTML report and send via e-mail to admin
                 report_html = scanner.get_report_html(report_uuid)
                 # deduce admin email addr and filter out departments
                 admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments]
-                logger.debug("Admin addresses: %s", str(admin_addresses))
                 __send_report_email(
                     report_html,
                     f"DETERRERS - Vulnerability scan report of host {host_ip}",
@@ -865,5 +853,76 @@ def v_scanner_scan_alert(request):
 @require_http_methods(['GET',])
 def v_scanner_periodic_alert(request):
     # TODO
-    logger.warning("Not implemented yet!")
-    raise Http404()
+    logger.info("Received notification from v-scanner that a periodic scan completed.")
+
+    # TODO: check request origin to be scanner
+
+    def proc_periodic_alert(request):
+        """
+        Inner function for processing the periodic alert in a daemon thread.
+
+        Args:
+            request (_type_): Request object.
+        """
+        try:
+            task_uuid = request.GET['task_uuid']
+            with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
+                report_uuid = scanner.get_latest_report_uuid(task_uuid)
+                report_xml = scanner.get_report_xml(report_uuid)
+                scan_start, highest_cvss, results = scanner.extract_report_data(report_xml)
+                if results is None:
+                    return
+                # Risk assessment
+                hosts_to_block, risky_vuls = compute_risk_of_network_exposure(results)
+
+                with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+                    for host_to_block in hosts_to_block:
+                        host = ipam.get_host_info_from_ip(host_to_block)
+                        logger.info("Host %s did not pass the periodic scan and will be blocked.", host_to_block)
+                        if not __block_host(host_to_block):
+                            raise RuntimeError("Couldn't block host")
+ 
+                        # get all department names for use below
+                        departments = ipam.get_department_tag_names()
+                        # deduce admin email addr and filter out departments
+                        admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments]
+                        email_body = f"""
+DETERRERS found a high risk for host {host_to_block} and blocked it at the perimeter firewall.
+Following vulnerabilities resulted in the blocking:
+
+"""
+                        for vul in risky_vuls.get(host_to_block):
+                            email_body += \
+f"""
+Network Vulnerability Test Name:    {vul.nvt_name}
+Network Vulnerability Test ID:      {vul.nvt_oid}
+CVSS Base Score(s):                 {", ".join([f"{sev.get('base_score')} ({sev.get('base_vector')})" for sev in vul.cvss_severities])}
+Vulnerability References:           {", ".join(vul.refs)}
+
+"""
+                        __send_report_email(
+                            None,
+                            f"DETERRERS - New vulnerability on host {host_to_block}",
+                            email_body,
+                            admin_addresses,
+                        )
+
+                # send complete report to DETERRERS admin
+                # get HTML report and send via e-mail to admin
+                report_html = scanner.get_report_html(report_uuid)
+                admin_addresses = [settings.DJANGO_SUPERUSER_USERNAME+"@uos.de"]
+                __send_report_email(
+                    report_html,
+                    "DETERRERS - Periodic vulnerability scan report",
+                    "Complete report of the periodic scan! You find the report of the vulnerability scan attached to this e-mail.", # TODO
+                    admin_addresses,
+                )
+
+        except Exception:
+            logger.exception("Processing periodic alert failed!")
+
+    # run as daemon because v_scanner needs a response before scan objects can be cleaned up
+    t = Thread(target=proc_periodic_alert, args=[request], daemon=True)
+    t.start()
+
+    return HttpResponse("Success!", status=200)
