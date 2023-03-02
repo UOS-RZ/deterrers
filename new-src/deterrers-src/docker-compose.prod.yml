@@ -3,7 +3,7 @@ version: "3"
 services:
 
   vpn:
-    image: dperson/openvpn-client
+    image: avpnusr/docker-openvpn
     cap_add:
       - net_admin
     networks:
