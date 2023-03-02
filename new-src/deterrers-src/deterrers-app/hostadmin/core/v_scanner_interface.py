@@ -12,6 +12,8 @@ from gvm.errors import GvmError
 from gvm.xml import pretty_print
 from gvm.protocols.gmpv224 import AlertCondition, AlertEvent, AlertMethod, AliveTest, HostsOrdering
 
+from .risk_assessor import VulnerabilityScanResult
+
 logger = logging.getLogger(__name__)
 
 
@@ -635,7 +637,7 @@ class GmpVScannerInterface():
                 )
                 # report_uuid = self.__start_task(task_uuid, self.PERIODIC_TASK_NAME)
                 report_uuid = ""
-                self.__modify_http_alert_data(host_ip, deterrers_url, target_uuid, task_uuid, report_uuid, alert_uuid)
+                self.__modify_http_alert_data('', deterrers_url, '', task_uuid, report_uuid, alert_uuid)
 
         except GmpAPIError:
             logger.exception("Couldn't add host to periodic scan task.")
@@ -832,6 +834,28 @@ class GmpVScannerInterface():
                 logger.warning("Couldn't delete alert! Error: %s", str(err))
 
 
+    def get_latest_report_uuid(self, task_uuid : str) -> str|None:
+        """
+        Get the UUID of the latest report of some task!
+
+        Args:
+            task_uuid (str): UUID of the task
+
+        Returns:
+            str|None: Returns the UUID on success and None if something went wrong
+        """
+        try:
+            response = self.gmp.get_task(task_uuid)
+            response_status = int(response.xpath('@status')[0])
+            if response_status != 200:
+                raise GmpAPIError(f"Couldn't get task info for task {task_uuid}! Status: {response_status}")
+            last_report_uuid = response.xpath('task/last_report/report')[0].attrib['id']
+            return last_report_uuid
+        except GmpAPIError:
+            logger.exception("Couldn't get last report UUID for task %s!", task_uuid)
+            return None
+
+
     def get_report_xml(self, report_uuid : str, min_qod : int = 70):
         """
         Query the XML report for some report UUID.
@@ -913,20 +937,22 @@ class GmpVScannerInterface():
                     cvss_severities.append(
                         {
                             'type' : severity.attrib['type'],
-                            'base_score' : severity.xpath('score')[0].text,
+                            'base_score' : float(severity.xpath('score')[0].text),
                             'base_vector' : severity.xpath('value')[0].text,
                         }
                     )
+                refs = [ref.attrib['id'] for ref in result_xml.xpath('nvt/refs/ref')]
 
-                res = {
-                    'uuid' : result_uuid,
-                    'host_ip' : host_ip,
-                    'hostname' : hostname,
-                    'nvt_name' : nvt_name,
-                    'nvt_oid' : nvt_oid,
-                    'qod' : qod,
-                    'cvss_severities' : cvss_severities,
-                }
+                res = VulnerabilityScanResult(
+                    uuid=result_uuid,
+                    host_ip=host_ip,
+                    hostname=hostname,
+                    nvt_name=nvt_name,
+                    nvt_oid=nvt_oid,
+                    qod=int(qod),
+                    cvss_severities=cvss_severities,
+                    refs=refs,
+                )
                 results.append(res)
 
             return scan_start, float(highest_severity_filtered), results
