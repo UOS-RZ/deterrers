@@ -887,18 +887,20 @@ def v_scanner_periodic_alert(request):
                         # deduce admin email addr and filter out departments
                         admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments]
                         email_body = f"""
-DETERRERS found a high risk for host {host_to_block} and blocked it at the perimeter firewall.
+DETERRERS found a high risk for host {host_to_block} and will block it at the perimeter firewall.
 Following vulnerabilities resulted in the blocking:
 
 """
                         for vul in risky_vuls.get(host_to_block):
-                            email_body += \
-f"""
+                            email_body += f"""
 Network Vulnerability Test Name:    {vul.nvt_name}
 Network Vulnerability Test ID:      {vul.nvt_oid}
 CVSS Base Score(s):                 {", ".join([f"{sev.get('base_score')} ({sev.get('base_vector')})" for sev in vul.cvss_severities])}
 Vulnerability References:           {", ".join(vul.refs)}
 
+"""
+                        email_body += """
+Please remediate the security risks and re-register the host in DETERRERS!
 """
                         __send_report_email(
                             None,
