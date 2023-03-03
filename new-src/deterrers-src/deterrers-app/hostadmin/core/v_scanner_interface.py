@@ -40,7 +40,8 @@ class Credentials(Enum):
     HULK_SMB_CRED_UUID = "13c917aa-e0cc-4027-b249-068ed0f6f4a0"
 
 class ReportFormat(Enum):
-    XML_UUID = "5057e5cc-b825-11e4-9d0e-28d24461215b"
+    ANON_XML_UUID = "5057e5cc-b825-11e4-9d0e-28d24461215b"
+    XML_UUID = "a994b278-1f62-11e1-96ac-406186ea4fc5"
     HTML_UUID = "ffa123c9-a2d2-409e-bbbb-a6c1385dbeaa"
 
 
@@ -868,7 +869,7 @@ class GmpVScannerInterface():
         """
         rep_filter = f"status=Done apply_overrides=0 rows=-1 min_qod={min_qod} first=1 sort-reverse=severity"
         try:
-            response = self.gmp.get_report(report_uuid, filter_string=rep_filter, ignore_pagination=True, details=True)
+            response = self.gmp.get_report(report_uuid, filter_string=rep_filter, report_format_id=ReportFormat.XML_UUID.value, ignore_pagination=True, details=True)
             response_status = int(response.xpath('@status')[0])
             if response_status != 200:
                 raise GmpAPIError(f"Couldn't query report {report_uuid}!")
