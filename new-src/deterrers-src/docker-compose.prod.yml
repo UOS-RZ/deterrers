@@ -43,7 +43,7 @@ services:
     build: 
       context: ./deterrers-app
       dockerfile: Dockerfile
-    command: gunicorn deterrerssite.wsgi:application --bind 0.0.0.0:8000
+    command: gunicorn deterrerssite.wsgi:application --workers=6 --threads=2 --bind 0.0.0.0:8000
     env_file:
       - ./.env.prod
     image: deterrers-application
