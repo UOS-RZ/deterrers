@@ -697,7 +697,7 @@ def v_scanner_registration_alert(request):
 
                 with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
                     host = ipam.get_host_info_from_ip(host_ip)
-                    if host.ip_addr in hosts_to_block:
+                    if host.ip_addr not in hosts_to_block:
                         passed_str_rep = 'passed'
                         logger.info("Host %s passed the registration scan and will be set online!", host_ip)
                         own_url = request.get_host() + reverse('v_scanner_periodic_alert')
