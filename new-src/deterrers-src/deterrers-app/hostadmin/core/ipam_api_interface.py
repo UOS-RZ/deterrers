@@ -234,7 +234,7 @@ class ProteusIPAMInterface():
 
         def __get_alias_records(record_id : int, depth : int = 0) -> list:
             alias_records = []
-            if depth > 10:
+            if depth > 5:
                 return alias_records
             get_linked_entity_url= self.main_url + "getLinkedEntities?" + \
                 f"count=100&entityId={record_id}&start={0}&type=AliasRecord"
