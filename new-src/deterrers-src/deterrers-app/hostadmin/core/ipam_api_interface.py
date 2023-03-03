@@ -232,8 +232,10 @@ class ProteusIPAMInterface():
                     return None
             return None
 
-        def __get_alias_records(record_id : int) -> list:
+        def __get_alias_records(record_id : int, depth : int = 0) -> list:
             alias_records = []
+            if depth > 3:
+                return alias_records
             get_linked_entity_url= self.main_url + "getLinkedEntities?" + \
                 f"count=100&entityId={record_id}&start={0}&type=AliasRecord"
             response = requests.get(get_linked_entity_url, headers = self.header, timeout=self.TIMEOUT)
@@ -242,7 +244,7 @@ class ProteusIPAMInterface():
             for alias_r in data:
                 alias_r_id = alias_r.get('id', None)
                 if alias_r_id:
-                    alias_records.extend(__get_alias_records(int(alias_r_id)))
+                    alias_records.extend(__get_alias_records(int(alias_r_id), depth=depth+1))
             return alias_records
 
         dns_names = set()
