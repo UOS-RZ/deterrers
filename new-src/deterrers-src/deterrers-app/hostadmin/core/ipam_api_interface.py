@@ -393,7 +393,7 @@ class ProteusIPAMInterface():
             hosts = []
             # get tagged host's ids
             scroll_i  = 0
-            scroll_cnt = 50         # magic number for how many hosts to query at once
+            scroll_cnt = 200         # magic number for how many hosts to query at once
             ret_cnt = scroll_cnt    # set equally so that loop is traversed at least once
             while ret_cnt == scroll_cnt:
                 get_linked_entity_url= self.main_url + "getLinkedEntities?" + \
