@@ -5,6 +5,17 @@
 {% block title %} <title>My Hosts</title> {% endblock %}
 
 {% block content %}
+	<h2>Add new host:</h2>
+	<form method="post" action="{% url 'hosts_list' %}">
+		{% csrf_token %}
+		{% bootstrap_form form %}
+		{% bootstrap_button button_type="submit" content="Add" button_class="btn btn-primary btn-lg" %}
+	</form>
+
+	<br>
+	<hr>
+  
+  
 	<h1>List of my hosts</h1>
 	<p>There are the following hosts administerd by me:</p>
 	{% if hosts_list %}
@@ -34,30 +45,20 @@
 		<p>There are no hosts for this administrator.</p>
 	{% endif %}
 	{% if is_paginated %}
-						<div class="pagination">
-							<span class="page-links">
-								{% if page_obj.has_previous %}
-									<a href="{{ request.path }}?page={{ page_obj.previous_page_number }}">Previous</a>
-								{% endif %}
-								<span class="page-current">
-									Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
-								</span>
-								{% if page_obj.has_next %}
-									<a href="{{ request.path }}?page={{ page_obj.next_page_number }}">Next</a>
-								{% endif %}
-							</span>
-						</div>
-					{% endif %}
-
-	<br>
-	<hr>
-
-	<h2>Add new host:</h2>
-	<form method="post" action="{% url 'hosts_list' %}">
-		{% csrf_token %}
-		{% bootstrap_form form %}
-		{% bootstrap_button button_type="submit" content="Add" button_class="btn btn-primary btn-lg" %}
-	  </form>
+		<div class="pagination">
+			<span class="page-links">
+				{% if page_obj.has_previous %}
+					<a href="{{ request.path }}?page={{ page_obj.previous_page_number }}">Previous</a>
+				{% endif %}
+				<span class="page-current">
+					Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+				</span>
+				{% if page_obj.has_next %}
+					<a href="{{ request.path }}?page={{ page_obj.next_page_number }}">Next</a>
+				{% endif %}
+			</span>
+		</div>
+	{% endif %}
 {% endblock %}
 
 {% block pagination %}
