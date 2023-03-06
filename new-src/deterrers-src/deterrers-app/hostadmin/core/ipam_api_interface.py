@@ -16,7 +16,7 @@ class ProteusIPAMInterface():
     # settings
     TAG_GROUP_NAME = "Deterrers Host Admins"
 
-    TIMEOUT = 5
+    TIMEOUT = 3*180
 
 
     def __init__(self, username, password, ipam_url):
