@@ -423,6 +423,7 @@ class ProteusIPAMInterface():
                     else:
                         logger.warning("Host '%s' is not valid!", str(my_host))
                 ret_cnt = len(data)
+                scroll_i += 1
             return hosts
 
         # escape user input
