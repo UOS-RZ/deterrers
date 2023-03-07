@@ -330,8 +330,8 @@ firewall-cmd --zone={CUSTOM_ZONE} --add-rich-rule='rule family={allow_family} so
     POSTAMBLE = \
 f"""
 
-# set the target of custom zone to ALLOW in order to make it default behaviour
-firewall-cmd --permanent --zone={CUSTOM_ZONE} --set-target=ACCEPT
+# set the target of custom zone to REJECT in order to make it default behaviour
+firewall-cmd --permanent --zone={CUSTOM_ZONE} --set-target=REJECT
 
 # make changes permanent
 firewall-cmd --runtime-to-permanent
