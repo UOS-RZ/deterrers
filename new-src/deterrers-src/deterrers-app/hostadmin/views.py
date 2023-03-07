@@ -36,7 +36,7 @@ def __add_changelog(history : int = 10) -> list[str]:
     changes = [
         ("2023-02-21", "New: Internet service profile 'HTTP+SSH' was added for hosts which should provide both HTTP and SSH to the internet."),
         ("2023-02-21", "New: DNS names are now displayed per host."),
-        ("2023-03-07", "New: Test changelog"),
+        ("2023-03-07", "New: 'My Hosts' page loads faster."),
     ]
 
     today = datetime.datetime.today().date()
@@ -265,6 +265,8 @@ def hosts_list_view(request):
             form = AddHostForm(choices=tag_choices)
         
         hosts_list = ipam.get_hosts_of_admin(hostadmin.username)
+
+        hosts_list = sorted(hosts_list)
 
     paginator = Paginator(hosts_list, PAGINATE)
     page = request.GET.get('page', 1)
