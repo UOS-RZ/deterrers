@@ -39,7 +39,7 @@ def __add_changelog(history : int = 10) -> list[str]:
         ("2023-03-07", "New: Test changelog"),
     ]
 
-    today = datetime.datetime.today().date
+    today = datetime.datetime.today().date()
     return [f"{change[0]}: {change[1]}" for change in changes if (today - datetime.date.fromisoformat(change[0])) < datetime.timedelta(days=history)]
         
 
