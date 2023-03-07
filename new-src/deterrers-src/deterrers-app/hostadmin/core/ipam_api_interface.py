@@ -353,7 +353,7 @@ class ProteusIPAMInterface():
             threads = []
             hosts = []
 
-            def get_host_task(hosts, host_e):
+            def get_host_task(hosts : list, host_e):
                 host_id, name, ip, mac, status, service, fw, rules = self.__parse_ipam_host_entity(host_e)
                 # get all tagged admins
                 tagged_admins = self.__get_tagged_admins(host_id)
