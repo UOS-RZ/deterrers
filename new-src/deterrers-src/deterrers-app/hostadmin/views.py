@@ -143,7 +143,6 @@ def __send_report_email(report_html : str|None, subject : str, str_body : str, t
 @require_http_methods(['GET',])
 def about_view(request):
     context = {}
-    __add_notifications(request)
     return render(request, 'about.html', context)
 
 
@@ -233,8 +232,6 @@ def hosts_list_view(request):
         HttpResponse: Rendered HTML page.
     """
     logger.info("Request: List hosts for user %s", request.user.username)
-
-    __add_notifications(request)
 
     PAGINATE = 200
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
