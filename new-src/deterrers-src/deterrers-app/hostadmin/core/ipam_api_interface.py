@@ -2,6 +2,8 @@ import requests
 from ipaddress import ip_address
 import logging
 import json
+import socket
+import threading
 
 from .host import MyHost
 from .contracts import HostStatusContract, HostServiceContract, HostFWContract
@@ -103,7 +105,7 @@ class ProteusIPAMInterface():
 
     def __get_tagged_admins(self, host_id : int) -> list:
         """
-        Queries the Proteus IPAM system for all tagged admins (max. 100) of a certain host.
+        Queries the Proteus IPAM system for all tagged admins of a certain host.
 
         Args:
             host_id (int): Entity ID of the host in the Proteus IPAM system.
@@ -115,7 +117,7 @@ class ProteusIPAMInterface():
         try:
             tag_group_id = self.__get_tag_grp_id()
             # get all tags
-            linkedentities_parameters = f"count=100&entityId={host_id}&start=0&type=Tag"
+            linkedentities_parameters = f"count=-1&entityId={host_id}&start=0&type=Tag"
             get_linkedentities_url = self.main_url + "getLinkedEntities?" + linkedentities_parameters
             response = requests.get(get_linkedentities_url, headers=self.header, timeout=self.TIMEOUT)
             data = response.json()
@@ -219,60 +221,18 @@ class ProteusIPAMInterface():
         data = response.json()
         return data
     
-    def __get_linked_dns_records(self, host_id : int) -> list[str]:
-
-        def __get_record_name(record : dict) -> str:
-            record_props = record.get('properties', '').split('|')
-            for prop in record_props:
-                key_val = prop.split('=')
-                try:
-                    if key_val[0] == 'absoluteName':
-                        return key_val[1]
-                except IndexError:
-                    return None
-            return None
-
-        def __get_alias_records(record_id : int, depth : int = 0) -> list:
-            alias_records = []
-            if depth > 2:
-                return alias_records
-            get_linked_entity_url= self.main_url + "getLinkedEntities?" + \
-                f"count=100&entityId={record_id}&start={0}&type=AliasRecord"
-            response = requests.get(get_linked_entity_url, headers = self.header, timeout=self.TIMEOUT)
-            data = response.json()
-            alias_records.extend(data)
-            for alias_r in data:
-                alias_r_id = alias_r.get('id', None)
-                if alias_r_id:
-                    alias_records.extend(__get_alias_records(int(alias_r_id), depth=depth+1))
-            return alias_records
+    def __get_linked_dns_records(self, host_ip : str) -> list[str]:
 
         dns_names = set()
         try:
-            host_id = int(host_id)
-            get_linked_entity_url= self.main_url + "getLinkedEntities?" + \
-                f"count=100&entityId={host_id}&start={0}&type=HostRecord"
-            response = requests.get(get_linked_entity_url, headers = self.header, timeout=self.TIMEOUT)
-            data = response.json()
-            for record in data:
-                host_record_id = record.get('id', None)
-                if host_record_id:
-                    host_record_id = int(host_record_id)
-                    host_record_name = __get_record_name(record)
-                    if host_record_name:
-                        dns_names.add(host_record_name)
-                    # get CNAMES
-                    data = __get_alias_records(host_record_id)
-                    for alias_record in data:
-                        alias_record_id = alias_record.get('id', None)
-                        if alias_record_id:
-                            alias_record_name = __get_record_name(alias_record)
-                            if alias_record_name:
-                                dns_names.add(alias_record_name)
+            host_info = socket.gethostbyaddr(host_ip)
+            dns_names.add(host_info[0])
+            for alias in host_info[1]:
+                dns_names.add(alias)
         except Exception:
-            logger.exception("Error while querying host names of host %d", host_id)
+            print("Error while querying host names of host %d", host_ip)
                 
-        return dns_names
+        return list(dns_names)
 
 
     def get_host_info_from_ip(self, ip : str):
@@ -390,40 +350,45 @@ class ProteusIPAMInterface():
         """
 
         def __get_linked_hosts(tag_id):
+            threads = []
             hosts = []
+
+            def get_host_task(hosts, host_e):
+                host_id, name, ip, mac, status, service, fw, rules = self.__parse_ipam_host_entity(host_e)
+                # get all tagged admins
+                tagged_admins = self.__get_tagged_admins(host_id)
+                # get dns records
+                dns_rcs = self.__get_linked_dns_records(ip)
+                my_host = MyHost(
+                    ip=ip,
+                    mac=mac,
+                    admin_ids=tagged_admins,
+                    status=status,
+                    name=name,
+                    dns_rcs=dns_rcs,
+                    service=service,
+                    fw=fw,
+                    policies=rules,
+                    entity_id=host_id
+                )
+                if my_host.is_valid():
+                    hosts.append(my_host)
+                else:
+                    logger.warning("Host '%s' is not valid!", str(my_host))
+                
             # get tagged host's ids
-            scroll_i  = 0
-            scroll_cnt = 200         # magic number for how many hosts to query at once
-            ret_cnt = scroll_cnt    # set equally so that loop is traversed at least once
-            while ret_cnt == scroll_cnt:
-                get_linked_entity_url= self.main_url + "getLinkedEntities?" + \
-                    f"count={scroll_cnt}&entityId={tag_id}&start={scroll_i*scroll_cnt}&type=IP4Address"
-                response = requests.get(get_linked_entity_url, headers = self.header, timeout=self.TIMEOUT)
-                data = response.json()
-                for host_e in data:
-                    host_id, name, ip, mac, status, service, fw, rules = self.__parse_ipam_host_entity(host_e)
-                    # get all tagged admins
-                    tagged_admins = self.__get_tagged_admins(host_id)
-                    # get dns records
-                    dns_rcs = self.__get_linked_dns_records(host_id)
-                    my_host = MyHost(
-                        ip=ip,
-                        mac=mac,
-                        admin_ids=tagged_admins,
-                        status=status,
-                        name=name,
-                        dns_rcs=dns_rcs,
-                        service=service,
-                        fw=fw,
-                        policies=rules,
-                        entity_id=host_id
-                    )
-                    if my_host.is_valid():
-                        hosts.append(my_host)
-                    else:
-                        logger.warning("Host '%s' is not valid!", str(my_host))
-                ret_cnt = len(data)
-                scroll_i += 1
+            get_linked_entity_url= self.main_url + "getLinkedEntities?" + \
+                f"count=-1&entityId={tag_id}&start=0&type=IP4Address"
+            response = requests.get(get_linked_entity_url, headers = self.header, timeout=self.TIMEOUT)
+            data = response.json()
+            # start a thread for each host that queries the relevant information and appends host to hosts-list
+            for host_e in data:
+                t = threading.Thread(target=get_host_task, args=[hosts, host_e,])
+                threads.append(t)
+                t.start()
+            # wait until all threads have completed
+            for t in threads:
+                t.join(float(self.TIMEOUT))
             return hosts
 
         # escape user input
@@ -668,12 +633,3 @@ deterrers_rules={json.dumps([p.to_string() for p in host.host_based_policies])}|
             logger.exception("Couldn't query IPAM whether user exists!")
 
         return None
-
-
-
-# if __name__ == "__main__":
-#     username = "nwintering"
-#     from getpass import getpass
-#     password = getpass()
-#     with ProteusIPAMInterface(username, password, "proteus.rz.uos.de") as ipam:
-#         print(ipam.user_exists('nwintering'))
