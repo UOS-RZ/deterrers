@@ -3,6 +3,7 @@ import uuid
 import io
 from threading import Thread
 import os
+import datetime
 
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponseRedirect, HttpResponse, FileResponse
@@ -31,13 +32,16 @@ logger = logging.getLogger(__name__)
 
 
 
-def __add_notifications(request):
-    notifications = [
-        "New: Internet service profile 'HTTP+SSH' was added for hosts which should provide both HTTP and SSH to the internet.", # TODO: added 2023-02-21
-        "New: DNS names are now displayed per host.", # TODO: added 2023-02-21
+def __add_changelog(history : int = 10) -> list[str]:
+    changes = [
+        ("2023-02-21", "New: Internet service profile 'HTTP+SSH' was added for hosts which should provide both HTTP and SSH to the internet."),
+        ("2023-02-21", "New: DNS names are now displayed per host."),
+        ("2023-03-07", "New: Test changelog"),
     ]
-    for msg in notifications:
-        messages.info(request, msg)
+
+    today = datetime.datetime.today().date
+    return [f"{change[0]}: {change[1]}" for change in changes if (today - datetime.date.fromisoformat(change[0])) < datetime.timedelta(days=history)]
+        
 
 
 def __block_host(host_ip : str) -> bool:
@@ -142,7 +146,9 @@ def __send_report_email(report_html : str|None, subject : str, str_body : str, t
 
 @require_http_methods(['GET',])
 def about_view(request):
-    context = {}
+    context = {
+        'changelog' : __add_changelog()
+    }
     return render(request, 'about.html', context)
 
 
