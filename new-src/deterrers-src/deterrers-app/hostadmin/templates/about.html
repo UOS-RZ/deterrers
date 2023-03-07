@@ -100,4 +100,21 @@
                 </ul>
         </ol>
     </p>
+
+
+    <hr>
+
+    <h2> New Features: </h2>
+    <p>
+    {% if changelog %}
+        <ul>
+        {% for change in changelog %}
+            <li>
+                {{ change }}
+            </li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+    </p>
+
 {% endblock %}
