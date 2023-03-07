@@ -757,7 +757,7 @@ def v_scanner_registration_alert(request):
                         report_html,
                         f"DETERRERS - Vulnerability scan report of host {host_ip}",
                         f"The scan was {passed_str_rep}. Severity of host {host_ip} is {severity}! You find the report of the vulnerability scan attached to this e-mail.", # TODO
-                        admin_addresses,
+                        list(set(admin_addresses)),
                     )
 
                 scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
@@ -839,7 +839,7 @@ def v_scanner_scan_alert(request):
                     report_html,
                     f"DETERRERS - Vulnerability scan report of host {host_ip}",
                     f"Severity of host {host_ip} is {severity}! You find the report of the vulnerability scan attached to this e-mail.", # TODO
-                    admin_addresses,
+                    list(set(admin_addresses)),
                 )
 
                 scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
@@ -909,7 +909,7 @@ Please remediate the security risks and re-register the host in DETERRERS!
                             None,
                             f"DETERRERS - New vulnerability on host {host_to_block}",
                             email_body,
-                            admin_addresses,
+                            list(set(admin_addresses)),
                         )
 
                 # send complete report to DETERRERS admin
@@ -920,7 +920,7 @@ Please remediate the security risks and re-register the host in DETERRERS!
                     report_html,
                     "DETERRERS - Periodic vulnerability scan report",
                     "Complete report of the periodic scan! You find the report of the vulnerability scan attached to this e-mail.", # TODO
-                    admin_addresses,
+                    list(set(admin_addresses)),
                 )
 
         except Exception:
