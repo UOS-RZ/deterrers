@@ -16,7 +16,7 @@ class ProteusIPAMInterface():
     # settings
     TAG_GROUP_NAME = "Deterrers Host Admins"
 
-    TIMEOUT = 5
+    TIMEOUT = 3*180
 
 
     def __init__(self, username, password, ipam_url):
@@ -234,7 +234,7 @@ class ProteusIPAMInterface():
 
         def __get_alias_records(record_id : int, depth : int = 0) -> list:
             alias_records = []
-            if depth > 5:
+            if depth > 2:
                 return alias_records
             get_linked_entity_url= self.main_url + "getLinkedEntities?" + \
                 f"count=100&entityId={record_id}&start={0}&type=AliasRecord"
@@ -393,7 +393,7 @@ class ProteusIPAMInterface():
             hosts = []
             # get tagged host's ids
             scroll_i  = 0
-            scroll_cnt = 50         # magic number for how many hosts to query at once
+            scroll_cnt = 200         # magic number for how many hosts to query at once
             ret_cnt = scroll_cnt    # set equally so that loop is traversed at least once
             while ret_cnt == scroll_cnt:
                 get_linked_entity_url= self.main_url + "getLinkedEntities?" + \
@@ -423,6 +423,7 @@ class ProteusIPAMInterface():
                     else:
                         logger.warning("Host '%s' is not valid!", str(my_host))
                 ret_cnt = len(data)
+                scroll_i += 1
             return hosts
 
         # escape user input

@@ -236,7 +236,7 @@ def hosts_list_view(request):
 
     __add_notifications(request)
 
-    PAGINATE = 20
+    PAGINATE = 200
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
