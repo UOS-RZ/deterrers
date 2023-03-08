@@ -264,7 +264,7 @@ class ProteusIPAMInterface():
             # get all tagged admins
             tagged_admins = self.__get_tagged_admins(host_id)
             # get dns records
-            dns_rcs = self.__get_linked_dns_records(host_id)
+            dns_rcs = self.__get_linked_dns_records(ip)
 
             my_host = MyHost(
                 ip=ip,
@@ -311,7 +311,7 @@ class ProteusIPAMInterface():
             # get all tagged admins
             tagged_admins = self.__get_tagged_admins(host_id)
             # get dns records
-            dns_rcs = self.__get_linked_dns_records(host_id)
+            dns_rcs = self.__get_linked_dns_records(ip)
 
             my_host = MyHost(
                 ip=ip,
