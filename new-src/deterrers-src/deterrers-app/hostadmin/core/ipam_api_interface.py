@@ -34,6 +34,8 @@ class ProteusIPAMInterface():
         try:
             # login to BlueCat
             response = requests.get(login_url, timeout=self.TIMEOUT)
+            if response.status_code != 200:
+                raise RuntimeError('Could not authenticate with IPAM!')
             # get token
             token = response.json().split()[2] + " " + response.json().split()[3]
             # set http header
