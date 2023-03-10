@@ -35,32 +35,37 @@ class PaloAltoInterface():
         self.header = {
             "Accept" : "application/json",
         }
+        self.enter_ok = True
 
     def __enter__(self):
         logger.debug("Start firewall interface session.")
-        # get api key for this session
-        req_url = f"https://{self.fw_url}/api/?type=keygen&user={self.username}&password={self.password}"
-        response = requests.get(req_url, timeout=self.TIMEOUT)
-        response_xml = etree.XML(response.content)
-        status_code = response.status_code
-        status = response_xml.xpath('//response/@status')[0]
-        if status_code != 200 or status != "success":
-            raise PaloAltoAPIError(f"Could not get API key from firewall! Status: {status} Code: {status_code}")
-        
-        self.api_key = response_xml.xpath('//key')[0].text
+        try:
+            # get api key for this session
+            req_url = f"https://{self.fw_url}/api/?type=keygen&user={self.username}&password={self.password}"
+            response = requests.get(req_url, timeout=self.TIMEOUT)
+            response_xml = etree.XML(response.content)
+            status_code = response.status_code
+            status = response_xml.xpath('//response/@status')[0]
+            if status_code != 200 or status != "success":
+                raise PaloAltoAPIError(f"Could not get API key from firewall! Status: {status} Code: {status_code}")
+            
+            self.api_key = response_xml.xpath('//key')[0].text
 
-        self.header['X-PAN-KEY'] = self.api_key
+            self.header['X-PAN-KEY'] = self.api_key
 
-        self.__acquire_config_lock()
-
+            self.__acquire_config_lock()
+        except (requests.ConnectionError, requests.ConnectTimeout):
+            logger.exception("Connection to FW failed!")
+            self.enter_ok = False
+            
         return self
 
     def __exit__(self, exc_type, exc_value, exc_tb):
         logger.debug("End firewall interface session.")
         try:
             self.__release_config_lock()
-        except Exception as err:
-            logger.error(repr(err))
+        except Exception:
+            logger.exception("")
 
 
     def __acquire_config_lock(self):

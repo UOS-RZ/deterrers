@@ -62,6 +62,8 @@ def __block_host(host_ipv4 : str) -> bool:
         ipv6_addr = ipam.get_IP6Address_if_linked(str(host.ipv4_addr))
         # change the perimeter firewall configuration so that host is blocked (IPv4 and IPv6 if available)
         with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
+            if not fw.enter_ok:
+                return False
             ips_to_block = [str(host.ipv4_addr), ipv6_addr] if ipv6_addr else [str(host.ipv4_addr)]
             if not fw.remove_addr_objs_from_addr_grps(ips_to_block, {ag for ag in PaloAltoAddressGroup}):
                 return False
@@ -777,6 +779,8 @@ def v_scanner_registration_alert(request):
                             raise RuntimeError(f"Couldn't add host {host.ipv4_addr} to periodic scan!")
                         # change the perimeter firewall configuration so that only hosts service profile is allowed
                         with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
+                            if not fw.enter_ok:
+                                raise RuntimeError("Connection to FW failed!")
                             # first make sure ip is not already in any AddressGroups
                             suc = fw.remove_addr_objs_from_addr_grps(ips_to_update, {ag for ag in PaloAltoAddressGroup})
                             if not suc:
@@ -881,6 +885,8 @@ def v_scanner_scan_alert(request):
                 with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
                     host = ipam.get_host_info_from_ip(host_ipv4)
                     with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
+                        if not fw.enter_ok:
+                            raise RuntimeError("Connection to FW failed!")
                         host.status = fw.get_host_status(str(host.ipv4_addr))
                     if not ipam.update_host_info(host):
                         raise RuntimeError("Couldn't update host information!")
