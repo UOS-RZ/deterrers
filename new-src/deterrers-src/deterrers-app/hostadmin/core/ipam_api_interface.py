@@ -267,7 +267,7 @@ class ProteusIPAMInterface():
             dns_rcs = self.__get_linked_dns_records(ip)
 
             my_host = MyHost(
-                ip=ip,
+                ipv4=ip,
                 mac=mac,
                 admin_ids=tagged_admins,
                 status=status,
@@ -314,7 +314,7 @@ class ProteusIPAMInterface():
             dns_rcs = self.__get_linked_dns_records(ip)
 
             my_host = MyHost(
-                ip=ip,
+                ipv4=ip,
                 mac=mac,
                 admin_ids=tagged_admins,
                 status=status,
@@ -362,7 +362,7 @@ class ProteusIPAMInterface():
                 # get dns records
                 dns_rcs = self.__get_linked_dns_records(ip)
                 my_host = MyHost(
-                    ip=ip,
+                    ipv4=ip,
                     mac=mac,
                     admin_ids=tagged_admins,
                     status=status,

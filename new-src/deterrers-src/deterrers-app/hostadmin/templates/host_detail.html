@@ -2,7 +2,7 @@
 
 {% load django_bootstrap5 %}
 
-{% block title %} <title>Host Status: {{host_detail.ip_addr}} ({{host_detail.get_dns_rcs_display}})</title> {% endblock %}
+{% block title %} <title>Host Status: {{host_detail.ipv4_addr}} ({{host_detail.get_dns_rcs_display}})</title> {% endblock %}
 
 {% block content %}
 <div id="host_details">
@@ -22,7 +22,7 @@
             </thead>
             <tbody>
                 <tr>
-                    <td>{{host_detail.ip_addr}}</td>
+                    <td>{{host_detail.ipv4_addr}}</td>
                     <td>{{host_detail.get_dns_rcs_display}}</td>
                     <td>{{host_detail.admin_ids|join:", "}}</td>
                     <td>{{host_detail.get_service_profile_display}}</td>

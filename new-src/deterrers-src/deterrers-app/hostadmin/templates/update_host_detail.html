@@ -3,7 +3,7 @@
 {% load django_bootstrap5 %}
 
 {% block content %}
-  	<h1>Host: {{ host_instance.ip_addr }} ({{host_instance.name}})</h1>
+  	<h1>Host: {{ host_instance.ipv4_addr }} ({{host_instance.name}})</h1>
 
 	<form action="" method="post">
 		{% csrf_token %}
