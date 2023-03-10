@@ -4,6 +4,7 @@ import io
 from threading import Thread
 import os
 import datetime
+import ipaddress
 
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponseRedirect, HttpResponse, FileResponse
@@ -73,6 +74,22 @@ def __block_host(host_ip : str) -> bool:
         
     return True
 
+def __is_public_ip(ip : str) -> bool:
+    """
+    Check whether ip address is public.
+
+    Args:
+        ip (str): IPv4 or IPv6 address
+
+    Returns:
+        bool: Returns True if IP is not private and False if private or string is no IP address at all.
+    """
+    try:
+        return not ipaddress.ip_address(ip).is_private
+    except ValueError:
+        logger.exception("Expected string to be ip address. Instead got %s", str(ip))
+    return False
+
 
 def __get_available_actions(host : MyHost) -> dict:
     """
@@ -88,7 +105,7 @@ def __get_available_actions(host : MyHost) -> dict:
     match host.status:
         case HostStatusContract.UNREGISTERED:
             flags['can_update'] = True
-            flags['can_register'] = host.service_profile != HostServiceContract.EMPTY
+            flags['can_register'] = host.service_profile != HostServiceContract.EMPTY and __is_public_ip(host.ip_addr)
             flags['can_scan'] = True
             flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
             flags['can_block'] = False
@@ -100,7 +117,7 @@ def __get_available_actions(host : MyHost) -> dict:
             flags['can_block'] = False
         case HostStatusContract.BLOCKED:
             flags['can_update'] = True
-            flags['can_register'] = host.service_profile != HostServiceContract.EMPTY
+            flags['can_register'] = host.service_profile != HostServiceContract.EMPTY and __is_public_ip(host.ip_addr)
             flags['can_scan'] = True
             flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
             flags['can_block'] = False
