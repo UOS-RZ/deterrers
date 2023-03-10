@@ -314,7 +314,11 @@ Status code: {response.status_code}. Status: {data.get('@status')}")
             Not completely trustworthy because commit is not checked for time reasons.
         """
         try:
-            addr_obj_names = [self.__get_addr_obj(ip) for ip in ip_addrs]
+            addr_obj_names = []
+            for ip in ip_addrs:
+                name = self.__get_addr_obj(ip)
+                if name:
+                    addr_obj_names.append(name)
             for addr_grp_name in addr_grps:
                 # get all properties of the address group
                 addr_grp_obj = self.__get_addr_grp_properties(addr_grp_name)
