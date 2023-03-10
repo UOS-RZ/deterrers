@@ -135,6 +135,46 @@ def __get_available_actions(host : MyHost) -> dict:
             flags['can_block'] = False
     return flags
 
+
+def __get_registration_mail_body(ipv4 : str, passed : bool, severity_str : str, admins : list[str], service_profile : HostServiceContract, fqdns : list[str], scan_ts):
+    return f"""
+The registration was {'passed' if passed else 'not passed because severity was higher than 5.0'}.
+
+Severity of host {ipv4} is {severity_str}!
+
+
+***System Information***
+
+IPv4 Address: {ipv4}
+Admins: {', '.join(admins)}
+Internet Service Profile: {service_profile.value}
+FQDN: {', '.join(fqdns)}
+
+
+Scan completed: {scan_ts}
+
+Scan report can be found attached to this e-mail."""
+
+
+def __get_scan_mail_body(ipv4 : str, passed : bool, severity_str : str, admins : list[str], service_profile : HostServiceContract, fqdns : list[str], scan_ts):
+    return f"""
+The scan was {'passed' if passed else 'not passed because severity was higher than 5.0'}.
+
+Severity of host {ipv4} is {severity_str}!
+
+
+***System Information***
+
+IPv4 Address: {ipv4}
+Admins: {', '.join(admins)}
+Internet Service Profile: {service_profile.value}
+FQDN: {', '.join(fqdns)}
+
+
+Scan completed: {scan_ts}
+
+Scan report can be found attached to this e-mail."""
+
 def __send_report_email(report_html : str|None, subject : str, str_body : str, to : list):
     """
     Utility method for sending e-mail.
@@ -145,11 +185,15 @@ def __send_report_email(report_html : str|None, subject : str, str_body : str, t
         str_body (str): String content of the email.
         to (list): List of addresses to send email to.
     """
+    headers = {
+        "Reply-To" : settings.DEFAULT_FROM_EMAIL
+    }
     email = EmailMessage(
-        subject,
-        str_body,
-        None,
-        to
+        subject=subject,
+        body=str_body,
+        from_email=None,
+        to=to,
+        headers=headers
     )
     if report_html:
         email.attach("report.html", report_html, "text/html")
@@ -711,7 +755,7 @@ def v_scanner_registration_alert(request):
             alert_uuid = request.GET['alert_uuid']
             with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
                 report_xml = scanner.get_report_xml(report_uuid)
-                scan_start, highest_cvss, results = scanner.extract_report_data(report_xml)
+                scan_start, scan_end, highest_cvss, results = scanner.extract_report_data(report_xml)
                 if results is None:
                     return
                 # Risk assessment
@@ -720,7 +764,7 @@ def v_scanner_registration_alert(request):
                 with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
                     host = ipam.get_host_info_from_ip(host_ip)
                     if str(host.ipv4_addr) not in hosts_to_block:
-                        passed_str_rep = 'passed'
+                        passed = True
                         logger.info("Host %s passed the registration scan and will be set online!", host_ip)
                         own_url = request.get_host() + reverse('v_scanner_periodic_alert')
                         if not scanner.add_host_to_periodic_scan(host_ip=host_ip, deterrers_url=own_url):
@@ -748,7 +792,7 @@ def v_scanner_registration_alert(request):
                         if not ipam.update_host_info(host):
                             raise RuntimeError("Couldn't update host information!")
                     else:
-                        passed_str_rep = 'not passed because severity is higher than 5.0'
+                        passed = False
                         logger.info("Host %s did not pass the registration and will be blocked.", host_ip)
                         if not __block_host(host_ip):
                             raise RuntimeError("Couldn't block host")
@@ -774,8 +818,8 @@ def v_scanner_registration_alert(request):
                     admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments]
                     __send_report_email(
                         report_html,
-                        f"DETERRERS - Vulnerability scan report of host {host_ip}",
-                        f"The scan was {passed_str_rep}. Severity of host {host_ip} is {severity}! You find the report of the vulnerability scan attached to this e-mail.", # TODO
+                        f"DETERRERS - {host_ip} - Vulnerability scan finished",
+                        __get_scan_mail_body(host.ipv4_addr, passed, severity, host.admin_ids, host.service_profile, host.dns_rcs, scan_end),
                         list(set(admin_addresses)),
                     )
 
@@ -821,7 +865,7 @@ def v_scanner_scan_alert(request):
             alert_uuid = request.GET['alert_uuid']
             with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
                 report_xml = scanner.get_report_xml(report_uuid)
-                scan_start, highest_cvss, results = scanner.extract_report_data(report_xml)
+                scan_start, scan_end, highest_cvss, results = scanner.extract_report_data(report_xml)
                 if results is None:
                     return
                 # Risk assessment
@@ -837,6 +881,7 @@ def v_scanner_scan_alert(request):
                     # get all department names for use below
                     departments = ipam.get_department_tag_names()
 
+                passed = str(host.ipv4_addr) not in hosts_to_block
                 # get string representation of cvss severity
                 if highest_cvss < 0.1:
                     severity = 'None'
@@ -856,8 +901,8 @@ def v_scanner_scan_alert(request):
                 admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments]
                 __send_report_email(
                     report_html,
-                    f"DETERRERS - Vulnerability scan report of host {host_ip}",
-                    f"Severity of host {host_ip} is {severity}! You find the report of the vulnerability scan attached to this e-mail.", # TODO
+                        f"DETERRERS - {host_ip} - Vulnerability scan finished",
+                    __get_scan_mail_body(host.ipv4_addr, passed, severity, host.admin_ids, host.service_profile, host.dns_rcs, scan_end),
                     list(set(admin_addresses)),
                 )
 
@@ -891,7 +936,7 @@ def v_scanner_periodic_alert(request):
             with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
                 report_uuid = scanner.get_latest_report_uuid(task_uuid)
                 report_xml = scanner.get_report_xml(report_uuid)
-                scan_start, highest_cvss, results = scanner.extract_report_data(report_xml)
+                scan_start, scan_end, highest_cvss, results = scanner.extract_report_data(report_xml)
                 if results is None:
                     return
                 # Risk assessment
@@ -926,7 +971,7 @@ Please remediate the security risks and re-register the host in DETERRERS!
 """
                         __send_report_email(
                             None,
-                            f"DETERRERS - New vulnerability on host {host_to_block}",
+                            f"DETERRERS - {host_to_block} - New vulnerability!",
                             email_body,
                             list(set(admin_addresses)),
                         )

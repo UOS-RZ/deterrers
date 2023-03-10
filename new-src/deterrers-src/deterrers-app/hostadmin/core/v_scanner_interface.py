@@ -919,6 +919,7 @@ class GmpVScannerInterface():
         """
         try:
             scan_start = report.xpath('//scan_start')[0].text
+            scan_end = report.xpath('report/report/scan_end')[0].text
 
             highest_severity_filtered = report.xpath('report/report/severity/filtered')[0].text
 
@@ -956,7 +957,7 @@ class GmpVScannerInterface():
                 )
                 results.append(res)
 
-            return scan_start, float(highest_severity_filtered), results
+            return scan_start, scan_end, float(highest_severity_filtered), results
         except Exception:
             logger.exception("Couldn't extract data from report!")
         
