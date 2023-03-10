@@ -14,7 +14,7 @@ class VulnerabilityScanResult():
         self.cvss_severities = list(cvss_severities) # should be a list of dicts with fields 'type', 'base_score' and 'base_vector'
         self.refs = list(refs)
 
-def compute_risk_of_network_exposure(vuls : list[VulnerabilityScanResult], qod_threshold : int = 70):
+def compute_risk_of_network_exposure(vuls : list[VulnerabilityScanResult], qod_threshold : int = 70) -> tuple[set[str], dict]:
     """
     Compute which hosts should be blocked because scan results pose a too high risk.
 
@@ -27,7 +27,7 @@ def compute_risk_of_network_exposure(vuls : list[VulnerabilityScanResult], qod_t
         vuls (list[VulnerabilityScanResult]): List of vulnerabilities.
 
     Returns:
-        (tuple): Returns a set of IP address to block and a dict with the vulnerabilities that lead to the decision.
+        (tuple): Returns a set of IP addresses to block and a dict with the vulnerabilities that lead to the decision.
     """
     all_hosts = set()
     hosts_to_block = set()
