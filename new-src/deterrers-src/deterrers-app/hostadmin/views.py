@@ -105,7 +105,7 @@ def __get_available_actions(host : MyHost) -> dict:
     match host.status:
         case HostStatusContract.UNREGISTERED:
             flags['can_update'] = True
-            flags['can_register'] = host.service_profile != HostServiceContract.EMPTY and __is_public_ip(host.ip_addr)
+            flags['can_register'] = host.service_profile != HostServiceContract.EMPTY and __is_public_ip(host.ipv4_addr)
             flags['can_scan'] = True
             flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
             flags['can_block'] = False
@@ -117,7 +117,7 @@ def __get_available_actions(host : MyHost) -> dict:
             flags['can_block'] = False
         case HostStatusContract.BLOCKED:
             flags['can_update'] = True
-            flags['can_register'] = host.service_profile != HostServiceContract.EMPTY and __is_public_ip(host.ip_addr)
+            flags['can_register'] = host.service_profile != HostServiceContract.EMPTY and __is_public_ip(host.ipv4_addr)
             flags['can_scan'] = True
             flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
             flags['can_block'] = False
@@ -274,7 +274,7 @@ def hosts_list_view(request):
             form = AddHostForm(request.POST, choices=tag_choices)
             if form.is_valid():
                 tag_name = form.cleaned_data['admin_tag']
-                host_ip = form.cleaned_data['ip_addr']
+                host_ip = form.cleaned_data['ipv4_addr']
                 if ipam.add_tag_to_host(tag_name, host_ip):
                     return HttpResponseRedirect(reverse('hosts_list'))
             form.add_error(None, "Couldn't add host! Try again later...")
@@ -719,7 +719,7 @@ def v_scanner_registration_alert(request):
 
                 with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
                     host = ipam.get_host_info_from_ip(host_ip)
-                    if host.ip_addr not in hosts_to_block:
+                    if host.ipv4_addr not in hosts_to_block:
                         passed_str_rep = 'passed'
                         logger.info("Host %s passed the registration scan and will be set online!", host_ip)
                         own_url = request.get_host() + reverse('v_scanner_periodic_alert')
@@ -831,7 +831,7 @@ def v_scanner_scan_alert(request):
                 with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
                     host = ipam.get_host_info_from_ip(host_ip)
                     with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
-                        host.status = fw.get_host_status(host.ip_addr)
+                        host.status = fw.get_host_status(host.ipv4_addr)
                     if not ipam.update_host_info(host):
                         raise RuntimeError("Couldn't update host information!")
                     # get all department names for use below

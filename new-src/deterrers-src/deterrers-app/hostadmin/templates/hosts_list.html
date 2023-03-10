@@ -32,7 +32,7 @@
 		{% for host in hosts_list %}
 		<tbody>
 			<tr>
-				<td><a href="{{ host.get_absolute_url }}">{{host.ip_addr}}</a></td>
+				<td><a href="{{ host.get_absolute_url }}">{{host.ipv4_addr}}</a></td>
 				<td>{{host.get_dns_rcs_display}}</td>
 				<td>{{host.admin_ids|join:", "}}</td>
 				<td>{{host.get_service_profile_display}}</td>

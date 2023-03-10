@@ -13,7 +13,7 @@ class MyHost():
 
     def __init__(
         self,
-        ip : str,
+        ipv4 : str,
         mac : str,
         admin_ids : list,
         status : HostStatusContract,
@@ -25,7 +25,7 @@ class MyHost():
         entity_id=None ):
 
         # Mandatory
-        self.ip_addr = ip.replace('_', '.')
+        self.ipv4_addr = ipv4.replace('_', '.')
         self.mac_addr = mac
         self.admin_ids = admin_ids
         self.status = status
@@ -39,16 +39,16 @@ class MyHost():
 
 
     def __str__(self) -> str:
-        return f"Host: {self.ip_addr} ({self.get_dns_rcs_display()}) Status: {self.get_status_display()} Service Profile: {self.get_service_profile_display()} FW: {self.get_fw_display()}"
+        return f"IPv4: {self.ipv4_addr} ({self.get_dns_rcs_display()}) Status: {self.get_status_display()} Service Profile: {self.get_service_profile_display()} FW: {self.get_fw_display()}"
     
     def __eq__(self, other):
-        return ipaddress.IPv4Address(self.ip_addr) == ipaddress.IPv4Address(other.ip_addr)
+        return ipaddress.IPv4Address(self.ipv4_addr) == ipaddress.IPv4Address(other.ipv4_addr)
     
     def __lt__(self, other):
-        return ipaddress.IPv4Address(self.ip_addr) < ipaddress.IPv4Address(other.ip_addr)
+        return ipaddress.IPv4Address(self.ipv4_addr) < ipaddress.IPv4Address(other.ipv4_addr)
 
     def get_ip_escaped(self) -> str:
-        return str(self.ip_addr).replace('.', '_')
+        return str(self.ipv4_addr).replace('.', '_')
 
     def get_absolute_url(self):
         """
@@ -85,8 +85,10 @@ class MyHost():
             bool: True for valid and False for invalid.
         """
         try:
-            ipaddress.ip_address(self.ip_addr)
+            ipaddress.ip_address(self.ipv4_addr)
         except ValueError:
+            return False
+        if not isinstance(ipaddress.ip_address(self.ipv4_addr), ipaddress.IPv4Address):
             return False
 
         # check for valid mac address format if mac is set
