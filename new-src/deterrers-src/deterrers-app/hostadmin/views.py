@@ -829,7 +829,7 @@ def v_scanner_registration_alert(request):
                     __send_report_email(
                         report_html,
                         f"DETERRERS - {str(host.ipv4_addr)} - Vulnerability scan finished",
-                        __get_scan_mail_body(host.ipv4_addr, passed, severity, host.admin_ids, host.service_profile, host.dns_rcs, scan_end),
+                        __get_registration_mail_body(host.ipv4_addr, passed, severity, host.admin_ids, host.service_profile, host.dns_rcs, scan_end),
                         list(set(admin_addresses)),
                     )
 
