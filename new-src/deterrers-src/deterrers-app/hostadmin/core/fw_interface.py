@@ -99,7 +99,7 @@ class PaloAltoInterface():
         Creates a new AddressObject in the firewall configuration.
 
         Args:
-            ip_addr (str): IP address of the new AddressObject.
+            ip_addr (str): IPv4 or v6 address of the new AddressObject.
 
         Raises:
             PaloAltoAPIError: Raised when AddressObject couldn't be created.
@@ -108,6 +108,7 @@ class PaloAltoInterface():
             str: Returns the name of the new AddressObject (is derived from IP address).
         """
         ip_addr_name =  ip_addr.replace('.', '-')
+        ip_addr_name =  ip_addr.replace(':', '-')
         create_addr_params = f"name={ip_addr_name}&location={self.LOCATION}&input-format=json"
         create_addr_url = self.rest_url + "Objects/Addresses?" +create_addr_params
         create_addr_payload = {
@@ -133,7 +134,7 @@ class PaloAltoInterface():
         Queries a AddressObject from the firewall configuration.
 
         Args:
-            ip_addr (str): IP address of the AddressObject from which the name is derived.
+            ip_addr (str): IPv4 or v6 address of the AddressObject from which the name is derived.
 
         Raises:
             PaloAltoAPIError: Thrown when there are more than one AddressObjects with this name.
@@ -142,6 +143,7 @@ class PaloAltoInterface():
             str|None: Returns the name of the AddressObject if it is found. Returns None otherwise.
         """
         ip_addr_name =  ip_addr.replace('.', '-')
+        ip_addr_name =  ip_addr.replace(':', '-')
 
         get_address_params = f"name={ip_addr_name}&location={self.LOCATION}"
         get_address_url = self.rest_url + "Objects/Addresses?" + get_address_params
@@ -241,12 +243,12 @@ from firewall! Status code: {response.status_code}. Status: {data.get('@status')
 
 
 
-    def add_addr_obj_to_addr_grps(self, ip_addr : str, addr_grps : set[PaloAltoAddressGroup]) -> bool:
+    def add_addr_objs_to_addr_grps(self, ip_addrs : list[str], addr_grps : set[PaloAltoAddressGroup]) -> bool:
         """
-        Creates an AddressObject for an IP address if necessary and adds it to some AddressGroups.
+        Creates AddressObjects for IP addresses if necessary and adds them to some AddressGroups.
 
         Args:
-            ip_addr (str): IP Address of the AddressObject.
+            ip_addr (list[str]): IP addresses of the AddressObjects.
             addr_grps (set[AddressGroups]): AddressGroups to which the AddressObject is added.
 
         Returns:
@@ -254,9 +256,12 @@ from firewall! Status code: {response.status_code}. Status: {data.get('@status')
             Not completely trustworthy because commit is not checked for time reasons.
         """
         try:
-            addr_obj_name = self.__get_addr_obj(ip_addr)
-            if not addr_obj_name:
-                addr_obj_name = self.__create_addr_obj(ip_addr)
+            addr_obj_names = []
+            for ip in ip_addrs:
+                name = self.__get_addr_obj(ip)
+                if not name:
+                    name = self.__create_addr_obj(ip)
+                addr_obj_names.append(name)
 
             for addr_grp_name in addr_grps:
                 # get all properties of the address group
@@ -267,7 +272,7 @@ from firewall! Status code: {response.status_code}. Status: {data.get('@status')
                 put_addr_grp_payload = {
                     "entry" : {
                         "static" : {
-                            "member" : list(set(addr_grp_obj['static']['member'] + [addr_obj_name,])),
+                            "member" : list(set(addr_grp_obj['static']['member'] + addr_obj_names)),
                         },
                         "@name" : addr_grp_obj['@name'],
                         "description" : addr_grp_obj.get('description', '')
@@ -285,18 +290,18 @@ Status code: {response.status_code}. Status: {data.get('@status')}")
             Thread(target=self.__commit_changes, daemon=True).start()
 
         except PaloAltoAPIError:
-            logger.exception("Couldn't add AddressObject to AddressGroups!")
+            logger.exception("Couldn't add AddressObjects to AddressGroups!")
             return False
 
         return True
 
 
-    def remove_addr_obj_from_addr_grps(self, ip_addr : str, addr_grps : set[PaloAltoAddressGroup]):
+    def remove_addr_objs_from_addr_grps(self, ip_addrs : list[str], addr_grps : set[PaloAltoAddressGroup]):
         """
-        Removes an AddressObject from some AddressGroups.
+        Removes AddressObjects from some AddressGroups.
 
         Args:
-            ip_addr (str): IP address of the AddressObject.
+            ip_addr (list[str]): IP addresses of the AddressObjects.
             addr_grps (set[AddressGroups]): AddressGroups from which the AddressObject is removed.
 
         Returns:
@@ -304,7 +309,7 @@ Status code: {response.status_code}. Status: {data.get('@status')}")
             Not completely trustworthy because commit is not checked for time reasons.
         """
         try:
-            addr_obj_name = self.__get_addr_obj(ip_addr)
+            addr_obj_names = [self.__get_addr_obj(ip) for ip in ip_addrs]
             for addr_grp_name in addr_grps:
                 # get all properties of the address group
                 addr_grp_obj = self.__get_addr_grp_properties(addr_grp_name)
@@ -314,7 +319,7 @@ Status code: {response.status_code}. Status: {data.get('@status')}")
                 put_addr_grp_payload = {
                     "entry" : {
                         "static" : {
-                            "member" : list(set(addr_grp_obj['static']['member']) - set([addr_obj_name,])),
+                            "member" : list(set(addr_grp_obj['static']['member']) - set(addr_obj_names)),
                         },
                         "@name" : addr_grp_obj['@name'],
                         "description" : addr_grp_obj.get('description', '')
@@ -327,7 +332,7 @@ Status code: {response.status_code}. Status: {data.get('@status')}")
             Thread(target=self.__commit_changes, daemon=True).start()
 
         except PaloAltoAPIError:
-            logger.exception("Couldn't remove AddressObject from AddressGroups!")
+            logger.exception("Couldn't remove AddressObjects from AddressGroups!")
             return False
         
         return True
@@ -360,17 +365,3 @@ Status code: {response.status_code}. Status: {data.get('@status')}")
         except PaloAltoAPIError:
             logger.exception("Couldn't remove AddressObject from AddressGroups!")
             return None
-
-
-
-
-
-
-# if __name__ == '__main__':
-#     import getpass
-#     password = getpass.getpass()
-#     with PaloAltoInterface("nwintering", password, "pa-5220.rz.uni-osnabrueck.de") as fw:
-#         test_host_ip = "131.173.22.185"
-#         fw.add_addr_obj_to_addr_grps(test_host_ip, {AddressGroups.HTTP})
-#         input('Enter')
-#         fw.remove_addr_obj_from_addr_grps(test_host_ip, {AddressGroups.HTTP, AddressGroups.SSH, AddressGroups.OPEN})
