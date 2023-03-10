@@ -59,8 +59,7 @@ def __block_host(host_ipv4 : str) -> bool:
     """
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
         host = ipam.get_host_info_from_ip(host_ipv4)
-        ipv6_addrs = ipam.get_IP6Address_if_linked(host.entity_id)
-        ips_to_block = ipv6_addrs.add(str(host.ipv4_addr))
+        ips_to_block = set(str(host.ipv4_addr)) + ipam.get_IP6Address_if_linked(host.entity_id)
         # change the perimeter firewall configuration so that host is blocked (IPv4 and IPv6 if available)
         with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
             if not fw.enter_ok:
@@ -768,8 +767,7 @@ def v_scanner_registration_alert(request):
 
                 with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
                     host = ipam.get_host_info_from_ip(host_ipv4)
-                    ipv6_addrs = ipam.get_IP6Address_if_linked(host.entity_id)
-                    ips_to_update = ipv6_addrs.add(str(host.ipv4_addr))
+                    ips_to_update = set(str(host.ipv4_addr)) + ipam.get_IP6Address_if_linked(host.entity_id)
                     if str(host.ipv4_addr) not in hosts_to_block:
                         passed = True
                         logger.info("Host %s passed the registration scan and will be set online!", host_ipv4)
