@@ -13,6 +13,7 @@ class MyHost():
 
     def __init__(
         self,
+        entity_id : int,
         ipv4 : str,
         mac : str,
         admin_ids : list,
@@ -21,10 +22,10 @@ class MyHost():
         dns_rcs : list[str] = [],
         service : HostServiceContract = HostServiceContract.EMPTY,
         fw : HostFWContract = HostFWContract.EMPTY,
-        policies  : list[HostBasedPolicy] = [],
-        entity_id=None ):
+        policies  : list[HostBasedPolicy] = []):
 
         # Mandatory
+        self.entity_id = int(entity_id)
         try:
             self.ipv4_addr = ipaddress.IPv4Address(ipv4.replace('_', '.'))
         except ipaddress.AddressValueError:
@@ -39,7 +40,6 @@ class MyHost():
         self.service_profile = service
         self.fw = fw
         self.host_based_policies = policies
-        self.entity_id = entity_id
 
 
     def __str__(self) -> str:
@@ -88,6 +88,9 @@ class MyHost():
         Returns:
             bool: True for valid and False for invalid.
         """
+        if not isinstance(self.entity_id, int):
+            return False
+        
         if not isinstance(self.ipv4_addr, ipaddress.IPv4Address):
             return False
 

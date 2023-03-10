@@ -1,15 +1,17 @@
 import requests
-from ipaddress import ip_address
 import logging
 import json
 import socket
 import threading
+import ipaddress
 
 from .host import MyHost
 from .contracts import HostStatusContract, HostServiceContract, HostFWContract
 from .rule_generator import HostBasedPolicy
 
 logger = logging.getLogger(__name__)
+
+# TODO: check response codes of requests
 
 class ProteusIPAMInterface():
     """
@@ -253,7 +255,7 @@ class ProteusIPAMInterface():
 
         # check if ip string has valid syntax
         try:
-            ip_address(ip)
+            ipaddress.ip_address(ip)
         except ValueError:
             logger.error('IPAM API Interface received invalid IP: %s', ip)
             return None
@@ -276,7 +278,7 @@ class ProteusIPAMInterface():
                 service=service,
                 fw=fw,
                 policies=rules,
-                entity_id=host_id
+                entity_id=int(host_id)
             )
             if my_host.is_valid():
                 return my_host
@@ -323,7 +325,7 @@ class ProteusIPAMInterface():
                 service=service,
                 fw=fw,
                 policies=rules,
-                entity_id=host_id
+                entity_id=int(host_id)
             )
             if my_host.is_valid():
                 return my_host
@@ -371,7 +373,7 @@ class ProteusIPAMInterface():
                     service=service,
                     fw=fw,
                     policies=rules,
-                    entity_id=host_id
+                    entity_id=int(host_id)
                 )
                 if my_host.is_valid():
                     hosts.append(my_host)
@@ -636,15 +638,50 @@ deterrers_rules={json.dumps([p.to_string() for p in host.host_based_policies])}|
 
         return None
     
-    def get_IP6Address_if_linked(self, ipv4 : str) -> str|None:
+    def get_IP6Address_if_linked(self, ipv4_id : int) -> set[str]:
         """
         Queries the corresponding IPv6 address if it exists.
 
         Args:
-            ipv4 (str): IPv4 address
+            ipv4_id (int): ID of the IP4Address entitiy in IPAM.
 
         Returns:
-            str|None: Returns the IPv6 address if it is linked to IPv4 address by common Host Record. Otherwise returns None.
+            set[str]: Returns all unique public IPv6 addresses which are linked to IPv4 address by common Host Record. Otherwise returns None.
         """
-        # TODO: implement
-        return None
+        try:
+            addrs = set()
+            ipv4_id = int(ipv4_id)
+            linkedentities_parameters = f"count=10000&entityId={ipv4_id}&start=0&type=HostRecord"
+            get_linkedentities_url = self.main_url + "getLinkedEntities?" + linkedentities_parameters
+            response = requests.get(get_linkedentities_url, headers=self.header, timeout=self.TIMEOUT)
+            host_records = response.json()
+            for h_r in host_records:
+                properties = h_r.get('properties')
+                try:
+                    properties = properties.split('|')
+                except:
+                    continue
+                for property in properties:
+                    try:
+                        key = property.split('=')[0]
+                        value = property.split('=')[1]
+                        if key == 'addresses':
+                            addresses = value.split(',')
+                            addrs.update(addresses)
+                    except:
+                        continue
+
+            # filter out all addresses which are not public IPv6 addresses
+            ipv6_addrs = set()
+            for ip in addrs:
+                try: 
+                    if not ipaddress.IPv6Address(ip).is_private:
+                        ipv6_addrs.add(ip)
+                except ipaddress.AddressValueError:
+                    continue
+
+            return ipv6_addrs
+
+        except Exception:
+            logger.exception("Couldn't get IPv6 address for IP4Address with ID %d!", ipv4_id)
+            return set()
