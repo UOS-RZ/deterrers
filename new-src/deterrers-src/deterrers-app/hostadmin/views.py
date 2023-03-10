@@ -74,7 +74,7 @@ def __block_host(host_ip : str) -> bool:
         
     return True
 
-def __is_public_ip(ip : str) -> bool:
+def __is_public_ip(ip : str|ipaddress.IPv4Address|ipaddress.IPv6Address) -> bool:
     """
     Check whether ip address is public.
 
@@ -719,7 +719,7 @@ def v_scanner_registration_alert(request):
 
                 with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
                     host = ipam.get_host_info_from_ip(host_ip)
-                    if host.ipv4_addr not in hosts_to_block:
+                    if str(host.ipv4_addr) not in hosts_to_block:
                         passed_str_rep = 'passed'
                         logger.info("Host %s passed the registration scan and will be set online!", host_ip)
                         own_url = request.get_host() + reverse('v_scanner_periodic_alert')
@@ -831,7 +831,7 @@ def v_scanner_scan_alert(request):
                 with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
                     host = ipam.get_host_info_from_ip(host_ip)
                     with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
-                        host.status = fw.get_host_status(host.ipv4_addr)
+                        host.status = fw.get_host_status(str(host.ipv4_addr))
                     if not ipam.update_host_info(host):
                         raise RuntimeError("Couldn't update host information!")
                     # get all department names for use below

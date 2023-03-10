@@ -20,10 +20,10 @@ class AddHostForm(forms.Form):
             help_text="Are you the only admin or should other admins from your department have the same access as you."
         )
 
-    ip_addr = forms.GenericIPAddressField(
+    ipv4_addr = forms.GenericIPAddressField(
         protocol='IPv4',
         unpack_ipv4=False,
-        label='IP Address',
+        label='IPv4 Address',
         help_text='IPv4 address of the host.',
         required=True,
     )

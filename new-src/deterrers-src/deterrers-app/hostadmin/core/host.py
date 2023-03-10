@@ -25,7 +25,12 @@ class MyHost():
         entity_id=None ):
 
         # Mandatory
-        self.ipv4_addr = ipv4.replace('_', '.')
+        try:
+            self.ipv4_addr = ipaddress.IPv4Address(ipv4.replace('_', '.'))
+        except ipaddress.AddressValueError:
+            self.ipv4_addr = None
+            return
+        self.ipv6_addr = MyHost.translate_ip_v4_v6(self.ipv4_addr)
         self.mac_addr = mac
         self.admin_ids = admin_ids
         self.status = status
@@ -39,13 +44,18 @@ class MyHost():
 
 
     def __str__(self) -> str:
-        return f"IPv4: {self.ipv4_addr} ({self.get_dns_rcs_display()}) Status: {self.get_status_display()} Service Profile: {self.get_service_profile_display()} FW: {self.get_fw_display()}"
+        return f"IPv4: {str(self.ipv4_addr)} ({self.get_dns_rcs_display()}) Status: {self.get_status_display()} Service Profile: {self.get_service_profile_display()} FW: {self.get_fw_display()}"
     
-    def __eq__(self, other):
+    def __eq__(self, other : ipaddress.IPv4Address):
         return ipaddress.IPv4Address(self.ipv4_addr) == ipaddress.IPv4Address(other.ipv4_addr)
     
-    def __lt__(self, other):
+    def __lt__(self, other : ipaddress.IPv4Address):
         return ipaddress.IPv4Address(self.ipv4_addr) < ipaddress.IPv4Address(other.ipv4_addr)
+    
+    @staticmethod
+    def translate_ip_v4_v6(ipv4 : ipaddress.IPv4Address) -> ipaddress.IPv6Address:
+        # TODO: implement
+        return None
 
     def get_ip_escaped(self) -> str:
         return str(self.ipv4_addr).replace('.', '_')
@@ -84,11 +94,7 @@ class MyHost():
         Returns:
             bool: True for valid and False for invalid.
         """
-        try:
-            ipaddress.ip_address(self.ipv4_addr)
-        except ValueError:
-            return False
-        if not isinstance(ipaddress.ip_address(self.ipv4_addr), ipaddress.IPv4Address):
+        if not isinstance(self.ipv4_addr, ipaddress.IPv4Address):
             return False
 
         # check for valid mac address format if mac is set
