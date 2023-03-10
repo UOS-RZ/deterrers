@@ -30,7 +30,6 @@ class MyHost():
         except ipaddress.AddressValueError:
             self.ipv4_addr = None
             return
-        self.ipv6_addr = MyHost.translate_ip_v4_v6(self.ipv4_addr)
         self.mac_addr = mac
         self.admin_ids = admin_ids
         self.status = status
@@ -51,11 +50,6 @@ class MyHost():
     
     def __lt__(self, other):
         return ipaddress.IPv4Address(self.ipv4_addr) < ipaddress.IPv4Address(other.ipv4_addr)
-    
-    @staticmethod
-    def translate_ip_v4_v6(ipv4 : ipaddress.IPv4Address) -> ipaddress.IPv6Address:
-        # TODO: implement
-        return None
 
     def get_ip_escaped(self) -> str:
         return str(self.ipv4_addr).replace('.', '_')

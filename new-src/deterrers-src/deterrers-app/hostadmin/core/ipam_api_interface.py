@@ -635,3 +635,16 @@ deterrers_rules={json.dumps([p.to_string() for p in host.host_based_policies])}|
             logger.exception("Couldn't query IPAM whether user exists!")
 
         return None
+    
+    def get_IP6Address_if_linked(self, ipv4 : str) -> str|None:
+        """
+        Queries the corresponding IPv6 address if it exists.
+
+        Args:
+            ipv4 (str): IPv4 address
+
+        Returns:
+            str|None: Returns the IPv6 address if it is linked to IPv4 address by common Host Record. Otherwise returns None.
+        """
+        # TODO: implement
+        return None

@@ -45,23 +45,25 @@ def __add_changelog(history : int = 10) -> list[str]:
         
 
 
-def __block_host(host_ip : str) -> bool:
+def __block_host(host_ipv4 : str) -> bool:
     """
     Block a host at the perimeter firewall and update the status in the IPAM.
     Removes host also from periodic scan.
     TODO: for better performance make it so that a list can be given
 
     Args:
-        host_ip (str): IP address of the host.
+        host_ip (str): IPv4 address of the host.
 
     Returns:
         bool: Returns True on success and False if something went wrong.
     """
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
-        host = ipam.get_host_info_from_ip(host_ip)
-        # change the perimeter firewall configuration so that host is blocked
+        host = ipam.get_host_info_from_ip(host_ipv4)
+        ipv6_addr = ipam.get_IP6Address_if_linked(str(host.ipv4_addr))
+        # change the perimeter firewall configuration so that host is blocked (IPv4 and IPv6 if available)
         with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
-            if not fw.remove_addr_obj_from_addr_grps(host_ip, {ag for ag in PaloAltoAddressGroup}):
+            ips_to_block = [str(host.ipv4_addr), ipv6_addr] if ipv6_addr else [str(host.ipv4_addr)]
+            if not fw.remove_addr_objs_from_addr_grps(ips_to_block, {ag for ag in PaloAltoAddressGroup}):
                 return False
         host.status = HostStatusContract.BLOCKED
         if not ipam.update_host_info(host):
@@ -69,7 +71,7 @@ def __block_host(host_ip : str) -> bool:
     
     # remove from periodic scan
     with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
-        if not scanner.remove_host_from_periodic_scan(host_ip):
+        if not scanner.remove_host_from_periodic_scan(str(host.ipv4_addr)):
             return False
         
     return True
@@ -321,7 +323,8 @@ def hosts_list_view(request):
                 host_ip = form.cleaned_data['ipv4_addr']
                 if ipam.add_tag_to_host(tag_name, host_ip):
                     return HttpResponseRedirect(reverse('hosts_list'))
-            form.add_error(None, "Couldn't add host! Try again later...")
+                else:
+                    form.add_error(None, "Couldn't add host! Is information in IPAM correct?")
         else:
             form = AddHostForm(choices=tag_choices)
         
@@ -748,7 +751,7 @@ def v_scanner_registration_alert(request):
             request (_type_): Request object.
         """
         try:
-            host_ip = request.GET['host_ip']
+            host_ipv4 = request.GET['host_ip']
             report_uuid = request.GET['report_uuid']
             task_uuid = request.GET['task_uuid']
             target_uuid = request.GET['target_uuid']
@@ -762,28 +765,31 @@ def v_scanner_registration_alert(request):
                 hosts_to_block, block_reasons = compute_risk_of_network_exposure(results)
 
                 with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
-                    host = ipam.get_host_info_from_ip(host_ip)
+                    host = ipam.get_host_info_from_ip(host_ipv4)
+                    ipv6_addr = ipam.get_IP6Address_if_linked(str(host.ipv4_addr))
+                    ips_to_update = [str(host.ipv4_addr), ipv6_addr] if ipv6_addr else [str(host.ipv4_addr),]
                     if str(host.ipv4_addr) not in hosts_to_block:
                         passed = True
-                        logger.info("Host %s passed the registration scan and will be set online!", host_ip)
+                        logger.info("Host %s passed the registration scan and will be set online!", host_ipv4)
                         own_url = request.get_host() + reverse('v_scanner_periodic_alert')
-                        if not scanner.add_host_to_periodic_scan(host_ip=host_ip, deterrers_url=own_url):
-                            raise RuntimeError(f"Couldn't add host {host_ip} to periodic scan!")
+                        # add only the IPv4 address to periodic vulnerability scan
+                        if not scanner.add_host_to_periodic_scan(host_ip=str(host.ipv4_addr), deterrers_url=own_url):
+                            raise RuntimeError(f"Couldn't add host {host.ipv4_addr} to periodic scan!")
                         # change the perimeter firewall configuration so that only hosts service profile is allowed
                         with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
                             # first make sure ip is not already in any AddressGroups
-                            suc = fw.remove_addr_obj_from_addr_grps(host_ip, {ag for ag in PaloAltoAddressGroup})
+                            suc = fw.remove_addr_objs_from_addr_grps(ips_to_update, {ag for ag in PaloAltoAddressGroup})
                             if not suc:
                                 raise RuntimeError("Couldn't update firewall configuration!")
                             match host.service_profile:
                                 case HostServiceContract.HTTP:
-                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {PaloAltoAddressGroup.HTTP,})
+                                    suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.HTTP,})
                                 case HostServiceContract.SSH:
-                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {PaloAltoAddressGroup.SSH,})
+                                    suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.SSH,})
                                 case HostServiceContract.MULTIPURPOSE:
-                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {PaloAltoAddressGroup.OPEN,})
+                                    suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.OPEN,})
                                 case HostServiceContract.HTTP_SSH:
-                                    suc = fw.add_addr_obj_to_addr_grps(host_ip, {PaloAltoAddressGroup.HTTP, PaloAltoAddressGroup.SSH})
+                                    suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.HTTP, PaloAltoAddressGroup.SSH})
                                 case _:
                                     raise RuntimeError(f"Unknown service profile: {host.service_profile}")
                             if not suc:
@@ -793,8 +799,8 @@ def v_scanner_registration_alert(request):
                             raise RuntimeError("Couldn't update host information!")
                     else:
                         passed = False
-                        logger.info("Host %s did not pass the registration and will be blocked.", host_ip)
-                        if not __block_host(host_ip):
+                        logger.info("Host %s did not pass the registration and will be blocked.", str(host.ipv4_addr))
+                        if not __block_host(str(host.ipv4_addr)):
                             raise RuntimeError("Couldn't block host")
 
                     # get string representation of cvss severity
@@ -818,7 +824,7 @@ def v_scanner_registration_alert(request):
                     admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments]
                     __send_report_email(
                         report_html,
-                        f"DETERRERS - {host_ip} - Vulnerability scan finished",
+                        f"DETERRERS - {str(host.ipv4_addr)} - Vulnerability scan finished",
                         __get_scan_mail_body(host.ipv4_addr, passed, severity, host.admin_ids, host.service_profile, host.dns_rcs, scan_end),
                         list(set(admin_addresses)),
                     )
@@ -858,7 +864,7 @@ def v_scanner_scan_alert(request):
             request (_type_): Request object.
         """
         try:
-            host_ip = request.GET['host_ip']
+            host_ipv4 = request.GET['host_ip']
             report_uuid = request.GET['report_uuid']
             task_uuid = request.GET['task_uuid']
             target_uuid = request.GET['target_uuid']
@@ -873,7 +879,7 @@ def v_scanner_scan_alert(request):
                 
                 # reset hosts status
                 with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
-                    host = ipam.get_host_info_from_ip(host_ip)
+                    host = ipam.get_host_info_from_ip(host_ipv4)
                     with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
                         host.status = fw.get_host_status(str(host.ipv4_addr))
                     if not ipam.update_host_info(host):
@@ -901,7 +907,7 @@ def v_scanner_scan_alert(request):
                 admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments]
                 __send_report_email(
                     report_html,
-                        f"DETERRERS - {host_ip} - Vulnerability scan finished",
+                        f"DETERRERS - {str(host.ipv4_addr)} - Vulnerability scan finished",
                     __get_scan_mail_body(host.ipv4_addr, passed, severity, host.admin_ids, host.service_profile, host.dns_rcs, scan_end),
                     list(set(admin_addresses)),
                 )
@@ -940,13 +946,13 @@ def v_scanner_periodic_alert(request):
                 if results is None:
                     return
                 # Risk assessment
-                hosts_to_block, risky_vuls = compute_risk_of_network_exposure(results)
+                ipv4_addresses_to_block, risky_vuls = compute_risk_of_network_exposure(results)
 
                 with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
-                    for host_to_block in hosts_to_block:
-                        host = ipam.get_host_info_from_ip(host_to_block)
-                        logger.info("Host %s did not pass the periodic scan and will be blocked.", host_to_block)
-                        if not __block_host(host_to_block):
+                    for ipv4_to_block in ipv4_addresses_to_block:
+                        host = ipam.get_host_info_from_ip(ipv4_to_block)
+                        logger.info("Host %s did not pass the periodic scan and will be blocked.", str(host.ipv4_addr))
+                        if not __block_host(str(host.ipv4_addr)):
                             raise RuntimeError("Couldn't block host")
  
                         # get all department names for use below
@@ -954,11 +960,11 @@ def v_scanner_periodic_alert(request):
                         # deduce admin email addr and filter out departments
                         admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments]
                         email_body = f"""
-DETERRERS found a high risk for host {host_to_block} and will block it at the perimeter firewall.
+DETERRERS found a high risk for host {str(host.ipv4_addr)} and will block it at the perimeter firewall.
 Following vulnerabilities resulted in the blocking:
 
 """
-                        for vul in risky_vuls.get(host_to_block):
+                        for vul in risky_vuls.get(str(host.ipv4_addr)):
                             email_body += f"""
 Network Vulnerability Test Name:    {vul.nvt_name}
 Network Vulnerability Test ID:      {vul.nvt_oid}
@@ -971,7 +977,7 @@ Please remediate the security risks and re-register the host in DETERRERS!
 """
                         __send_report_email(
                             None,
-                            f"DETERRERS - {host_to_block} - New vulnerability!",
+                            f"DETERRERS - {str(host.ipv4_addr)} - New vulnerability!",
                             email_body,
                             list(set(admin_addresses)),
                         )
