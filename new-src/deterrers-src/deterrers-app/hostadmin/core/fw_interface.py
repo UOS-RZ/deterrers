@@ -113,7 +113,7 @@ class PaloAltoInterface():
             str: Returns the name of the new AddressObject (is derived from IP address).
         """
         ip_addr_name =  ip_addr.replace('.', '-')
-        ip_addr_name =  ip_addr.replace(':', '-')
+        ip_addr_name =  ip_addr_name.replace(':', '-')
         create_addr_params = f"name={ip_addr_name}&location={self.LOCATION}&input-format=json"
         create_addr_url = self.rest_url + "Objects/Addresses?" +create_addr_params
         create_addr_payload = {
