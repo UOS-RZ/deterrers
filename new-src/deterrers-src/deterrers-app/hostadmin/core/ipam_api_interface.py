@@ -237,6 +237,13 @@ class ProteusIPAMInterface():
             print("Error while querying host names of host %d", host_ip)
                 
         return list(dns_names)
+    
+    def get_id_of_addr(self, ip : str) -> int:
+        try:
+            id = int(self.__get_IP4Address(ip)['id'])
+            return id
+        except:
+            return None
 
 
     def get_host_info_from_ip(self, ip : str):

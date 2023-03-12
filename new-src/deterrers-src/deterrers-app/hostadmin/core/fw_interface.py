@@ -21,7 +21,7 @@ class PaloAltoInterface():
     """
     # TODO: maybe specify API key lifetime in PA Webinterface
 
-    TIMEOUT = 20
+    TIMEOUT = 60*2
     VERSION = "v10.1"
     LOCATION = 'vsys&vsys=vsys4' # TODO: change location in production
 
@@ -245,7 +245,25 @@ from firewall! Status code: {response.status_code}. Status: {data.get('@status')
             raise PaloAltoAPIError("Could not cancle commit!")
 
 
+    
+    def get_addr_objs_in_addr_grp(self, addr_grp : PaloAltoAddressGroup) -> set:
+        """
+        Queries all the names of AddressObjects in the given AddressGroup.
 
+        Args:
+            addr_grp (PaloAltoAddressGroup): AddressGroup to get the IP addresses of.
+
+        Returns:
+            set: Returns a set of address object names.
+        """
+        try:
+            # get all properties of the address group
+            addr_grp_obj = self.__get_addr_grp_properties(addr_grp)
+            addr_obj_names = addr_grp_obj['static']['member']
+            return set(addr_obj_names)
+        except PaloAltoAPIError:
+            logger.exception("Couldn't get AddressObjects of AddressGroup %s", addr_grp.value)
+            return set()
 
 
     def add_addr_objs_to_addr_grps(self, ip_addrs : list[str], addr_grps : set[PaloAltoAddressGroup]) -> bool:
