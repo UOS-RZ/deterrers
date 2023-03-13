@@ -21,7 +21,7 @@ from .core.ipam_api_interface import ProteusIPAMInterface
 from .core.v_scanner_interface import GmpVScannerInterface
 from .core.fw_interface import PaloAltoInterface
 from .core.risk_assessor import compute_risk_of_network_exposure
-from .core.rule_generator import generate_rule
+from .core.rule_generator import generate_fw_config
 from .core.host import MyHost
 from .core.contracts import HostBasedRuleSubnetContract, HostBasedRuleProtocolContract, HostStatusContract, HostServiceContract, HostFWContract, PaloAltoAddressGroup
 
@@ -713,7 +713,7 @@ def get_fw_config(request, ip : str):
             return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
 
 
-    script = generate_rule(host.fw, host.host_based_policies)
+    script = generate_fw_config(host.fw, host.host_based_policies)
     if script:
         f_temp = io.BytesIO(bytes(script, 'utf-8'))
         f_response = FileResponse(f_temp, as_attachment=True, filename='fw_config.sh')
