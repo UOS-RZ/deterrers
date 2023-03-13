@@ -124,53 +124,21 @@ class HostBasedPolicy():
 
 FW_PROGRAM_CHECK = \
 """
-# get OS in order to know which package manager to use below
-while : ; do
-    echo "Please choose the operating system this machine is running on:
-    [1] Debian/Ubuntu
-    [2] CentOS
-    [3] other"
-
-    read OS_I
-    if [ $OS_I == 1 ] || [ $OS_I == 2 ] || [ $OS_I == 3 ]
-    then
-        break
-    fi
-    echo "Invalid input!"
-done
-
 # check if firewall progamm is installed
-if [ $OS_I == 1 ]
+if command -v {fw_name} | grep {fw_name}
 then
-    # Debian/Ubunut uses dpkg
-    if dpkg -s {fw_name} | grep -q "Status: install ok installed"
-    then
-        echo "Found {fw_name} installed. Continue..."
-    else
-        echo "Did not find {fw_name} installed on machine. Please make sure to install it first!"
-        exit 0
-    fi
-elif [ $OS_I == 2 ]
-then
-    # CentOS uses rpm
-    if rpm -qa | grep {fw_name}
-    then
-        echo "Found {fw_name} installed. Continue..."
-    else
-        echo "Did not find {fw_name} installed on machine. Please make sure to install it first!"
-        exit 0
-    fi
-elif [ $OS_I == 3 ]
-then
-    # other can't be handeled
-    echo "Cannot check if {fw_name} is installed without infos about OS. Please make sure that it is installed manually!
-    Contiue anyways? [y/n]"
+    echo "{fw_name} is installed."
+else
+    echo "{fw_name} command was not found on system! Please make sure to install it first."
+    exit 0
+fi
 
-    read cont
-    if [ ${{cont}} != y ]
-    then
-        exit 0
-    fi
+# get consent to delete all present configurations
+echo "This script will overwrite all custom configurations to {fw_name} you might have done in the past! Do you want to proceed? [y/n]"
+read continue
+if [ ${{continue}} != y ]
+then
+    exit 0
 fi
 """
 
@@ -183,14 +151,6 @@ f"""#!/bin/bash
 # This script should be run with sudo permissions!
 
 {FW_PROGRAM_CHECK.format(fw_name='ufw')}
-
-# confirm that user wants to overwrite existing rules
-echo "Continuing will overwrite all present configurations to ufw! Do you agree to reset ufw? [y/n]"
-read continue
-if [ ${{continue}} != y ]
-then
-    exit 0
-fi
 
 # enable service at system start and start the services
 systemctl enable ufw
@@ -238,22 +198,14 @@ def __generate_firewalld__script(custom_rules : list[HostBasedPolicy]) -> str|No
 f"""#!/bin/bash
 # This script should be run with sudo permissions!
 
-{FW_PROGRAM_CHECK.format(fw_name='firewalld')}
-
-# get consent to delete all present configurations
-echo "This script will overwrite all custom configurations to firewalld you might have done in the past! Do you want to proceed? [y/n]"
-read continue
-if [ ${{continue}} != y ]
-then
-    exit 0
-fi
+{FW_PROGRAM_CHECK.format(fw_name='firewall-cmd')}
 
 # make sure the firewalld service is running and will be activated at system start
 systemctl enable firewalld
 systemctl start firewalld
 
 # fw configurations are saved in /etc/firewalld/zones; delete all files in the directory and do a complete reset
-rm -f /etc/firewalld/zones/*
+su - root -c "rm -rf /etc/firewalld/zones/*"
 firewall-cmd --complete-reload"""
 
     # create new zone and make it default
@@ -289,49 +241,14 @@ f"""
 f"""
 firewall-cmd --zone={CUSTOM_ZONE} --add-rich-rule='rule family={allow_family} source address={src} port port={port} protocol={allow_proto}  accept' """
 
-
-
-### Approach below does not work because overlapping sources for zones are not allowed ###
-#     ## construct a zone for each unique source
-#     added_zones = []
-#     for n, c_rule in enumerate(custom_rules):
-#         zone_name = c_rule.allow_srcs['name'].replace(' ', '_')
-#         zone_srcs = c_rule.allow_srcs['range']
-#         if zone_name not in added_zones:
-#             # has to be performed only the first time a policy with this source is encountered
-#             rule_config += \
-# f"""
-
-# # create custom zone for {zone_name}
-# firewall-cmd --permanent --new-zone={zone_name}
-# # make custom zone available in runtime configuration
-# firewall-cmd --reload
-# # add sources"""
-
-#             for src in zone_srcs:
-#                 rule_config += \
-# f"""
-# firewall-cmd --zone={zone_name} --add-source={src}"""
-
-#             added_zones.append(zone_name)
-
-#     ## add ports to the corresponding zones
-#     for n, c_rule in enumerate(custom_rules):
-#         zone_name = c_rule.allow_srcs['name'].replace(' ', '_')
-#         zone_ports = c_rule.allow_ports
-#         zone_proto = c_rule.allow_proto
-#         for port in zone_ports:
-#             port = port.replace(':', '-') # firewalld uses 'x-y'-notation for port ranges
-#             rule_config += \
-# f"""
-# firewall-cmd --zone={zone_name} --add-port={port}/{zone_proto}"""
-
-
     POSTAMBLE = \
 f"""
 
 # set the target of custom zone to REJECT in order to make it default behaviour
 firewall-cmd --permanent --zone={CUSTOM_ZONE} --set-target=REJECT
+
+# make custom zone default
+firewall-cmd --set-default-zone={CUSTOM_ZONE}
 
 # make changes permanent
 firewall-cmd --runtime-to-permanent
@@ -348,15 +265,7 @@ def __generate_nftables__script(custom_rules : list[HostBasedPolicy]) -> str|Non
 f"""#!/bin/bash
 # This script should be run with sudo permissions!
 
-{FW_PROGRAM_CHECK.format(fw_name='nftables')}
-
-# get consent to delete all present configurations
-echo "This script will overwrite all custom configurations to nftables you might have done in the past! Do you want to proceed? [y/n]"
-read continue
-if [ ${{continue}} != y ]
-then
-    exit 0
-fi
+{FW_PROGRAM_CHECK.format(fw_name='nft')}
 
 # nftables.conf may exist at different locations in filesystem, so check where it is
 PATHS=("/etc/nftables.conf" "/etc/sysconfig/nftables.conf")
@@ -430,7 +339,7 @@ systemctl restart nftables
     return PREAMBLE + rule_config + POST_AMBLE
 
 
-def generate_rule(fw : HostFWContract, custom_rules : list[HostBasedPolicy]) -> str|None:
+def generate_fw_config(fw : HostFWContract, custom_rules : list[HostBasedPolicy]) -> str|None:
     """
     Generate/Suggest a firewall configuration script for some combination of fw program and service profile.
     Additionally consider custom rules that might be specified.
