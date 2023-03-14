@@ -234,7 +234,7 @@ class ProteusIPAMInterface():
             for alias in host_info[1]:
                 dns_names.add(alias)
         except Exception:
-            print("Error while querying host names of host %d", host_ip)
+            logger.exception("Error while querying host names of host %s", host_ip)
                 
         return list(dns_names)
     
@@ -527,6 +527,27 @@ deterrers_rules={json.dumps([p.to_string() for p in host.host_based_policies])}|
             logger.exception("Couldn't query parent tag from IPAM!")
 
         return None
+    
+    def get_admin_tag_names(self) -> set[str]:
+        """
+        Query all admin tag names.
+
+        Returns:
+            set[str]: Returns a set of unique names.
+        """
+        admin_tag_names = []
+        try:
+            tag_grp_id = self.__get_tag_grp_id()
+            department_tags = self.__get_child_tags(tag_grp_id)
+            for d_tag in department_tags:
+                d_tag_id = d_tag['id']
+                admin_tags = self.__get_child_tags(d_tag_id)
+                for a_tag in admin_tags:
+                    admin_tag_names.append(a_tag['name'])
+            return set(admin_tag_names)
+        except Exception:
+            logger.exception("Couldn't query admin tag names from IPAM!")
+        return set()
 
     def create_admin_tag(self, admin_tag_name : str, department_tag_name : str) -> bool:
         """
