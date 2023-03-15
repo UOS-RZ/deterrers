@@ -17,7 +17,5 @@ if __name__ == '__main__':
             for host in hosts:
                 fw_host_mapping[host.fw].add(host.ipv4_addr)
     
-    for fw, hosts in fw_host_mapping.items():
-        print(fw.value)
-        for host in hosts:
-            print(f"  {host}")
+        for host in fw_host_mapping.get(HostFWContract.FIREWALLD):
+            print(f"  {host} {ipam.get_host_info_from_ip(str(host)).admin_ids}")
