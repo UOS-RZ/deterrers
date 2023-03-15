@@ -225,7 +225,7 @@ class ProteusIPAMInterface():
         data = response.json()
         return data
     
-    def __get_linked_dns_records(self, host_ip : str) -> list[str]:
+    def __get_linked_dns_records(self, host_ip : str) -> set[str]:
 
         dns_names = set()
         try:
@@ -233,10 +233,12 @@ class ProteusIPAMInterface():
             dns_names.add(host_info[0])
             for alias in host_info[1]:
                 dns_names.add(alias)
+        except socket.herror:
+            return set()
         except Exception:
             logger.exception("Error while querying host names of host %s", host_ip)
                 
-        return list(dns_names)
+        return dns_names
     
     def get_id_of_addr(self, ip : str) -> int:
         try:
