@@ -16,10 +16,10 @@ class MyHost():
         entity_id : int,
         ipv4 : str,
         mac : str,
-        admin_ids : list,
+        admin_ids : set,
         status : HostStatusContract,
         name : str = '',
-        dns_rcs : list[str] = [],
+        dns_rcs : set[str] = [],
         service : HostServiceContract = HostServiceContract.EMPTY,
         fw : HostFWContract = HostFWContract.EMPTY,
         policies  : list[HostBasedPolicy] = []):
@@ -32,11 +32,11 @@ class MyHost():
             self.ipv4_addr = None
             return
         self.mac_addr = mac
-        self.admin_ids = admin_ids
+        self.admin_ids = set(admin_ids)
         self.status = status
         # Optional
         self.name = name
-        self.dns_rcs = dns_rcs
+        self.dns_rcs = set(dns_rcs)
         self.service_profile = service
         self.fw = fw
         self.host_based_policies = policies
