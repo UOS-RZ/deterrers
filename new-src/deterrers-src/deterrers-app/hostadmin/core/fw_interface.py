@@ -148,7 +148,7 @@ class PaloAltoInterface():
             str|None: Returns the name of the AddressObject if it is found. Returns None otherwise.
         """
         ip_addr_name =  ip_addr.replace('.', '-')
-        ip_addr_name =  ip_addr.replace(':', '-')
+        ip_addr_name =  ip_addr_name.replace(':', '-')
 
         get_address_params = f"name={ip_addr_name}&location={self.LOCATION}"
         get_address_url = self.rest_url + "Objects/Addresses?" + get_address_params
