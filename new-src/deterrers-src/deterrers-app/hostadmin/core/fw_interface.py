@@ -130,7 +130,7 @@ class PaloAltoInterface():
             create_addr_url, json=create_addr_payload, headers=self.header, timeout=self.TIMEOUT
         )
         if response.status_code != 200:
-            raise PaloAltoAPIError(f"Couldn't create AddressObject for host {ip_addr} in the firewall configuration!")
+            raise PaloAltoAPIError(f"Couldn't create AddressObject for host {ip_addr} in the firewall configuration! Status Code: {response.status_code}")
 
         return ip_addr_name
 
