@@ -581,7 +581,7 @@ def scan_host(request, ip : str):
             # create an initial scan of the host
             with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
                 own_url = request.get_host() + reverse('v_scanner_scan_alert')
-                target_uuid, task_uuid, report_uuid, alert_uuid = scanner.create_scan(ip, own_url)
+                target_uuid, task_uuid, report_uuid, alert_uuid = scanner.create_ordinary_scan(ip, own_url)
                 if target_uuid and task_uuid and report_uuid and alert_uuid:
                     # update state in IPAM
                     host.status = HostStatusContract.UNDER_REVIEW

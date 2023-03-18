@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import icalendar
 from base64 import b64decode
 import os
+from time import sleep
 
 from gvm.protocols.gmp import Gmp
 from gvm.connections import SSHConnection
@@ -70,13 +71,18 @@ class GmpVScannerInterface():
         self.scanner_url = scanner_url
         self.scanner_port = scanner_port
 
+        if os.environ.get('MICRO_SERVICE', None):
+            known_hosts_path = os.environ.get('MICRO_SERVICE', '')+'/known_hosts'
+        else:
+            known_hosts_path = None
+
         transform = EtreeCheckCommandTransform()
         connection = SSHConnection(
             hostname=self.scanner_url,
             port=self.scanner_port,
             timeout=self.TIMEOUT,
             # vulnerability scanner must have been added to a known_hosts-file before application was started
-            known_hosts_file=os.environ.get('MICRO_SERVICE', '')+'/known_hosts'
+            known_hosts_file=known_hosts_path
         )
         self.gmp = Gmp(connection=connection, transform=transform)
 
@@ -357,7 +363,7 @@ class GmpVScannerInterface():
         alert_uuid = response.xpath('@id')[0]
         return alert_uuid
 
-    def __create_schedule(self, schedule_name : str, freq : str) -> str:
+    def __create_schedule(self, schedule_name : str, freq : str = 'weekly') -> str:
         """
         Create a schedule for scan tasks in the vulnerability scanner.
         First scheduled event will be 12 hours in future.
@@ -373,16 +379,7 @@ class GmpVScannerInterface():
             str: UUID of the schedule.
         """
         now = datetime.now()
-        cal = icalendar.Calendar()
-        # Some properties are required to be compliant
-        cal.add('prodid', '-//DETERRERS//')
-        cal.add('version', '2.0')
-
-        event = icalendar.Event()
-        event.add("dtstart", now + timedelta(hours=12))
-        event.add('rrule', {'freq': freq})
-
-        cal.add_component(event)
+        cal = self.__create_cal(timedelta(hours=12), freq=freq)
 
         response = self.gmp.create_schedule(
             name=schedule_name,
@@ -396,9 +393,23 @@ class GmpVScannerInterface():
         schedule_uuid = response.xpath('@id')[0]
         return schedule_uuid
 
+    def __create_cal(self, start_delta : timedelta, freq : str = 'weekly') -> icalendar.Calendar:
+        now = datetime.now()
+        cal = icalendar.Calendar()
+        # Some properties are required to be compliant
+        cal.add('prodid', '-//DETERRERS//')
+        cal.add('version', '2.0')
+
+        event = icalendar.Event()
+        event.add("dtstart", now + start_delta)
+        event.add('rrule', {'freq': freq})
+
+        cal.add_component(event)
+        return cal
 
 
-    def create_scan(self, host_ip : str, deterrers_url : str):
+
+    def create_ordinary_scan(self, host_ip : str, deterrers_url : str):
         """
         Creates and starts a scan for some host:
             1. Create a scan target.
@@ -529,6 +540,49 @@ class GmpVScannerInterface():
             
         return None, None, None, None
 
+
+    def create_periodic_scan(self, host_ip : str, deterrers_url : str, schedule_freq : str = 'weekly'):
+        """
+        Creates and starts a periodic scan with some host:
+            1. Create a scan target.
+            2. Create a schedule.
+            3. Create a scan alert.
+            4. Create a scan task.
+            5. Add the alert to the task.
+        Scans all IANA registered TCP and UDP ports in 'Full and Fast Ultimate' mode.
+
+        Args:
+            host_ip (str): Host IP address of the first host.
+            deterrers_url (str): URL of the DETERRERS host.
+        """
+        logger.debug("Create periodic scan")
+        target_uuid = self.__create_target(
+            [host_ip, ],
+            f"Target for task '{self.PERIODIC_TASK_NAME}' | {datetime.now()}",
+            Credentials.HULK_SSH_CRED_UUID.value,
+            22,
+            Credentials.HULK_SMB_CRED_UUID.value,
+            PortList.ALL_TCP_NMAP_1000_UDP_UUID.value
+        )
+        schedule_uuid = self.__create_schedule(
+            f"Schedule for task '{self.PERIODIC_TASK_NAME}' | {datetime.now()}",
+            schedule_freq
+        )
+        alert_uuid = self.__create_http_alert(f"Alert for task '{self.PERIODIC_TASK_NAME}' | {datetime.now()}")
+        task_uuid = self.__create_task(
+            target_uuid,
+            self.PERIODIC_TASK_NAME,
+            ScanConfig.FULL_FAST_UUID.value,
+            Scanner.OPENVAS_DEFAULT_SCANNER_UUID.value,
+            [alert_uuid,],
+            True,
+            schedule_uuid,
+            hosts_ordering=HostsOrdering.RANDOM,
+            max_conc_nvts=32
+        )
+        # report_uuid = self.__start_task(task_uuid, self.PERIODIC_TASK_NAME)
+        report_uuid = ""
+        self.__modify_http_alert_data('', deterrers_url, '', task_uuid, report_uuid, alert_uuid)
     
     def add_host_to_periodic_scan(self, host_ip : str, deterrers_url : str) -> bool:
         """
@@ -542,8 +596,7 @@ class GmpVScannerInterface():
         Returns:
             bool: Returns True on success and False if something went wrong.
         """
-        try:
-            # check whether periodic task exists, if not, IndexError will be raised later
+        def get_task():
             filter_str = f'"{self.PERIODIC_TASK_NAME}" rows=-1 first=1'
             response = self.gmp.get_tasks(filter_string=filter_str)
             response_status = int(response.xpath('@status')[0])
@@ -558,17 +611,35 @@ class GmpVScannerInterface():
                 task_xml = None
                 task_uuid = None
                 old_target_uuid = None
-            if task_uuid:
+            return task_xml, task_uuid, old_target_uuid
+        
+        try:
+            # check whether periodic task exists, if not, IndexError will be raised later
+            task_xml, task_uuid, old_target_uuid = get_task()
+
+            if not task_uuid:
+                # periodic scan task does not exist yet
+                self.create_periodic_scan(
+                    host_ip=host_ip,
+                    deterrers_url=deterrers_url
+                )
+            else:
                 # periodic scan task does exist
                 task_uuid = task_xml.attrib['id']
                 old_target_uuid = task_xml.xpath('//target/@id')[0]
-                # stop task in case it is running
-                running = (task_xml.xpath('//task/status')[0].text == 'Running')
+                # wait if task is queued or requested, stop task in case it is running
+                task_status = task_xml.xpath('//task/status')[0].text
+                while task_status == "Queued" or task_status == "Requested":
+                    sleep(1.0)
+                    task_xml, task_uuid, old_target_uuid = get_task()
+                    task_status = task_xml.xpath('//task/status')[0].text
+                
+                running = (task_status == 'Running')
                 if running:
                     response = self.gmp.stop_task(task_uuid)
                     response_status = int(response.xpath('@status')[0])
                     if response_status != 200:
-                        raise GmpAPIError(f"Couldn't resume periodic task before adding {host_ip}.")
+                        raise GmpAPIError(f"Couldn't stop periodic task before adding {host_ip}.")
                     stopped = True
                 else:
                     stopped = False
@@ -605,45 +676,30 @@ class GmpVScannerInterface():
                 if response_status != 200:
                     raise GmpAPIError(f"Couldn't delete target {old_target_uuid}! Status: {response_status}")
 
-                if stopped is True:
-                    response = self.gmp.resume_task(task_uuid)
+                if stopped:
+                    # reschedule task
+                    schedule_uuid = task_xml.xpath('//schedule/@id')[0]
+                    new_cal = self.__create_cal(timedelta(hours=-1, minutes=1))
+                    response = self.gmp.modify_schedule(
+                        schedule_uuid,
+                        icalendar=new_cal.to_ical(),
+                        timezone='UTC'
+                    )
                     response_status = int(response.xpath('@status')[0])
-                    if response_status != 200:
-                        raise GmpAPIError(f"Couldn't resume periodic task after adding {host_ip}.")
-            else:
-                # periodic scan task does not exist yet
-                target_uuid = self.__create_target(
-                    [host_ip, ],
-                    f"Target for task '{self.PERIODIC_TASK_NAME}' | {datetime.now()}",
-                    Credentials.HULK_SSH_CRED_UUID.value,
-                    22,
-                    Credentials.HULK_SMB_CRED_UUID.value,
-                    PortList.ALL_TCP_NMAP_1000_UDP_UUID.value
-                )
-                schedule_uuid = self.__create_schedule(
-                    f"Schedule for task '{self.PERIODIC_TASK_NAME}' | {datetime.now()}",
-                    "weekly"
-                )
-                alert_uuid = self.__create_http_alert(f"Alert for task '{self.PERIODIC_TASK_NAME}' | {datetime.now()}")
-                task_uuid = self.__create_task(
-                    target_uuid,
-                    self.PERIODIC_TASK_NAME,
-                    ScanConfig.FULL_FAST_UUID.value,
-                    Scanner.OPENVAS_DEFAULT_SCANNER_UUID.value,
-                    [alert_uuid,],
-                    True,
-                    schedule_uuid,
-                    hosts_ordering=HostsOrdering.RANDOM,
-                    max_conc_nvts=32
-                )
-                # report_uuid = self.__start_task(task_uuid, self.PERIODIC_TASK_NAME)
-                report_uuid = ""
-                self.__modify_http_alert_data('', deterrers_url, '', task_uuid, report_uuid, alert_uuid)
+                    if response_status not in (200, 201, 202, 203, 204):
+                        raise GmpAPIError("Couldn't modify schedule.")
+                    # # restart task
+                    # response = self.gmp.start_task(task_uuid)
+                    # response_status = int(response.xpath('@status')[0])
+                    # if response_status not in (200, 201, 202, 203, 204):
+                    #     pretty_print(response)
+                    #     raise GmpAPIError(f"Couldn't restart periodic task after adding {host_ip}.")
 
         except GmpAPIError:
             logger.exception("Couldn't add host to periodic scan task.")
             return False
         return True
+
 
     def remove_host_from_periodic_scan(self, host_ip : str) -> bool:
         """
