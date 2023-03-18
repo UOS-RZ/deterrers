@@ -148,7 +148,8 @@ class GmpVScannerInterface():
         alterable : bool = False,
         schedule_uuid : str|None  = None,
         hosts_ordering : HostsOrdering = HostsOrdering.RANDOM,
-        max_conc_nvts : int = 64) -> str:
+        max_conc_nvts : int = 64,
+        max_conc_hosts : int = 20) -> str:
         """
         Create a scan task with given configurations.
 
@@ -180,6 +181,7 @@ class GmpVScannerInterface():
             hosts_ordering=hosts_ordering,
             preferences={
                 "max_checks" : max_conc_nvts,
+                "max_hosts" : max_conc_hosts,
             }
         )
         response_status = int(response.xpath('@status')[0])
@@ -578,7 +580,8 @@ class GmpVScannerInterface():
             True,
             schedule_uuid,
             hosts_ordering=HostsOrdering.RANDOM,
-            max_conc_nvts=32
+            max_conc_nvts=32,
+            max_conc_hosts=100
         )
         # report_uuid = self.__start_task(task_uuid, self.PERIODIC_TASK_NAME)
         report_uuid = ""
