@@ -602,7 +602,8 @@ class GmpVScannerInterface():
             old_target_uuid = None
         return task_xml, task_uuid, old_target_uuid
 
-    def __stop_task(self, host_ip, task_xml):
+    def __stop_periodic_task(self):
+        task_xml, task_uuid, old_target_uuid = self.__get_periodic_task_info()
         # wait if task is queued or requested, stop task in case it is running
         task_status = task_xml.xpath('//task/status')[0].text
         while task_status == "Queued" or task_status == "Requested":
@@ -615,7 +616,7 @@ class GmpVScannerInterface():
             response = self.gmp.stop_task(task_uuid)
             response_status = int(response.xpath('@status')[0])
             if response_status != 200:
-                raise GmpAPIError(f"Couldn't stop periodic task before adding {host_ip}.")
+                raise GmpAPIError("Couldn't stop periodic task.")
             stopped = True
         else:
             stopped = False
@@ -658,7 +659,7 @@ class GmpVScannerInterface():
                 )
             else:
                 # periodic scan task does exist
-                task_xml, task_uuid, old_target_uuid, stopped = self.__stop_task(host_ip, task_xml)
+                task_xml, task_uuid, old_target_uuid, stopped = self.__stop_periodic_task()
 
                 # 1. clone target
                 response = self.gmp.clone_target(old_target_uuid)
@@ -716,7 +717,7 @@ class GmpVScannerInterface():
             task_xml, task_uuid, old_target_uuid = self.__get_periodic_task_info()
             if task_uuid:
                 # periodic scan task does exist
-                task_xml, task_uuid, old_target_uuid, stopped = self.__stop_task(host_ip, task_xml)
+                task_xml, task_uuid, old_target_uuid, stopped = self.__stop_periodic_task()
 
                 # 1. clone target
                 response = self.gmp.clone_target(old_target_uuid)
