@@ -378,7 +378,7 @@ class GmpVScannerInterface():
         Returns:
             str: UUID of the schedule.
         """
-        now = datetime.now()
+        now = datetime.utcnow()
         cal = self.__create_cal(timedelta(hours=12), freq=freq)
 
         response = self.gmp.create_schedule(
@@ -394,7 +394,7 @@ class GmpVScannerInterface():
         return schedule_uuid
 
     def __create_cal(self, start_delta : timedelta, freq : str = 'weekly') -> icalendar.Calendar:
-        now = datetime.now()
+        now = datetime.utcnow()
         cal = icalendar.Calendar()
         # Some properties are required to be compliant
         cal.add('prodid', '-//DETERRERS//')
@@ -584,6 +584,55 @@ class GmpVScannerInterface():
         report_uuid = ""
         self.__modify_http_alert_data('', deterrers_url, '', task_uuid, report_uuid, alert_uuid)
     
+
+    def __get_periodic_task_info(self):
+        filter_str = f'"{self.PERIODIC_TASK_NAME}" rows=-1 first=1'
+        response = self.gmp.get_tasks(filter_string=filter_str)
+        response_status = int(response.xpath('@status')[0])
+        if response_status != 200:
+            raise GmpAPIError(f"Couldn't get tasks! Status: {response_status}")
+        try:
+            # get task uuid and uuid of the existing target
+            task_xml = response.xpath('//task')[0]
+            task_uuid = task_xml.attrib['id']
+            old_target_uuid = task_xml.xpath('//target/@id')[0]
+        except IndexError:
+            task_xml = None
+            task_uuid = None
+            old_target_uuid = None
+        return task_xml, task_uuid, old_target_uuid
+
+    def __stop_task(self, host_ip, task_xml):
+        # wait if task is queued or requested, stop task in case it is running
+        task_status = task_xml.xpath('//task/status')[0].text
+        while task_status == "Queued" or task_status == "Requested":
+            sleep(1.0)
+            task_xml, task_uuid, old_target_uuid = self.__get_periodic_task_info()
+            task_status = task_xml.xpath('//task/status')[0].text
+                
+        running = (task_status == 'Running')
+        if running:
+            response = self.gmp.stop_task(task_uuid)
+            response_status = int(response.xpath('@status')[0])
+            if response_status != 200:
+                raise GmpAPIError(f"Couldn't stop periodic task before adding {host_ip}.")
+            stopped = True
+        else:
+            stopped = False
+        return task_xml, task_uuid, old_target_uuid, stopped
+
+    def __restart_scheduled_task(self, schedule_uuid : str):
+        # reschedule task because scheduled tasks cannot be resumed
+        new_cal = self.__create_cal(timedelta(minutes=1))
+        response = self.gmp.modify_schedule(
+                        schedule_uuid,
+                        icalendar=new_cal.to_ical(),
+                        timezone='UTC'
+                    )
+        response_status = int(response.xpath('@status')[0])
+        if response_status not in (200, 201, 202, 203, 204):
+            raise GmpAPIError("Couldn't modify schedule.")
+        
     def add_host_to_periodic_scan(self, host_ip : str, deterrers_url : str) -> bool:
         """
         Add a host to the periodic scan task which scans all hosts that are online once a week.
@@ -596,26 +645,10 @@ class GmpVScannerInterface():
         Returns:
             bool: Returns True on success and False if something went wrong.
         """
-        def get_task():
-            filter_str = f'"{self.PERIODIC_TASK_NAME}" rows=-1 first=1'
-            response = self.gmp.get_tasks(filter_string=filter_str)
-            response_status = int(response.xpath('@status')[0])
-            if response_status != 200:
-                raise GmpAPIError(f"Couldn't get tasks! Status: {response_status}")
-            try:
-                # get task uuid and uuid of the existing target
-                task_xml = response.xpath('//task')[0]
-                task_uuid = task_xml.attrib['id']
-                old_target_uuid = task_xml.xpath('//target/@id')[0]
-            except IndexError:
-                task_xml = None
-                task_uuid = None
-                old_target_uuid = None
-            return task_xml, task_uuid, old_target_uuid
         
         try:
             # check whether periodic task exists, if not, IndexError will be raised later
-            task_xml, task_uuid, old_target_uuid = get_task()
+            task_xml, task_uuid, old_target_uuid = self.__get_periodic_task_info()
 
             if not task_uuid:
                 # periodic scan task does not exist yet
@@ -625,24 +658,7 @@ class GmpVScannerInterface():
                 )
             else:
                 # periodic scan task does exist
-                task_uuid = task_xml.attrib['id']
-                old_target_uuid = task_xml.xpath('//target/@id')[0]
-                # wait if task is queued or requested, stop task in case it is running
-                task_status = task_xml.xpath('//task/status')[0].text
-                while task_status == "Queued" or task_status == "Requested":
-                    sleep(1.0)
-                    task_xml, task_uuid, old_target_uuid = get_task()
-                    task_status = task_xml.xpath('//task/status')[0].text
-                
-                running = (task_status == 'Running')
-                if running:
-                    response = self.gmp.stop_task(task_uuid)
-                    response_status = int(response.xpath('@status')[0])
-                    if response_status != 200:
-                        raise GmpAPIError(f"Couldn't stop periodic task before adding {host_ip}.")
-                    stopped = True
-                else:
-                    stopped = False
+                task_xml, task_uuid, old_target_uuid, stopped = self.__stop_task(host_ip, task_xml)
 
                 # 1. clone target
                 response = self.gmp.clone_target(old_target_uuid)
@@ -677,23 +693,8 @@ class GmpVScannerInterface():
                     raise GmpAPIError(f"Couldn't delete target {old_target_uuid}! Status: {response_status}")
 
                 if stopped:
-                    # reschedule task
                     schedule_uuid = task_xml.xpath('//schedule/@id')[0]
-                    new_cal = self.__create_cal(timedelta(hours=-1, minutes=1))
-                    response = self.gmp.modify_schedule(
-                        schedule_uuid,
-                        icalendar=new_cal.to_ical(),
-                        timezone='UTC'
-                    )
-                    response_status = int(response.xpath('@status')[0])
-                    if response_status not in (200, 201, 202, 203, 204):
-                        raise GmpAPIError("Couldn't modify schedule.")
-                    # # restart task
-                    # response = self.gmp.start_task(task_uuid)
-                    # response_status = int(response.xpath('@status')[0])
-                    # if response_status not in (200, 201, 202, 203, 204):
-                    #     pretty_print(response)
-                    #     raise GmpAPIError(f"Couldn't restart periodic task after adding {host_ip}.")
+                    self.__restart_scheduled_task(schedule_uuid)
 
         except GmpAPIError:
             logger.exception("Couldn't add host to periodic scan task.")
@@ -712,35 +713,10 @@ class GmpVScannerInterface():
             bool: Returns True on success and False on failure.
         """
         try:
-            # check whether periodic task exists, if not, IndexError will be raised later
-            filter_str = f'"{self.PERIODIC_TASK_NAME}" rows=-1 first=1'
-            response = self.gmp.get_tasks(filter_string=filter_str)
-            response_status = int(response.xpath('@status')[0])
-            if response_status != 200:
-                raise GmpAPIError(f"Couldn't get tasks! Status: {response_status}")
-            try:
-                # get task uuid and uuid of the existing target
-                task_xml = response.xpath('//task')[0]
-                task_uuid = task_xml.attrib['id']
-                old_target_uuid = task_xml.xpath('//target/@id')[0]
-            except IndexError:
-                task_xml = None
-                task_uuid = None
-                old_target_uuid = None
+            task_xml, task_uuid, old_target_uuid = self.__get_periodic_task_info()
             if task_uuid:
                 # periodic scan task does exist
-                task_uuid = task_xml.attrib['id']
-                old_target_uuid = task_xml.xpath('//target/@id')[0]
-                # stop task in case it is running
-                running = (task_xml.xpath('//task/status')[0].text == 'Running')
-                if running:
-                    response = self.gmp.stop_task(task_uuid)
-                    response_status = int(response.xpath('@status')[0])
-                    if response_status != 200:
-                        raise GmpAPIError(f"Couldn't stop periodic task before removing {host_ip}.")
-                    stopped = True
-                else:
-                    stopped = False
+                task_xml, task_uuid, old_target_uuid, stopped = self.__stop_task(host_ip, task_xml)
 
                 # 1. clone target
                 response = self.gmp.clone_target(old_target_uuid)
@@ -778,10 +754,9 @@ class GmpVScannerInterface():
                     raise GmpAPIError(f"Couldn't delete target {old_target_uuid}! Status: {response_status}")
 
                 if stopped is True:
-                    response = self.gmp.resume_task(task_uuid)
-                    response_status = int(response.xpath('@status')[0])
-                    if response_status != 200:
-                        raise GmpAPIError(f"Couldn't resume periodic task after removing {host_ip}.")
+                    # reschedule task
+                    schedule_uuid = task_xml.xpath('//schedule/@id')[0]
+                    self.__restart_scheduled_task(schedule_uuid)
         except GmpAPIError:
             logger.exception("Couldn't add host to periodic scan task.")
             return False
