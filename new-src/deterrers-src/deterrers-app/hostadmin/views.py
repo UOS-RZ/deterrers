@@ -80,6 +80,43 @@ def __block_host(host_ipv4 : str) -> bool:
         
     return True
 
+
+def __set_host_online(host : MyHost, ips_to_update : set[str]) -> bool:
+    """
+    Change the perimeter firewall configuration so that only hosts service profile is allowed.
+
+    Args:
+        host (MyHost): Host instance
+        ips_to_update (set[str]): Set of unique IP addresses.
+    
+    Returns:
+        bool: Returns True on success and False if something goes wrong.
+    """
+    with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
+        if not fw.enter_ok:
+            logger.error("Connection to FW failed!")
+            return False
+        # first make sure ip is not already in any AddressGroups
+        suc = fw.remove_addr_objs_from_addr_grps(ips_to_update, {ag for ag in PaloAltoAddressGroup})
+        if not suc:
+            logger.error("Couldn't update firewall configuration!")
+            return False
+        match host.service_profile:
+            case HostServiceContract.HTTP:
+                suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.HTTP,})
+            case HostServiceContract.SSH:
+                suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.SSH,})
+            case HostServiceContract.MULTIPURPOSE:
+                suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.OPEN,})
+            case HostServiceContract.HTTP_SSH:
+                suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.HTTP, PaloAltoAddressGroup.SSH})
+            case _:
+                raise RuntimeError(f"Unknown service profile: {host.service_profile}")
+        if not suc:
+            logger.error("Couldn't update firewall configuration!")
+            return False
+    return True
+
 def __is_public_ip(ip : str|ipaddress.IPv4Address|ipaddress.IPv6Address) -> bool:
     """
     Check whether ip address is public.
@@ -128,7 +165,7 @@ def __get_available_actions(host : MyHost) -> dict:
             flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
             flags['can_block'] = False
         case HostStatusContract.ONLINE:
-            flags['can_update'] = False
+            flags['can_update'] = True
             flags['can_register'] = False
             flags['can_scan'] = True
             flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
@@ -443,6 +480,17 @@ def update_host_detail(request, ip : str):
                 host.service_profile = HostServiceContract(form.cleaned_data['service_profile'])
                 host.fw = HostFWContract(form.cleaned_data['fw'])
 
+                # if host is already online, update the perimeter FW
+                if host.service_profile == HostStatusContract.ONLINE:
+                    if not __set_host_online(host, {str(host.ipv4_addr), }):
+                        form.add_error(None, "Perimeter Firewall could not be updated. Try again later!")
+                        context = {
+                            'form' : form,
+                            'host_instance' : host
+                        }
+                        return render(request, 'update_host_detail.html', context=context)
+
+                # auto-add some host-based policies
                 match host.service_profile:
                     case HostServiceContract.EMPTY:
                         pass
@@ -780,26 +828,9 @@ def v_scanner_registration_alert(request):
                         if not scanner.add_host_to_periodic_scan(host_ip=str(host.ipv4_addr), deterrers_url=own_url):
                             raise RuntimeError(f"Couldn't add host {host.ipv4_addr} to periodic scan!")
                         # change the perimeter firewall configuration so that only hosts service profile is allowed
-                        with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
-                            if not fw.enter_ok:
-                                raise RuntimeError("Connection to FW failed!")
-                            # first make sure ip is not already in any AddressGroups
-                            suc = fw.remove_addr_objs_from_addr_grps(ips_to_update, {ag for ag in PaloAltoAddressGroup})
-                            if not suc:
-                                raise RuntimeError("Couldn't update firewall configuration!")
-                            match host.service_profile:
-                                case HostServiceContract.HTTP:
-                                    suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.HTTP,})
-                                case HostServiceContract.SSH:
-                                    suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.SSH,})
-                                case HostServiceContract.MULTIPURPOSE:
-                                    suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.OPEN,})
-                                case HostServiceContract.HTTP_SSH:
-                                    suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.HTTP, PaloAltoAddressGroup.SSH})
-                                case _:
-                                    raise RuntimeError(f"Unknown service profile: {host.service_profile}")
-                            if not suc:
-                                raise RuntimeError("Couldn't update firewall configuration!")
+                        if not __set_host_online(host, ips_to_update):
+                            raise RuntimeError("Couldn't set host online at perimeter FW!")
+                        # update host info in IPAM
                         host.status = HostStatusContract.ONLINE
                         if not ipam.update_host_info(host):
                             raise RuntimeError("Couldn't update host information!")
