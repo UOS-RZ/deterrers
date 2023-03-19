@@ -483,7 +483,7 @@ def update_host_detail(request, ip : str):
                 host.fw = HostFWContract(form.cleaned_data['fw'])
 
                 # if host is already online, update the perimeter FW
-                if host.service_profile == HostStatusContract.ONLINE:
+                if host.status == HostStatusContract.ONLINE:
                     if not __set_host_online(host, {str(host.ipv4_addr), }):
                         form.add_error(None, "Perimeter firewall could not be updated. Please make sure you have selected a service profile!")
                         context = {
