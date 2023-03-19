@@ -92,6 +92,7 @@ def __set_host_online(host : MyHost, ips_to_update : set[str]) -> bool:
     Returns:
         bool: Returns True on success and False if something goes wrong.
     """
+    logger.info("Set host %s online.", str(host))
     with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
         if not fw.enter_ok:
             logger.error("Connection to FW failed!")
@@ -111,7 +112,8 @@ def __set_host_online(host : MyHost, ips_to_update : set[str]) -> bool:
             case HostServiceContract.HTTP_SSH:
                 suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.HTTP, PaloAltoAddressGroup.SSH})
             case _:
-                raise RuntimeError(f"Unknown service profile: {host.service_profile}")
+                logger.error("Unknown service profile: %s", str(host.service_profile))
+                return False
         if not suc:
             logger.error("Couldn't update firewall configuration!")
             return False
@@ -483,7 +485,7 @@ def update_host_detail(request, ip : str):
                 # if host is already online, update the perimeter FW
                 if host.service_profile == HostStatusContract.ONLINE:
                     if not __set_host_online(host, {str(host.ipv4_addr), }):
-                        form.add_error(None, "Perimeter Firewall could not be updated. Try again later!")
+                        form.add_error(None, "Perimeter firewall could not be updated. Please make sure you have selected a service profile!")
                         context = {
                             'form' : form,
                             'host_instance' : host
