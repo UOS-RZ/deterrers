@@ -123,7 +123,13 @@ class MyHost():
 
 
 class MyHostSerializer(serializers.Serializer):
+    """
+    Serializer class for working with MyHost with the REST framework.
+    """
     class HostBasedPolicyField(serializers.Field):
+        """
+        Custom serializer field for HostBasedPolicy instances.
+        """
         def to_representation(self, value : HostBasedPolicy):
             return value.to_string()
 
@@ -138,6 +144,9 @@ class MyHostSerializer(serializers.Serializer):
             return policy
         
     class HostStatusField(serializers.Field):
+        """
+        Custom serializer field for HostStatusContract instances.
+        """
         def to_representation(self, value : HostStatusContract):
             return value.value
 
@@ -148,6 +157,9 @@ class MyHostSerializer(serializers.Serializer):
                 raise serializers.ValidationError(f"Invalid host status value: {data}")
         
     class HostServiceField(serializers.Field):
+        """
+        Custom serializer field for HostServiceContract instances.
+        """
         def to_representation(self, value : HostServiceContract):
             return value.value
 
@@ -158,6 +170,9 @@ class MyHostSerializer(serializers.Serializer):
                 raise serializers.ValidationError(f"Invalid host service profile value: {data}")
         
     class HostFWField(serializers.Field):
+        """
+        Custom serializer field for HostFWContract instances.
+        """
         def to_representation(self, value : HostFWContract):
             return value.value
 
