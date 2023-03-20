@@ -7,8 +7,6 @@ from hostadmin.core.contracts import HostStatusContract, HostServiceContract, Ho
 from hostadmin.core.host import MyHost
 
 
-
-
 class MyHostSerializer(serializers.Serializer):
     """
     Serializer class for working with MyHost with the REST framework.
@@ -98,3 +96,13 @@ class MyHostSerializer(serializers.Serializer):
         instance.fw = validated_data.get('fw', instance.fw)
         instance.host_based_policies = validated_data.get('host_based_policies', instance.host_based_policies)
         return instance
+
+
+class HostActionSerializer(serializers.Serializer):
+    ACTION_CHOICES = [
+        ('register', 'register'),
+        ('block', 'block'),
+    ]
+    action = serializers.ChoiceField(required=True, choices=ACTION_CHOICES)
+    ipv4_addrs = serializers.ListField(required=True, child=serializers.IPAddressField(protocol='ipv4'))
+
