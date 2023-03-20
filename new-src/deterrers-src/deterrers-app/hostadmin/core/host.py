@@ -2,6 +2,8 @@ import ipaddress
 
 from django.urls import reverse
 
+from rest_framework import serializers
+
 from .rule_generator import HostBasedPolicy
 from .contracts import HostFWContract, HostServiceContract, HostStatusContract
 
@@ -14,32 +16,32 @@ class MyHost():
     def __init__(
         self,
         entity_id : int,
-        ipv4 : str,
-        mac : str,
+        ipv4_addr : str,
+        mac_addr : str,
         admin_ids : set,
         status : HostStatusContract,
         name : str = '',
         dns_rcs : set[str] = set(),
-        service : HostServiceContract = HostServiceContract.EMPTY,
+        service_profile : HostServiceContract = HostServiceContract.EMPTY,
         fw : HostFWContract = HostFWContract.EMPTY,
-        policies  : list[HostBasedPolicy] = []):
+        host_based_policies  : list[HostBasedPolicy] = []):
 
         # Mandatory
         self.entity_id = int(entity_id)
         try:
-            self.ipv4_addr = ipaddress.IPv4Address(ipv4.replace('_', '.'))
+            self.ipv4_addr = ipaddress.IPv4Address(ipv4_addr.replace('_', '.'))
         except ipaddress.AddressValueError:
             self.ipv4_addr = None
             return
-        self.mac_addr = mac
+        self.mac_addr = mac_addr
         self.admin_ids = set(admin_ids)
         self.status = status
         # Optional
         self.name = name
         self.dns_rcs = set(dns_rcs)
-        self.service_profile = service
+        self.service_profile = service_profile
         self.fw = fw
-        self.host_based_policies = policies
+        self.host_based_policies = host_based_policies
 
 
     def __str__(self) -> str:
@@ -118,3 +120,34 @@ class MyHost():
                 return False
         
         return True
+
+
+class MyHostSerializer(serializers.Serializer):
+    # Mandatory
+    entity_id = serializers.IntegerField()
+    ipv4_addr = serializers.IPAddressField(protocol='ipv4')
+    mac_addr = serializers.StringRelatedField()
+    admin_ids = serializers.ListField()
+    status = serializers.StringRelatedField()
+    # Optional
+    name = serializers.StringRelatedField()
+    dns_rcs = serializers.ListField()
+    service_profile = serializers.StringRelatedField()
+    fw = serializers.StringRelatedField()
+    host_based_policies = serializers.ListField()
+
+    def create(self, validated_data):
+        return MyHost(**validated_data)
+
+    def update(self, instance, validated_data):
+        instance.entity_id = validated_data.get('entity_id', instance.entity_id)
+        instance.ipv4_addr = validated_data.get('ipv4_addr', instance.conipv4_addrtent)
+        instance.mac_addr = validated_data.get('mac_addr', instance.mac_addr)
+        instance.admin_ids = validated_data.get('admin_ids', instance.admin_ids)
+        instance.status = validated_data.get('status', instance.status)
+        instance.name = validated_data.get('name', instance.name)
+        instance.dns_rcs = validated_data.get('dns_rcs', instance.dns_rcs)
+        instance.service_profile = validated_data.get('service_profile', instance.service_profile)
+        instance.fw = validated_data.get('fw', instance.fw)
+        instance.host_based_policies = validated_data.get('host_based_policies', instance.host_based_policies)
+        return instance

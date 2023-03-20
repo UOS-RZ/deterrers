@@ -335,7 +335,7 @@ def host_detail_view(request, ip : str):
 def hosts_list_view(request):
     """
     Function view for adding new hosts and showing all hosts that are administrated by the current
-    hostadmin. Paginated to 20 entries per page.
+    hostadmin. Paginated to 200 entries per page.
 
     Args:
         request (_type_): Request object.

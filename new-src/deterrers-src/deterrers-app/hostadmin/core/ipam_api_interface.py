@@ -278,15 +278,15 @@ class ProteusIPAMInterface():
             dns_rcs = self.__get_linked_dns_records(ip)
 
             my_host = MyHost(
-                ipv4=ip,
-                mac=mac,
+                ipv4_addr=ip,
+                mac_addr=mac,
                 admin_ids=tagged_admins,
                 status=status,
                 name=name,
                 dns_rcs=dns_rcs,
-                service=service,
+                service_profile=service,
                 fw=fw,
-                policies=rules,
+                host_based_policies=rules,
                 entity_id=int(host_id)
             )
             if my_host.is_valid():
@@ -325,15 +325,15 @@ class ProteusIPAMInterface():
             dns_rcs = self.__get_linked_dns_records(ip)
 
             my_host = MyHost(
-                ipv4=ip,
-                mac=mac,
+                ipv4_addr=ip,
+                mac_addr=mac,
                 admin_ids=tagged_admins,
                 status=status,
                 name=name,
                 dns_rcs=dns_rcs,
-                service=service,
+                service_profile=service,
                 fw=fw,
-                policies=rules,
+                host_based_policies=rules,
                 entity_id=int(host_id)
             )
             if my_host.is_valid():
@@ -373,15 +373,15 @@ class ProteusIPAMInterface():
                 # get dns records
                 dns_rcs = self.__get_linked_dns_records(ip)
                 my_host = MyHost(
-                    ipv4=ip,
-                    mac=mac,
+                    ipv4_addr=ip,
+                    mac_addr=mac,
                     admin_ids=tagged_admins,
                     status=status,
                     name=name,
                     dns_rcs=dns_rcs,
-                    service=service,
+                    service_profile=service,
                     fw=fw,
-                    policies=rules,
+                    host_based_policies=rules,
                     entity_id=int(host_id)
                 )
                 if my_host.is_valid():
