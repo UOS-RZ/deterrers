@@ -19,7 +19,7 @@ class MyHost():
         admin_ids : set,
         status : HostStatusContract,
         name : str = '',
-        dns_rcs : set[str] = [],
+        dns_rcs : set[str] = set(),
         service : HostServiceContract = HostServiceContract.EMPTY,
         fw : HostFWContract = HostFWContract.EMPTY,
         policies  : list[HostBasedPolicy] = []):
