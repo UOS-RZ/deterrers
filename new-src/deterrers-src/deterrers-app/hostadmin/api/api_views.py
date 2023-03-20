@@ -8,10 +8,14 @@ from rest_framework.permissions import IsAuthenticated
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.http import Http404
+from django.urls import reverse
 
 from myuser.models import MyUser
+from hostadmin.util import available_actions
 from hostadmin.core.ipam_api_interface import ProteusIPAMInterface
-from .serializers import MyHostSerializer
+from hostadmin.core.v_scanner_interface import GmpVScannerInterface
+from hostadmin.core.contracts import HostStatusContract
+from .serializers import MyHostSerializer, HostActionSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -43,9 +47,6 @@ def hosts(request):
     Args:
         request (_type_): Request object.
 
-    Raises:
-        Http404: Raised if user does not exist in IPAM and has no admin tag in IPAM-
-
     Returns:
         Response: Response object.
     """
@@ -55,7 +56,7 @@ def hosts(request):
         user_exists = ipam.user_exists(hostadmin.username)
         admin_tag_exists = ipam.admin_tag_exists(hostadmin.username)
         if not user_exists or not admin_tag_exists:
-            raise Http404()
+            return Response(status=404)
         # get hosts
         hosts_list = ipam.get_hosts_of_admin(hostadmin.username)
         hosts_list = sorted(hosts_list)
@@ -90,7 +91,48 @@ def host(request):
         case _:
             logger.error('Unsupported host action!')
             return Response(status=405)
-    
+
+def register_bulk(hostadmin : MyUser, ipv4_addrs : set[str]):
+    with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        # check if user has IPAM permission or an admin tag for them exists
+        user_exists = ipam.user_exists(hostadmin.username)
+        admin_tag_exists = ipam.admin_tag_exists(hostadmin.username)
+        if not user_exists or not admin_tag_exists:
+            raise Http404()
+        
+        # check if all requested hosts are permitted for this hostadmin
+        for ip in ipv4_addrs:
+            # get host
+            host = ipam.get_host_info_from_ip(ip)
+            if not host:
+                raise Http404()
+            # check if user is admin of this host
+            if not hostadmin.username in host.admin_ids:
+                raise Http404()
+            # check if action is available for this host
+            if not available_actions(host).get('can_register'):
+                raise Http404()
+            # check if host is actually valid
+            if not host.is_valid():
+                raise Http404()
+            
+        # perform actual registration of hosts
+        with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
+            own_url = settings.DOMAIN_NAME + reverse('v_scanner_registration_alert')
+            for ip in ipv4_addrs:
+                target_uuid, task_uuid, report_uuid, alert_uuid = scanner.create_registration_scan(ip, own_url)
+                if target_uuid and task_uuid and report_uuid and alert_uuid:
+                    # update state in IPAM
+                    host.status = HostStatusContract.UNDER_REVIEW
+                    if not ipam.update_host_info(host):
+                        scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
+                        logger.error("Couldn't update status of host %s", ip)
+                        continue
+                else:
+                    logger.error("Registration for host %s couldn't be started!", ip)
+
+def block_bulk(hostadmin : MyUser, ipv4_addrs : set[str]):
+    logger.info('Not implemented yet!')
 
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
@@ -106,7 +148,25 @@ def action(request):
     Returns:
         Response: Response object.
     """
-    logger.info('Not implemented yet.')
+    hostadmin = get_object_or_404(MyUser, username=request.user.username)
+    bulk_action = HostActionSerializer(data=request.data)
+    if not bulk_action.is_valid():
+        return Response(status=400)
+    action = bulk_action.validated_data['action']
+    ipv4_addrs = set(bulk_action.validated_data.get('ipv4_addrs', []))
+
+    try:
+        match  action:
+            case 'register':
+                register_bulk(hostadmin=hostadmin, ipv4_addrs=ipv4_addrs)
+            case 'block':
+                block_bulk(hostadmin=hostadmin, ipv4_addrs=ipv4_addrs)
+            case _:
+                return Response(status=400)
+    except Http404:
+        return Response(status=404)
+    
+        
     return Response()
 
 
