@@ -4,15 +4,14 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.renderers import JSONRenderer
 
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.http import Http404
 
-from .core.ipam_api_interface import ProteusIPAMInterface
-from .core.host import MyHostSerializer
 from myuser.models import MyUser
+from hostadmin.core.ipam_api_interface import ProteusIPAMInterface
+from .serializers import MyHostSerializer
 
 logger = logging.getLogger(__name__)
 
