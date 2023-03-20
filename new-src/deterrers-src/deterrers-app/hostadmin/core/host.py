@@ -18,7 +18,7 @@ class MyHost():
         entity_id : int,
         ipv4_addr : str,
         mac_addr : str,
-        admin_ids : set,
+        admin_ids : set[str],
         status : HostStatusContract,
         name : str = '',
         dns_rcs : set[str] = set(),
@@ -123,18 +123,63 @@ class MyHost():
 
 
 class MyHostSerializer(serializers.Serializer):
+    class HostBasedPolicyField(serializers.Field):
+        def to_representation(self, value : HostBasedPolicy):
+            return value.to_string()
+
+        def to_internal_value(self, data : str):
+            if not isinstance(data, str):
+                msg = 'Incorrect type. Expected a string, but got %s'
+                raise serializers.ValidationError(msg % type(data).__name__)
+            
+            policy = HostBasedPolicy.from_string(data)
+            if not policy:
+                raise serializers.ValidationError("Invalid string representation fo a host-base policy!")
+            return policy
+        
+    class HostStatusField(serializers.Field):
+        def to_representation(self, value : HostStatusContract):
+            return value.value
+
+        def to_internal_value(self, data : str):
+            try:
+                return HostStatusContract(data)
+            except:
+                raise serializers.ValidationError(f"Invalid host status value: {data}")
+        
+    class HostServiceField(serializers.Field):
+        def to_representation(self, value : HostServiceContract):
+            return value.value
+
+        def to_internal_value(self, data : str):
+            try:
+                return HostServiceContract(data)
+            except:
+                raise serializers.ValidationError(f"Invalid host service profile value: {data}")
+        
+    class HostFWField(serializers.Field):
+        def to_representation(self, value : HostFWContract):
+            return value.value
+
+        def to_internal_value(self, data : str):
+            try:
+                return HostFWContract(data)
+            except:
+                raise serializers.ValidationError(f"Invalid host-based firewall value: {data}")
+            
+    
     # Mandatory
     entity_id = serializers.IntegerField()
     ipv4_addr = serializers.IPAddressField(protocol='ipv4')
-    mac_addr = serializers.StringRelatedField()
-    admin_ids = serializers.ListField()
-    status = serializers.StringRelatedField()
+    mac_addr = serializers.CharField()
+    admin_ids = serializers.ListField(child=serializers.CharField())
+    status = HostStatusField()
     # Optional
-    name = serializers.StringRelatedField()
-    dns_rcs = serializers.ListField()
-    service_profile = serializers.StringRelatedField()
-    fw = serializers.StringRelatedField()
-    host_based_policies = serializers.ListField()
+    name = serializers.CharField(required=False)
+    dns_rcs = serializers.ListField(required=False, child=serializers.CharField())
+    service_profile = HostServiceField(required=False)
+    fw = HostFWField(required=False)
+    host_based_policies = serializers.ListField(required=False, child=HostBasedPolicyField())
 
     def create(self, validated_data):
         return MyHost(**validated_data)
