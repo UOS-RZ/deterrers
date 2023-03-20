@@ -1,6 +1,6 @@
 from django.urls import path, register_converter
 from . import views
-from . import api_views
+from .api import api_views
 
 class IPPathConverter:
     regex = '[0-9]{1,3}(_[0-9]{1,3}){3}'
