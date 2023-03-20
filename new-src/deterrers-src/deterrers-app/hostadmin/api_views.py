@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.renderers import JSONRenderer
 
 from django.conf import settings
 from django.shortcuts import get_object_or_404
@@ -62,10 +63,7 @@ def hosts(request):
     data = []
     for host in hosts_list:
         host_serializer = MyHostSerializer(data=host)
-        if host_serializer.is_valid():
-            data.append(host_serializer.validated_data)
-        else:
-            logger.warning("Validation error: %s", str(host_serializer.errors))
+        data.append(host_serializer.data)
     return Response(data=data)
 
 
