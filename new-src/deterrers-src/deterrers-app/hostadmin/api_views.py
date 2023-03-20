@@ -36,6 +36,19 @@ def __update_host(request):
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def hosts(request):
+    """
+    API method for interaction with multiple hosts.
+    Supports GET.
+
+    Args:
+        request (_type_): Request object.
+
+    Raises:
+        Http404: Raised if user does not exist in IPAM and has no admin tag in IPAM-
+
+    Returns:
+        Response: Response object.
+    """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
         # check if user has IPAM permission or an admin tag for them exists
@@ -58,6 +71,16 @@ def hosts(request):
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def host(request):
+    """
+    API method for interaction with a host.
+    Supports GET, POST, PATCH.
+
+    Args:
+        request (_type_): Request object.
+
+    Returns:
+        Response: Response object.
+    """
     match request.method:
         case 'GET':
             return __get_host(request)
@@ -74,6 +97,16 @@ def host(request):
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def action(request):
+    """
+    API method for performing an action on hosts. Not really RESTful but necessary.
+    Supports POST.
+
+    Args:
+        request (_type_): Request object.
+
+    Returns:
+        Response: Response object.
+    """
     logger.info('Not implemented yet.')
     return Response()
 
