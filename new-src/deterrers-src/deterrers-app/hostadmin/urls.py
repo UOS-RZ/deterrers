@@ -1,5 +1,6 @@
-from django.urls import path, re_path, register_converter
+from django.urls import path, register_converter
 from . import views
+from . import api_views
 
 class IPPathConverter:
     regex = '[0-9]{1,3}(_[0-9]{1,3}){3}'
@@ -13,7 +14,9 @@ class IPPathConverter:
 register_converter(IPPathConverter, 'esc_ip')
 
 urlpatterns = [
+    path('', views.about_view, name='about'),
     path('init/', views.hostadmin_init_view, name='hostadmin_init'),
+    path('hosts/', views.hosts_list_view, name='hosts_list'),
     path('host/<esc_ip:ip>/', views.host_detail_view, name='host_detail'),
     path('host/<esc_ip:ip>/rule/delete/<uuid:rule_id>/', views.delete_host_rule, name='delete_rule'),
     path('host/<esc_ip:ip>/update/', views.update_host_detail, name='update_host_detail'),
@@ -21,10 +24,12 @@ urlpatterns = [
     path('host/<esc_ip:ip>/scan/', views.scan_host, name='scan_host'),
     path('host/<esc_ip:ip>/block/', views.block_host, name='block_host'),
     path('host/<esc_ip:ip>/get-fw-config/', views.get_fw_config, name='get_fw_config'),
-    path('hosts/', views.hosts_list_view, name='hosts_list'),
-    path('', views.about_view, name='about'),
     path('greenbone-registration-alert/', views.v_scanner_registration_alert, name='v_scanner_registration_alert'),
     path('greenbone-scan-alert/', views.v_scanner_scan_alert, name='v_scanner_scan_alert'),
     path('greenbone-periodic-alert/', views.v_scanner_periodic_alert, name='v_scanner_periodic_alert'),
+    # API views
+    path('api/hosts/', api_views.hosts),
+    path('api/host/', api_views.host),
+    path('api/action/', api_views.action),
 ]
 

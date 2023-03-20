@@ -102,6 +102,8 @@ INSTALLED_APPS = [
     # Third-party applications
     'django_python3_ldap',
     'django_bootstrap5',
+    'rest_framework',
+    'rest_framework.authtoken',
 ]
 
 MIDDLEWARE = [

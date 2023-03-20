@@ -7,3 +7,4 @@ python-gvm
 icalendar
 paramiko
 django-bootstrap5
+djangorestframework
