@@ -62,7 +62,7 @@ def hosts(request):
         hosts_list = sorted(hosts_list)
     data = []
     for host in hosts_list:
-        host_serializer = MyHostSerializer(data=host)
+        host_serializer = MyHostSerializer(host)
         data.append(host_serializer.data)
     return Response(data=data)
 
