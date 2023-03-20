@@ -5,6 +5,14 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 
+from django.conf import settings
+from django.shortcuts import get_object_or_404
+from django.http import Http404
+
+from .core.ipam_api_interface import ProteusIPAMInterface
+from .core.host import MyHostSerializer
+from myuser.models import MyUser
+
 logger = logging.getLogger(__name__)
 
 
@@ -28,8 +36,23 @@ def __update_host(request):
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def hosts(request):
-    logger.info('Not implemented yet.')
-    return Response()
+    hostadmin = get_object_or_404(MyUser, username=request.user.username)
+    with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        # check if user has IPAM permission or an admin tag for them exists
+        user_exists = ipam.user_exists(hostadmin.username)
+        admin_tag_exists = ipam.admin_tag_exists(hostadmin.username)
+        if not user_exists or not admin_tag_exists:
+            raise Http404()
+        # get hosts
+        hosts_list = ipam.get_hosts_of_admin(hostadmin.username)
+        hosts_list = sorted(hosts_list)
+    data = []
+    for host in hosts_list:
+        host_serializer = MyHostSerializer(data=host)
+        if host_serializer.is_valid():
+            data.append(host_serializer.validated_data)
+    return Response(data=data)
+
 
 @api_view(['GET', 'POST', 'PATCH'])
 @authentication_classes([TokenAuthentication])
