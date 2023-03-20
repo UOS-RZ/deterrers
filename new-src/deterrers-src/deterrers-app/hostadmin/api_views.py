@@ -64,6 +64,8 @@ def hosts(request):
         host_serializer = MyHostSerializer(data=host)
         if host_serializer.is_valid():
             data.append(host_serializer.validated_data)
+        else:
+            logger.warning("Validation error: %s", str(host_serializer.errors))
     return Response(data=data)
 
 
