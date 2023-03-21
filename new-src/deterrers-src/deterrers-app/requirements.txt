@@ -8,3 +8,5 @@ icalendar
 paramiko
 django-bootstrap5
 djangorestframework
+pyyaml
+uritemplate
