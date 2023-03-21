@@ -14,7 +14,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.mail import EmailMessage
 
-from util import add_changelog, available_actions, registration_mail_body, scan_mail_body, set_host_offline, set_host_online
+from .util import add_changelog, available_actions, registration_mail_body, scan_mail_body, set_host_offline, set_host_online
 
 from .forms import ChangeHostDetailForm, AddHostRulesForm, HostadminForm, AddHostForm
 from .core.ipam_api_interface import ProteusIPAMInterface
