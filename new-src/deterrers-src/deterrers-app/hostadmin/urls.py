@@ -1,4 +1,5 @@
 from django.urls import path, register_converter
+from rest_framework.schemas import get_schema_view
 from . import views
 from .api import api_views
 
@@ -31,5 +32,9 @@ urlpatterns = [
     path('api/hosts/', api_views.hosts),
     path('api/host/', api_views.host),
     path('api/action/', api_views.action),
+    path('api/openapi-schema', get_schema_view(
+        title="DETERRERS",
+        description="API Prototype",
+        version="0.0.1"
+    ), name='openapi-schema'),
 ]
-
