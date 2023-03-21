@@ -11,7 +11,7 @@ from django.http import Http404
 from django.urls import reverse
 
 from myuser.models import MyUser
-from hostadmin.util import available_actions
+from hostadmin.util import available_actions, set_host_offline
 from hostadmin.core.ipam_api_interface import ProteusIPAMInterface
 from hostadmin.core.v_scanner_interface import GmpVScannerInterface
 from hostadmin.core.contracts import HostStatusContract
@@ -93,11 +93,20 @@ def host(request):
             return Response(status=405)
 
 def register_bulk(hostadmin : MyUser, ipv4_addrs : set[str]):
+    """
+    Perform bulk registration by creating a registration scan and updating the status for each IP.
+    If registration can not be started for some IP, it is skipped.
+
+    Args:
+        hostadmin (MyUser): User that performs the bulk request.
+        ipv4_addrs (set[str]): Set of unique IPv4 addresses.
+    """
+    ipv4_addrs = set(ipv4_addrs)
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
         # check if user has IPAM permission or an admin tag for them exists
         user_exists = ipam.user_exists(hostadmin.username)
         admin_tag_exists = ipam.admin_tag_exists(hostadmin.username)
-        if not user_exists or not admin_tag_exists:
+        if not user_exists and not admin_tag_exists:
             raise Http404()
         
         # check if all requested hosts are permitted for this hostadmin
@@ -118,9 +127,9 @@ def register_bulk(hostadmin : MyUser, ipv4_addrs : set[str]):
             
         # perform actual registration of hosts
         with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
-            own_url = settings.DOMAIN_NAME + reverse('v_scanner_registration_alert')
+            response_url = settings.DOMAIN_NAME + reverse('v_scanner_registration_alert')
             for ip in ipv4_addrs:
-                target_uuid, task_uuid, report_uuid, alert_uuid = scanner.create_registration_scan(ip, own_url)
+                target_uuid, task_uuid, report_uuid, alert_uuid = scanner.create_registration_scan(ip, response_url)
                 if target_uuid and task_uuid and report_uuid and alert_uuid:
                     # update state in IPAM
                     host.status = HostStatusContract.UNDER_REVIEW
@@ -130,9 +139,37 @@ def register_bulk(hostadmin : MyUser, ipv4_addrs : set[str]):
                         continue
                 else:
                     logger.error("Registration for host %s couldn't be started!", ip)
+                    continue
 
 def block_bulk(hostadmin : MyUser, ipv4_addrs : set[str]):
-    logger.info('Not implemented yet!')
+    ipv4_addrs = set(ipv4_addrs)
+    
+    with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        # check if user has IPAM permission or an admin tag for them exists
+        if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+            raise Http404()
+        
+        # check if all requested hosts are permitted for this hostadmin
+        for ipv4 in ipv4_addrs:
+            # get host
+            host = ipam.get_host_info_from_ip(ipv4)
+            if not host:
+                raise Http404()
+            # check if user is admin of this host
+            if not hostadmin.username in host.admin_ids:
+                raise Http404()
+            # check if action is available for this host
+            if not available_actions(host).get('can_block'):
+                raise Http404()
+            # check if host is actually valid
+            if not host.is_valid():
+                raise Http404()
+
+    # set all hosts offline
+    for ipv4 in ipv4_addrs:
+        if not set_host_offline(ipv4):
+            logger.error("Couldn't block host: %s", ipv4)
+            continue
 
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
