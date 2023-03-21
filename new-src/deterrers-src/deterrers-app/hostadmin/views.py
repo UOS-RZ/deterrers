@@ -14,7 +14,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.mail import EmailMessage
 
-from util import add_changelog, available_actions, registration_mail_body, scan_mail_body
+from util import add_changelog, available_actions, registration_mail_body, scan_mail_body, set_host_offline, set_host_online
 
 from .forms import ChangeHostDetailForm, AddHostRulesForm, HostadminForm, AddHostForm
 from .core.ipam_api_interface import ProteusIPAMInterface
@@ -29,79 +29,6 @@ from .core.contracts import HostBasedRuleSubnetContract, HostBasedRuleProtocolCo
 from myuser.models import MyUser
 
 logger = logging.getLogger(__name__)
-
-
-def __block_host(host_ipv4 : str) -> bool:
-    """
-    Block a host at the perimeter firewall and update the status in the IPAM.
-    Removes host also from periodic scan.
-    TODO: for better performance make it so that a list can be given
-
-    Args:
-        host_ip (str): IPv4 address of the host.
-
-    Returns:
-        bool: Returns True on success and False if something went wrong.
-    """
-    with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
-        host = ipam.get_host_info_from_ip(host_ipv4)
-        ips_to_block = ipam.get_IP6Address_if_linked(host.entity_id)
-        ips_to_block.add(str(host.ipv4_addr))
-        # change the perimeter firewall configuration so that host is blocked (IPv4 and IPv6 if available)
-        with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
-            if not fw.enter_ok:
-                return False
-            if not fw.remove_addr_objs_from_addr_grps(ips_to_block, {ag for ag in PaloAltoAddressGroup}):
-                return False
-        host.status = HostStatusContract.BLOCKED
-        if not ipam.update_host_info(host):
-            return False
-    
-    # remove from periodic scan
-    with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
-        if not scanner.remove_host_from_periodic_scan(str(host.ipv4_addr)):
-            return False
-        
-    return True
-
-
-def __set_host_online(host : MyHost, ips_to_update : set[str]) -> bool:
-    """
-    Change the perimeter firewall configuration so that only hosts service profile is allowed.
-
-    Args:
-        host (MyHost): Host instance
-        ips_to_update (set[str]): Set of unique IP addresses.
-    
-    Returns:
-        bool: Returns True on success and False if something goes wrong.
-    """
-    logger.info("Set host %s online.", str(host))
-    with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
-        if not fw.enter_ok:
-            logger.error("Connection to FW failed!")
-            return False
-        # first make sure ip is not already in any AddressGroups
-        suc = fw.remove_addr_objs_from_addr_grps(ips_to_update, {ag for ag in PaloAltoAddressGroup})
-        if not suc:
-            logger.error("Couldn't update firewall configuration!")
-            return False
-        match host.service_profile:
-            case HostServiceContract.HTTP:
-                suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.HTTP,})
-            case HostServiceContract.SSH:
-                suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.SSH,})
-            case HostServiceContract.MULTIPURPOSE:
-                suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.OPEN,})
-            case HostServiceContract.HTTP_SSH:
-                suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.HTTP, PaloAltoAddressGroup.SSH})
-            case _:
-                logger.error("Unknown service profile: %s", str(host.service_profile))
-                return False
-        if not suc:
-            logger.error("Couldn't update firewall configuration!")
-            return False
-    return True
 
 def __send_report_email(report_html : str|None, subject : str, str_body : str, to : list):
     """
@@ -321,7 +248,7 @@ def hostadmin_init_view(request):
 
 @login_required
 @require_http_methods(['GET', 'POST'])
-def update_host_detail(request, ip : str):
+def update_host_detail(request, ipv4 : str):
     """
     View function for processing of the form for updating host information.
     Only available to logged in users.
@@ -336,7 +263,7 @@ def update_host_detail(request, ip : str):
     Returns:
         HTTPResponse: Rendered HTML page.
     """
-    logger.info("Request: Update host %s with method %s by user %s", ip, str(request.method), request.user.username)
+    logger.info("Request: Update host %s with method %s by user %s", ipv4, str(request.method), request.user.username)
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
@@ -344,7 +271,7 @@ def update_host_detail(request, ip : str):
         if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
             raise Http404()
         # get host
-        host = ipam.get_host_info_from_ip(ip)
+        host = ipam.get_host_info_from_ip(ipv4)
         if not host:
             raise Http404()
 
@@ -367,7 +294,7 @@ def update_host_detail(request, ip : str):
 
                 # if host is already online, update the perimeter FW
                 if host.status == HostStatusContract.ONLINE:
-                    if not __set_host_online(host, {str(host.ipv4_addr), }):
+                    if not set_host_online(str(host.ipv4_addr)):
                         form.add_error(None, "Perimeter firewall could not be updated. Please make sure you have selected a service profile!")
                         context = {
                             'form' : form,
@@ -561,7 +488,7 @@ def block_host(request, ip : str):
     if not available_actions(host).get('can_block'):
         raise Http404()
 
-    if not __block_host(ip):
+    if not set_host_offline(ip):
         messages.error(request, "Couldn't block host!")
 
     # redirect to a new URL:
@@ -700,44 +627,35 @@ def v_scanner_registration_alert(request):
                     return
                 # Risk assessment
                 hosts_to_block, block_reasons = compute_risk_of_network_exposure(results)
+                    
+                if host_ipv4 not in hosts_to_block:
+                    passed = True
+                    logger.info("Host %s passed the registration scan and will be set online!", host_ipv4)
+                    # change the perimeter firewall configuration so that only hosts service profile is allowed
+                    if not set_host_online(host_ipv4):
+                        raise RuntimeError("Couldn't set host online at perimeter FW!")
+                else:
+                    passed = False
+                    logger.info("Host %s did not pass the registration and will be blocked.", host_ipv4)
+                    if not set_host_offline(host_ipv4):
+                        raise RuntimeError("Couldn't block host")
+
+                # get string representation of cvss severity
+                if highest_cvss < 0.1:
+                    severity = 'None'
+                elif highest_cvss >= 0.1 and highest_cvss < 4.0:
+                    severity = 'Low'
+                elif highest_cvss >= 4.0 and highest_cvss < 7.0:
+                    severity = 'Medium'
+                elif highest_cvss >=7.0 and highest_cvss < 9.0:
+                    severity = 'High'
+                elif highest_cvss >= 9.0:
+                    severity = 'Critical'
+                else:
+                    severity = 'Unknown'
 
                 with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
                     host = ipam.get_host_info_from_ip(host_ipv4)
-                    ips_to_update = ipam.get_IP6Address_if_linked(host.entity_id)
-                    ips_to_update.add(str(host.ipv4_addr))
-                    if str(host.ipv4_addr) not in hosts_to_block:
-                        passed = True
-                        logger.info("Host %s passed the registration scan and will be set online!", host_ipv4)
-                        own_url = request.get_host() + reverse('v_scanner_periodic_alert')
-                        # add only the IPv4 address to periodic vulnerability scan
-                        if not scanner.add_host_to_periodic_scan(host_ip=str(host.ipv4_addr), deterrers_url=own_url):
-                            raise RuntimeError(f"Couldn't add host {host.ipv4_addr} to periodic scan!")
-                        # change the perimeter firewall configuration so that only hosts service profile is allowed
-                        if not __set_host_online(host, ips_to_update):
-                            raise RuntimeError("Couldn't set host online at perimeter FW!")
-                        # update host info in IPAM
-                        host.status = HostStatusContract.ONLINE
-                        if not ipam.update_host_info(host):
-                            raise RuntimeError("Couldn't update host information!")
-                    else:
-                        passed = False
-                        logger.info("Host %s did not pass the registration and will be blocked.", str(host.ipv4_addr))
-                        if not __block_host(str(host.ipv4_addr)):
-                            raise RuntimeError("Couldn't block host")
-
-                    # get string representation of cvss severity
-                    if highest_cvss < 0.1:
-                        severity = 'None'
-                    elif highest_cvss >= 0.1 and highest_cvss < 4.0:
-                        severity = 'Low'
-                    elif highest_cvss >= 4.0 and highest_cvss < 7.0:
-                        severity = 'Medium'
-                    elif highest_cvss >=7.0 and highest_cvss < 9.0:
-                        severity = 'High'
-                    elif highest_cvss >= 9.0:
-                        severity = 'Critical'
-                    else:
-                        severity = 'Unknown'
                     # get HTML report and send via e-mail to admin
                     report_html = scanner.get_report_html(report_uuid)
                     # get all department names for use below
@@ -876,7 +794,7 @@ def v_scanner_periodic_alert(request):
                     for ipv4_to_block in ipv4_addresses_to_block:
                         host = ipam.get_host_info_from_ip(ipv4_to_block)
                         logger.info("Host %s did not pass the periodic scan and will be blocked.", str(host.ipv4_addr))
-                        if not __block_host(str(host.ipv4_addr)):
+                        if not set_host_offline(str(host.ipv4_addr)):
                             raise RuntimeError("Couldn't block host")
  
                         # get all department names for use below
