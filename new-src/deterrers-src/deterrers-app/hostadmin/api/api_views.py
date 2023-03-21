@@ -19,7 +19,9 @@ from .serializers import MyHostSerializer, HostActionSerializer
 
 logger = logging.getLogger(__name__)
 
-
+class Http409(Exception):
+    # Conflict
+    pass
 
 def __add_host(request):
     logger.info('Not implemented yet!')
@@ -120,10 +122,10 @@ def register_bulk(hostadmin : MyUser, ipv4_addrs : set[str]):
                 raise Http404()
             # check if action is available for this host
             if not available_actions(host).get('can_register'):
-                raise Http404()
+                raise Http409()
             # check if host is actually valid
             if not host.is_valid():
-                raise Http404()
+                raise Http409()
             
         # perform actual registration of hosts
         with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
@@ -160,10 +162,10 @@ def block_bulk(hostadmin : MyUser, ipv4_addrs : set[str]):
                 raise Http404()
             # check if action is available for this host
             if not available_actions(host).get('can_block'):
-                raise Http404()
+                raise Http409()
             # check if host is actually valid
             if not host.is_valid():
-                raise Http404()
+                raise Http409()
 
     # set all hosts offline
     for ipv4 in ipv4_addrs:
@@ -202,6 +204,8 @@ def action(request):
                 return Response(status=400)
     except Http404:
         return Response(status=404)
+    except Http409:
+        return Response(status=409)
     
         
     return Response()
