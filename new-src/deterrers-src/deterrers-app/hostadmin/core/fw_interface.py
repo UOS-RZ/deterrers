@@ -21,7 +21,7 @@ class PaloAltoInterface():
     """
     # TODO: maybe specify API key lifetime in PA Webinterface
 
-    TIMEOUT = 60*2
+    TIMEOUT = 60*5
     VERSION = "v10.1"
     LOCATION = 'vsys&vsys=vsys4' # TODO: change location in production
 
