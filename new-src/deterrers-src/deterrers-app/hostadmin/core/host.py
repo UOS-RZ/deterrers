@@ -58,7 +58,7 @@ class MyHost():
         """
         Returns the url of this host by using reverse()-function.
         """
-        return reverse('host_detail', kwargs={'ip' : self.get_ip_escaped()})
+        return reverse('host_detail', kwargs={'ipv4' : self.get_ip_escaped()})
 
     def get_service_profile_display(self) -> str:
         return self.service_profile.value
