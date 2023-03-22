@@ -65,6 +65,8 @@ def __update_host(request):
 
         # if host is already online, update the perimeter FW
         if host.status == HostStatusContract.ONLINE:
+            if host.service_profile == HostServiceContract.EMPTY:
+                raise Http409()
             if not set_host_online(str(host.ipv4_addr)):
                 return Response(status=500)
 
