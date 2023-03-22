@@ -291,13 +291,6 @@ def update_host_detail(request, ipv4 : str):
                 # update the actual model instance
                 host.service_profile = HostServiceContract(form.cleaned_data['service_profile'])
                 host.fw = HostFWContract(form.cleaned_data['fw'])
-                if ipam.update_host_info(host):
-                    form.add_error(None, "IPAM could not be updated.")
-                    context = {
-                        'form' : form,
-                        'host_instance' : host
-                    }
-                    return render(request, 'update_host_detail.html', context=context)
 
                 # if host is already online, update the perimeter FW
                 if host.status == HostStatusContract.ONLINE:
