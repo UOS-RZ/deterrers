@@ -76,7 +76,7 @@ def host_detail_view(request, ipv4 : str):
 
     Args:
         request (): Request object.
-        ip (str): IP string from the URL parameter.
+        ipv4 (str): IP string from the URL parameter.
 
     Raises:
         Http404: When object is not available or user has no permission.
@@ -255,7 +255,7 @@ def update_host_detail(request, ipv4 : str):
 
     Args:
         request (): Request object.
-        ip (str): IP string from the URL parameter.
+        ipv4 (str): IP string from the URL parameter.
 
     Raises:
         Http404: When object is not available or user has no permission.
@@ -326,7 +326,7 @@ def update_host_detail(request, ipv4 : str):
                 ret = ipam.update_host_info(host)
                 if ret:
                     # redirect to a new URL:
-                    return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
+                    return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ip_escaped()}))
                 
                 form.add_error(None, "Host information could not be updated! Try again later...")
         else:
@@ -355,7 +355,7 @@ def register_host(request, ipv4 : str):
 
     Args:
         request (_type_): Request object.
-        ip (str): IP address of the host.
+        ipv4 (str): IP address of the host.
 
     Raises:
         Http404: Raised if host or hostadmin do not exist or if some permission is denied.
@@ -398,7 +398,7 @@ def register_host(request, ipv4 : str):
                     messages.error(request, "Not possible to start registration at the moment! Try again later...")
 
     # redirect to a new URL:
-    return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
+    return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ip_escaped()}))
 
 
 @login_required
@@ -409,7 +409,7 @@ def scan_host(request, ipv4 : str):
 
     Args:
         request (_type_): Request object.
-        ip (str): IP address of the host.
+        ipv4 (str): IP address of the host.
 
     Raises:
         Http404: Raised if host or hostadmin do not exist or if some permission is denied.
@@ -452,7 +452,7 @@ def scan_host(request, ipv4 : str):
                     messages.error(request, "Not possible to start scan at the moment! Try again later...")
 
     # redirect to a new URL:
-    return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
+    return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ip_escaped()}))
 
 @login_required
 @require_http_methods(['POST', ])
@@ -462,7 +462,7 @@ def block_host(request, ipv4 : str):
 
     Args:
         request (_type_): Request object.
-        ip (str): IP address of the host.
+        ipv4 (str): IP address of the host.
 
     Raises:
         Http404: Raised if host or hostadmin do not exist or if some permission is denied.
@@ -492,7 +492,7 @@ def block_host(request, ipv4 : str):
         messages.error(request, "Couldn't block host!")
 
     # redirect to a new URL:
-    return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
+    return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ip_escaped()}))
 
 
 @login_required
@@ -503,7 +503,7 @@ def delete_host_rule(request, ipv4 : str, rule_id : uuid.UUID):
 
     Args:
         request (_type_): Request object.
-        ip (str): IP address of the host.
+        ipv4 (str): IP address of the host.
         rule_id (uuid.UUID): UUID of the rule that is to be deleted.
 
     Raises:
@@ -536,7 +536,7 @@ def delete_host_rule(request, ipv4 : str, rule_id : uuid.UUID):
         if not ipam.update_host_info(host):
             messages.error(request, "Host could not be updated! Try again later...")
 
-    return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
+    return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ip_escaped()}))
 
 
 @login_required
@@ -547,7 +547,7 @@ def get_fw_config(request, ipv4 : str):
 
     Args:
         request (_type_): Request objects.
-        ip (str): IP address of a host.
+        ipv4 (str): IP address of a host.
 
     Raises:
         Http404: Raised if host or hostadmin do not exist or if some permission is denied.
@@ -572,7 +572,7 @@ def get_fw_config(request, ipv4 : str):
         if not host.is_valid():
             logger.warning("Host '%s' is not valid!", str(host))
             messages.error(request, "Host is not valid!")
-            return HttpResponseRedirect(reverse('host_detail', kwargs={'ip': host.get_ip_escaped()}))
+            return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ip_escaped()}))
 
 
     script = generate_fw_config(host.fw, host.host_based_policies)
