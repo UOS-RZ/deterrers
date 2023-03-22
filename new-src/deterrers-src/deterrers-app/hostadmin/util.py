@@ -162,6 +162,14 @@ def set_host_offline(host_ipv4 : str) -> bool:
         
     return True
 
+def set_host_bulk_offline(host_ipv4s : set[str]) -> bool:
+    # TODO: optimize for better performance by querying many ips to FW
+    for ipv4 in host_ipv4s:
+        set_host_offline(ipv4)
+        logger.error("Couldn't block host: %s", ipv4)
+        continue
+    return True
+
 
 def set_host_online(host_ipv4 : str) -> bool:
     """
@@ -208,6 +216,9 @@ def set_host_online(host_ipv4 : str) -> bool:
                     suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.OPEN,})
                 case HostServiceContract.HTTP_SSH:
                     suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.HTTP, PaloAltoAddressGroup.SSH})
+                case HostServiceContract.EMPTY:
+                    logger.error("Host cannot be set online at perimeter FW because it has no service profile specified!")
+                    return False
                 case _:
                     logger.error("Unknown service profile: %s", str(host.service_profile))
                     return False

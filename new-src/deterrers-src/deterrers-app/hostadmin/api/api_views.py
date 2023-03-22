@@ -11,10 +11,10 @@ from django.http import Http404
 from django.urls import reverse
 
 from myuser.models import MyUser
-from hostadmin.util import available_actions, set_host_offline
+from hostadmin.util import available_actions, set_host_bulk_offline, set_host_online
 from hostadmin.core.ipam_api_interface import ProteusIPAMInterface
 from hostadmin.core.v_scanner_interface import GmpVScannerInterface
-from hostadmin.core.contracts import HostStatusContract
+from hostadmin.core.contracts import HostStatusContract, HostServiceContract, HostBasedRuleSubnetContract, HostBasedRuleProtocolContract
 from .serializers import MyHostSerializer, HostActionSerializer
 
 logger = logging.getLogger(__name__)
@@ -24,15 +24,73 @@ class Http409(Exception):
     pass
 
 def __add_host(request):
+    # TODO: implement
     logger.info('Not implemented yet!')
-    return Response()
+    return Response(status=501)
 
 def __get_host(request):
+    # TODO: implement
     logger.info('Not implemented yet.')
-    return Response()
+    return Response(status=501)
 
 def __update_host(request):
-    logger.info('Not implemented yet.')
+    hostadmin = get_object_or_404(MyUser, username=request.user.username)
+
+    with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        # check if user has IPAM permission or an admin tag for them exists
+        if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+            raise Http404()
+        # get host by deserializing and then querying IPAM
+        host_serializer = MyHostSerializer(data=request.POST.data)
+        if not host_serializer.is_valid():
+            return Response(status=400)
+        host_update_data = host_serializer.validated_data
+        host = ipam.get_host_info_from_ip(host_update_data['ipv4_addr'])
+        if not host:
+            raise Http404()
+
+        # check if user is admin of this host
+        if not hostadmin.username in host.admin_ids:
+            raise Http404()
+
+        # check if this host can be changed at the moment or whether there are already processes running for it
+        if not available_actions(host).get('can_update'):
+            raise Http409()
+
+        # update the actual host instance
+        if host_update_data.get('service_profile', None):
+            host.service_profile = host_update_data['service_profile']
+        if host_update_data.get('fw', None):
+            host.fw = host_update_data['fw']
+
+        # if host is already online, update the perimeter FW
+        if host.status == HostStatusContract.ONLINE:
+            if not set_host_online(str(host.ipv4_addr)):
+                return Response(status=500)
+
+        # auto-add some host-based policies
+        match host.service_profile:
+            case HostServiceContract.EMPTY:
+                pass
+            case (HostServiceContract.SSH | HostServiceContract.HTTP | HostServiceContract.HTTP_SSH) as s_p:
+                # allow SSH standard port 22 over TCP if a service profile is specified
+                host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['22'], HostBasedRuleProtocolContract.TCP.value)
+                match s_p:
+                    case HostServiceContract.SSH:
+                        # since SSH rules have already been added do nothing else
+                        pass
+                    case (HostServiceContract.HTTP | HostServiceContract.HTTP_SSH):
+                        # allow HTTP and HTTPS standard ports 80 and 443 over TCP
+                        host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['80'], HostBasedRuleProtocolContract.TCP.value)
+                        host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['443'], HostBasedRuleProtocolContract.TCP.value)
+            case HostServiceContract.MULTIPURPOSE:
+                # allow nothing else; users are expected to configure their own rules
+                pass
+            case _:
+                logger.error("Service profile '%s' is not supported.", host.service_profile)
+        
+        if not ipam.update_host_info(host):
+            return Response(status=500)
     return Response()
 
 
@@ -83,16 +141,21 @@ def host(request):
     Returns:
         Response: Response object.
     """
-    match request.method:
-        case 'GET':
-            return __get_host(request)
-        case 'POST':
-            return __add_host(request)
-        case 'PATCH':
-            return __update_host(request)
-        case _:
-            logger.error('Unsupported host action!')
-            return Response(status=405)
+    try:
+        match request.method:
+            case 'GET':
+                return __get_host(request)
+            case 'POST':
+                return __add_host(request)
+            case 'PATCH':
+                return __update_host(request)
+            case _:
+                logger.error('Unsupported host action!')
+                return Response(status=405)
+    except Http404:
+        return Response(status=404)
+    except Http409:
+        return Response(status=409)
 
 def register_bulk(hostadmin : MyUser, ipv4_addrs : set[str]):
     """
@@ -168,10 +231,7 @@ def block_bulk(hostadmin : MyUser, ipv4_addrs : set[str]):
                 raise Http409()
 
     # set all hosts offline
-    for ipv4 in ipv4_addrs:
-        if not set_host_offline(ipv4):
-            logger.error("Couldn't block host: %s", ipv4)
-            continue
+    set_host_bulk_offline(ipv4_addrs)
 
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
