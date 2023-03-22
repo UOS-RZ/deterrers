@@ -64,6 +64,8 @@ class PaloAltoInterface():
         logger.debug("End firewall interface session.")
         try:
             self.__release_config_lock()
+            # commit changes
+            Thread(target=self.__commit_changes, daemon=True).start()
         except Exception:
             logger.exception("")
 
@@ -217,7 +219,7 @@ from firewall! Status code: {response.status_code}. Status: {data.get('@status')
         get_job_status_url = self.xml_url + "?" + get_job_status_params
         start = time.time()
         while True:
-            if time.time() - start > 300:
+            if time.time() - start > self.TIMEOUT:
                 logger.error("Commit took to long!")
                 self.__cancle_commit()
                 return False
@@ -308,9 +310,6 @@ from firewall! Status code: {response.status_code}. Status: {data.get('@status')
                 if response.status_code != 200 or data.get('@status') != 'success':
                     raise PaloAltoAPIError(f"Could not update Address Group {addr_grp_name.value}. \
 Status code: {response.status_code}. Status: {data.get('@status')}")
-            
-            # commit changes
-            Thread(target=self.__commit_changes, daemon=True).start()
 
         except PaloAltoAPIError:
             logger.exception("Couldn't add AddressObjects to AddressGroups!")
@@ -355,8 +354,6 @@ Status code: {response.status_code}. Status: {data.get('@status')}")
                 response = requests.put(
                     put_addr_grp_url, json=put_addr_grp_payload, headers=self.header, timeout=self.TIMEOUT
                 )
-            # commit changes
-            Thread(target=self.__commit_changes, daemon=True).start()
 
         except PaloAltoAPIError:
             logger.exception("Couldn't remove AddressObjects from AddressGroups!")
