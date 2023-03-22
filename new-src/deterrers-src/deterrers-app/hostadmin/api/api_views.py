@@ -41,7 +41,7 @@ def __update_host(request):
         if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
             raise Http404()
         # get host by deserializing and then querying IPAM
-        host_serializer = MyHostSerializer(data=request.POST.data)
+        host_serializer = MyHostSerializer(data=request.PATCH.data)
         if not host_serializer.is_valid():
             return Response(status=400)
         host_update_data = host_serializer.validated_data
