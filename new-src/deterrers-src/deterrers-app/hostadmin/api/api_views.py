@@ -62,8 +62,6 @@ def __update_host(request):
             host.service_profile = host_update_data['service_profile']
         if host_update_data.get('fw', None):
             host.fw = host_update_data['fw']
-        if not ipam.update_host_info(host):
-            return Response(status=500)
 
         # if host is already online, update the perimeter FW
         if host.status == HostStatusContract.ONLINE:
