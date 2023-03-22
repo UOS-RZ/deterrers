@@ -217,8 +217,9 @@ def set_host_online(host_ipv4 : str) -> bool:
                 case HostServiceContract.HTTP_SSH:
                     suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.HTTP, PaloAltoAddressGroup.SSH})
                 case HostServiceContract.EMPTY:
-                    logger.error("Host cannot be set online at perimeter FW because it has no service profile specified!")
-                    return False
+                    # if the service profile is set to empty, the host should be blocked
+                    set_host_offline(host_ipv4)
+                    return True
                 case _:
                     logger.error("Unknown service profile: %s", str(host.service_profile))
                     return False
