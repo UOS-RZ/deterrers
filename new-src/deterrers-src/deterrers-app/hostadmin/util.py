@@ -185,16 +185,20 @@ def set_host_online(host_ipv4 : str) -> bool:
     """
     logger.info("Set host %s online.", host_ipv4)
 
-    # add only the IPv4 address to periodic vulnerability scan
-    with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
-        response_url = settings.DOMAIN_NAME + reverse('v_scanner_periodic_alert')
-        if not scanner.add_host_to_periodic_scan(host_ip=host_ipv4, deterrers_url=response_url):
-            logger.error("Couldn't add host %s to periodic scan!", host_ipv4)
-            return False
-    
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
-        # get IPv6 address to all IPv4 address
         host = ipam.get_host_info_from_ip(host_ipv4)
+        if not host.is_valid() or host.service_profile is HostServiceContract.EMPTY:
+            logger.error("Can not set host '%s' online.", str(host))
+            return False
+
+        # add only the IPv4 address to periodic vulnerability scan
+        with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
+            response_url = settings.DOMAIN_NAME + reverse('v_scanner_periodic_alert')
+            if not scanner.add_host_to_periodic_scan(host_ip=host_ipv4, deterrers_url=response_url):
+                logger.error("Couldn't add host %s to periodic scan!", host_ipv4)
+                return False
+    
+        # get IPv6 address to all IPv4 address
         ips_to_update = ipam.get_IP6Address_if_linked(host.entity_id)
         ips_to_update.add(str(host.ipv4_addr))
 
@@ -216,10 +220,6 @@ def set_host_online(host_ipv4 : str) -> bool:
                     suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.OPEN,})
                 case HostServiceContract.HTTP_SSH:
                     suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.HTTP, PaloAltoAddressGroup.SSH})
-                case HostServiceContract.EMPTY:
-                    # if the service profile is set to empty, the host should be blocked
-                    set_host_offline(host_ipv4)
-                    return True
                 case _:
                     logger.error("Unknown service profile: %s", str(host.service_profile))
                     return False
