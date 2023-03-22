@@ -350,7 +350,7 @@ class ProteusIPAMInterface():
         return None
         
 
-    def get_hosts_of_admin(self, admin_rz_id : str):
+    def get_hosts_of_admin(self, admin_rz_id : str) -> list[MyHost]:
         """
         Queries all hosts that are tagged with an admin or their corresponding parent tag in the 
         Proteus IPAM system.
