@@ -581,7 +581,7 @@ class GmpVScannerInterface():
             schedule_uuid,
             hosts_ordering=HostsOrdering.RANDOM,
             max_conc_nvts=32,
-            max_conc_hosts=100
+            max_conc_hosts=40
         )
         # report_uuid = self.__start_task(task_uuid, self.PERIODIC_TASK_NAME)
         report_uuid = ""
