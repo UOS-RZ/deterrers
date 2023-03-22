@@ -291,11 +291,18 @@ def update_host_detail(request, ipv4 : str):
                 # update the actual model instance
                 host.service_profile = HostServiceContract(form.cleaned_data['service_profile'])
                 host.fw = HostFWContract(form.cleaned_data['fw'])
+                if ipam.update_host_info(host):
+                    form.add_error(None, "IPAM could not be updated.")
+                    context = {
+                        'form' : form,
+                        'host_instance' : host
+                    }
+                    return render(request, 'update_host_detail.html', context=context)
 
                 # if host is already online, update the perimeter FW
                 if host.status == HostStatusContract.ONLINE:
                     if not set_host_online(str(host.ipv4_addr)):
-                        form.add_error(None, "Perimeter firewall could not be updated. Please make sure you have selected a service profile!")
+                        form.add_error(None, "Perimeter firewall could not be updated.")
                         context = {
                             'form' : form,
                             'host_instance' : host
@@ -323,8 +330,7 @@ def update_host_detail(request, ipv4 : str):
                     case _:
                         logger.error("%s is not supported yet.", host.service_profile)
                 
-                ret = ipam.update_host_info(host)
-                if ret:
+                if ipam.update_host_info(host):
                     # redirect to a new URL:
                     return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ip_escaped()}))
                 
