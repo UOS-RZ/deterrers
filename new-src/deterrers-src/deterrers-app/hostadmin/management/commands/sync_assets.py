@@ -32,6 +32,7 @@ class Command(BaseCommand):
                     print("Get assets from IPAM!")
                     ipam_hosts_total = set()
                     ipam_hosts_online = set()
+                    ipam_hosts_under_review = set()
                     admin_tag_names = ipam.get_admin_tag_names()
                     for a_tag_name in admin_tag_names:
                         hosts = ipam.get_hosts_of_admin(admin_rz_id=a_tag_name)
@@ -39,6 +40,8 @@ class Command(BaseCommand):
                             ipam_hosts_total.add(str(host.ipv4_addr))
                             if host.status == HostStatusContract.ONLINE:
                                 ipam_hosts_online.add(str(host.ipv4_addr))
+                            elif host.status == HostStatusContract.UNDER_REVIEW:
+                                ipam_hosts_under_review.add(str(host.ipv4_addr))
                     
                     # get all hosts in periodic scan
                     print('Get assets in periodic scan!')
@@ -77,6 +80,7 @@ class Command(BaseCommand):
 
                     print('---------------------------------------------------------------------')
                     print(f"IPAM Hosts online: {len(ipam_hosts_online)}")
+                    print(f"IPAM Hosts under review. {len(ipam_hosts_under_review)}")
                     print(f"Scanner hosts online: {len(v_scanner_hosts)}")
                     print(f"FW hosts online: {len(fw_hosts)}")
                     print()

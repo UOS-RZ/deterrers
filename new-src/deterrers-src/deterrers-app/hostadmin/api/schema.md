@@ -6,6 +6,7 @@ Authorization is done by a user-specific token. It should be provided by HTTP he
 
     Authorization: Token <user_token>
 
+---
 
 ## Get all hosts of admin:
 
@@ -28,6 +29,8 @@ Example:
 Get all hosts that are added for me in DETERRERS:
 
     curl -X GET -H 'Authorization: Token <user_token>' https://deterrers.rz.uos.de:443/hostadmin/api/hosts/
+
+---
 
 ## Edit a host:
 
@@ -52,6 +55,8 @@ Example:
 Edit only the internet service profile of host 0.0.0.0 to 'HTTP':
 
     curl -X PATCH -H 'Authorization: Token <user_token>' -H "Content-Type: application/json" -d '{"ipv4_addr" : "0.0.0.0", "service_provile" : "HTTP"}' https://deterrers.rz.uos.de:443/hostadmin/api/host/
+
+---
 
 ## Register/Block one or more hosts:
 
