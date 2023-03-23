@@ -31,6 +31,8 @@ class ProteusIPAMInterface():
         self.header = ''
         self.__tag_group_id = None
 
+        self.enter_ok = True
+
     def __enter__(self):
         login_url = self.main_url + "login?username=" + self.username + "&password=" + self.password
         try:
@@ -44,8 +46,13 @@ class ProteusIPAMInterface():
             self.header = {'Authorization': token, 'Content-Type': 'application/json'}
         except requests.exceptions.ConnectTimeout:
             logger.exception('Connection to %s timed out!', login_url)
+            self.enter_ok = False
         except requests.exceptions.ConnectionError:
             logger.exception('Could not establish connection to "%s"!', login_url)
+            self.enter_ok = False
+        except:
+            logger.exception('Unexpected error during login to %s!', login_url)
+            self.enter_ok = False
 
         return self
 

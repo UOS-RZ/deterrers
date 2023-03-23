@@ -4,8 +4,6 @@ from rest_framework import serializers
 
 from hostadmin.core.rule_generator import HostBasedPolicy
 from hostadmin.core.contracts import HostStatusContract, HostServiceContract, HostFWContract
-from hostadmin.core.host import MyHost
-from hostadmin.core.ipam_api_interface import ProteusIPAMInterface
 
 
 class MyHostSerializer(serializers.Serializer):

@@ -14,7 +14,11 @@ if __name__ == "__main__":
     ipam_password = getpass.getpass(f'IPAM password for {ipam_username}:')
 
     with PaloAltoInterface(fw_username, fw_password, 'pa-5220.rz.uni-osnabrueck.de') as fw:
+        if not fw.enter_ok:
+            exit(-1)
         with ProteusIPAMInterface(ipam_username, ipam_password, 'proteus.rz.uos.de') as ipam:
+            if not ipam.enter_ok:
+                exit(-1)
             # for each service profile address group
             for address_group in PaloAltoAddressGroup:
                 addrs_to_add = list()

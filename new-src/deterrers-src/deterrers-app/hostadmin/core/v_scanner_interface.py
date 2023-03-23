@@ -85,6 +85,7 @@ class GmpVScannerInterface():
             known_hosts_file=known_hosts_path
         )
         self.gmp = Gmp(connection=connection, transform=transform)
+        self.enter_ok = True
 
     def __enter__(self):
         """
@@ -100,12 +101,17 @@ class GmpVScannerInterface():
         self.gmp = self.gmp.__enter__()
         try:
             # further initialization need to be enclosed here
-            self.gmp.authenticate(self.username, self.password)
-            
-            return self
-        except Exception as err:
+            response = self.gmp.authenticate(self.username, self.password)
+            if int(response.xpath('@status')[0]) != 200:
+                logger.error("Authentication with Scanner failed! Status: %s", response.xpath('@status')[0])
+                self.enter_ok = False
+        except:
+            logger.exception("")
             self.gmp.__exit__(None, None, None)
-            raise err
+            self.enter_ok = False
+            # raise err
+            
+        return self
 
 
     def __exit__(self, exc_type, exc_value, traceback):
