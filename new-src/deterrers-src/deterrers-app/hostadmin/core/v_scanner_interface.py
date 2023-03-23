@@ -970,6 +970,13 @@ class GmpVScannerInterface():
             for result_xml in results_xml:
                 result_uuid = result_xml.attrib['id']
                 host_ip = result_xml.xpath('host')[0].text
+                port_proto = result_xml.xpath('port')[0].text
+                if len(port_proto.split('/')) == 2:
+                    port = port_proto.split('/')[0]
+                    proto = port_proto.split('/')[1]
+                else:
+                    port = ''
+                    proto = ''
                 hostname = result_xml.xpath('host/hostname')[0].text
                 nvt_name = result_xml.xpath('nvt/name')[0].text
                 nvt_oid = result_xml.xpath('nvt')[0].attrib['oid']
@@ -986,19 +993,35 @@ class GmpVScannerInterface():
                     )
                 refs = [ref.attrib['id'] for ref in result_xml.xpath('nvt/refs/ref')]
 
+                # get newest CVSS version
+                cvss_version, cvss_base_score, cvss_base_vector = None, None, None
+                for version in range(4, 1, -1):
+                    for sev in cvss_severities:
+                        if sev.get('type') == f'cvss_base_v{version}':
+                            cvss_version = version
+                            cvss_base_score = float(sev.get('base_score', -1.0))
+                            cvss_base_vector = sev.get('base_vector', '')
+                            break
+                    if cvss_version:
+                        break
+
                 res = VulnerabilityScanResult(
                     uuid=result_uuid,
                     host_ip=host_ip,
+                    port=port,
+                    proto=proto,
                     hostname=hostname,
                     nvt_name=nvt_name,
                     nvt_oid=nvt_oid,
                     qod=int(qod),
-                    cvss_severities=cvss_severities,
+                    cvss_version=cvss_version,
+                    cvss_base_score=cvss_base_score,
+                    cvss_base_vector=cvss_base_vector,
                     refs=refs,
                 )
                 results.append(res)
 
-            return scan_start, scan_end, float(highest_severity_filtered), results
+            return scan_start, scan_end, results
         except Exception:
             logger.exception("Couldn't extract data from report!")
         

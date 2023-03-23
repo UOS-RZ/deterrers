@@ -14,7 +14,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.mail import EmailMessage
 
-from .util import add_changelog, available_actions, registration_mail_body, scan_mail_body, set_host_offline, set_host_online
+from .util import add_changelog, available_actions, registration_mail_body, scan_mail_body, periodic_mail_body, set_host_offline, set_host_online
 
 from .forms import ChangeHostDetailForm, AddHostRulesForm, HostadminForm, AddHostForm
 from .core.ipam_api_interface import ProteusIPAMInterface
@@ -666,7 +666,7 @@ def v_scanner_registration_alert(request):
         
                     
                     report_xml = scanner.get_report_xml(report_uuid)
-                    scan_start, scan_end, highest_cvss, results = scanner.extract_report_data(report_xml)
+                    scan_start, scan_end, results = scanner.extract_report_data(report_xml)
                     if results is None:
                         return
                     # Risk assessment
@@ -684,20 +684,6 @@ def v_scanner_registration_alert(request):
                         if not set_host_offline(host_ipv4):
                             raise RuntimeError("Couldn't block host")
 
-                    # get string representation of cvss severity
-                    if highest_cvss < 0.1:
-                        severity = 'None'
-                    elif highest_cvss >= 0.1 and highest_cvss < 4.0:
-                        severity = 'Low'
-                    elif highest_cvss >= 4.0 and highest_cvss < 7.0:
-                        severity = 'Medium'
-                    elif highest_cvss >=7.0 and highest_cvss < 9.0:
-                        severity = 'High'
-                    elif highest_cvss >= 9.0:
-                        severity = 'Critical'
-                    else:
-                        severity = 'Unknown'
-
                     host = ipam.get_host_info_from_ip(host_ipv4)
                     # get HTML report and send via e-mail to admin
                     report_html = scanner.get_report_html(report_uuid)
@@ -708,7 +694,7 @@ def v_scanner_registration_alert(request):
                     __send_report_email(
                         report_html,
                         f"DETERRERS - {str(host.ipv4_addr)} - Vulnerability scan finished",
-                        registration_mail_body(host.ipv4_addr, passed, severity, host.admin_ids, host.service_profile, host.dns_rcs, scan_end),
+                        registration_mail_body(host.ipv4_addr, passed, host.admin_ids, host.service_profile, host.dns_rcs, scan_end),
                         list(set(admin_addresses)),
                     )
 
@@ -760,11 +746,9 @@ def v_scanner_scan_alert(request):
                         return
         
                     report_xml = scanner.get_report_xml(report_uuid)
-                    scan_start, scan_end, highest_cvss, results = scanner.extract_report_data(report_xml)
+                    scan_start, scan_end, results = scanner.extract_report_data(report_xml)
                     if results is None:
                         return
-                    # Risk assessment
-                    hosts_to_block, block_reasons = compute_risk_of_network_exposure(results)
                     
                     # reset hosts status
                     host = ipam.get_host_info_from_ip(host_ipv4)
@@ -776,21 +760,7 @@ def v_scanner_scan_alert(request):
                         raise RuntimeError("Couldn't update host information!")
                     # get all department names for use below
                     departments = ipam.get_department_tag_names()
-
-                passed = str(host.ipv4_addr) not in hosts_to_block
-                # get string representation of cvss severity
-                if highest_cvss < 0.1:
-                    severity = 'None'
-                elif highest_cvss >= 0.1 and highest_cvss < 4.0:
-                    severity = 'Low'
-                elif highest_cvss >= 4.0 and highest_cvss < 7.0:
-                    severity = 'Medium'
-                elif highest_cvss >=7.0 and highest_cvss < 9.0:
-                    severity = 'High'
-                elif highest_cvss >= 9.0:
-                    severity = 'Critical'
-                else:
-                    severity = 'Unknown'
+                
                 # get HTML report and send via e-mail to admin
                 report_html = scanner.get_report_html(report_uuid)
                 # deduce admin email addr and filter out departments
@@ -798,7 +768,7 @@ def v_scanner_scan_alert(request):
                 __send_report_email(
                     report_html,
                         f"DETERRERS - {str(host.ipv4_addr)} - Vulnerability scan finished",
-                    scan_mail_body(host.ipv4_addr, passed, severity, host.admin_ids, host.service_profile, host.dns_rcs, scan_end),
+                    scan_mail_body(host.ipv4_addr, host.admin_ids, host.service_profile, host.dns_rcs, scan_end),
                     list(set(admin_addresses)),
                 )
 
@@ -838,7 +808,7 @@ def v_scanner_periodic_alert(request):
                 
                     report_uuid = scanner.get_latest_report_uuid(task_uuid)
                     report_xml = scanner.get_report_xml(report_uuid)
-                    scan_start, scan_end, highest_cvss, results = scanner.extract_report_data(report_xml)
+                    scan_start, scan_end, results = scanner.extract_report_data(report_xml)
                     if results is None:
                         return
                     # Risk assessment
@@ -854,22 +824,8 @@ def v_scanner_periodic_alert(request):
                         departments = ipam.get_department_tag_names()
                         # deduce admin email addr and filter out departments
                         admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments]
-                        email_body = f"""
-DETERRERS found a high risk for host {str(host.ipv4_addr)} and will block it at the perimeter firewall.
-Following vulnerabilities resulted in the blocking:
+                        email_body = periodic_mail_body(str(host.ipv4_addr), host.admin_ids, host.service_profile, host.dns_rcs, risky_vuls)
 
-"""
-                        for vul in risky_vuls.get(str(host.ipv4_addr)):
-                            email_body += f"""
-Network Vulnerability Test Name:    {vul.nvt_name}
-Network Vulnerability Test ID:      {vul.nvt_oid}
-CVSS Base Score(s):                 {", ".join([f"{sev.get('base_score')} ({sev.get('base_vector')})" for sev in vul.cvss_severities])}
-Vulnerability References:           {", ".join(vul.refs)}
-
-"""
-                        email_body += """
-Please remediate the security risks and re-register the host in DETERRERS!
-"""
                         __send_report_email(
                             None,
                             f"DETERRERS - {str(host.ipv4_addr)} - New vulnerability!",

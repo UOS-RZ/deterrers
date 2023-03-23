@@ -88,47 +88,6 @@ def available_actions(host : MyHost) -> dict:
     return flags
 
 
-def registration_mail_body(ipv4 : str, passed : bool, severity_str : str, admins : list[str], service_profile : HostServiceContract, fqdns : list[str], scan_ts):
-    return f"""
-The registration was {'passed' if passed else 'not passed because severity was higher than 5.0'}.
-
-Severity of host {ipv4} is {severity_str}!
-
-
-***System Information***
-
-IPv4 Address: {ipv4}
-Admins: {', '.join(admins)}
-Internet Service Profile: {service_profile.value}
-FQDN: {', '.join(fqdns)}
-
-
-Scan completed: {scan_ts}
-
-Scan report can be found attached to this e-mail."""
-
-
-def scan_mail_body(ipv4 : str, passed : bool, severity_str : str, admins : list[str], service_profile : HostServiceContract, fqdns : list[str], scan_ts):
-    return f"""
-The scan was {'passed' if passed else 'not passed because severity was higher than 5.0'}.
-
-Severity of host {ipv4} is {severity_str}!
-
-
-***System Information***
-
-IPv4 Address: {ipv4}
-Admins: {', '.join(admins)}
-Internet Service Profile: {service_profile.value}
-FQDN: {', '.join(fqdns)}
-
-
-Scan completed: {scan_ts}
-
-Scan report can be found attached to this e-mail."""
-
-
-
 
 def set_host_offline(host_ipv4 : str) -> bool:
     """
@@ -243,3 +202,70 @@ def set_host_online(host_ipv4 : str) -> bool:
                     logger.error("Couldn't update host information!")
                     return False
     return True
+
+
+
+
+
+
+
+def registration_mail_body(ipv4 : str, passed : bool, admins : list[str], service_profile : HostServiceContract, fqdns : list[str], scan_ts):
+    return f"""
+The registration was {'passed' if passed else 'NOT passed'}.
+
+
+***System Information***
+
+IPv4 Address: {ipv4}
+Admins: {', '.join(admins)}
+Internet Service Profile: {service_profile.value}
+FQDN: {', '.join(fqdns)}
+
+
+Scan completed: {scan_ts}
+
+Scan report can be found attached to this e-mail."""
+
+
+def scan_mail_body(ipv4 : str, admins : list[str], service_profile : HostServiceContract, fqdns : list[str], scan_ts):
+    return f"""
+***System Information***
+
+IPv4 Address: {ipv4}
+Admins: {', '.join(admins)}
+Internet Service Profile: {service_profile.value}
+FQDN: {', '.join(fqdns)}
+
+
+Scan completed: {scan_ts}
+
+Scan report can be found attached to this e-mail."""
+
+
+def periodic_mail_body(ipv4 : str, admins : list[str], service_profile : HostServiceContract, fqdns : list[str], risky_vuls : dict):
+    email_body = f"""
+DETERRERS found a high risk for host {ipv4} and will block it at the perimeter firewall.
+
+***System Information***
+
+IPv4 Address: {ipv4}
+Admins: {', '.join(admins)}
+Internet Service Profile: {service_profile.value}
+FQDN: {', '.join(fqdns)}
+
+Following vulnerabilities resulted in the blocking:
+
+"""
+    for vul in risky_vuls.get(ipv4):
+        email_body += f"""
+Network Vulnerability Test Name:    {vul.nvt_name}
+Network Vulnerability Test ID:      {vul.nvt_oid}
+CVSS Base Score:                    {vul.cvss_base_score} ({vul.cvss_base_vector})
+Port:                               {vul.port}/{vul.proto}
+Vulnerability References:           {", ".join(vul.refs)}
+
+"""
+    email_body += """
+Please remediate the security risks and re-register the host in DETERRERS!"""
+    
+    return email_body
