@@ -67,7 +67,10 @@ class Command(BaseCommand):
                     for ag in PaloAltoAddressGroup:
                         addr_objs = fw.get_addr_objs_in_addr_grp(ag)
                         for addr_obj in addr_objs:
-                            ip = ipaddress.ip_address(addr_obj.replace('-', '.'))
+                            try:
+                                ip = ipaddress.IPv4Address(addr_obj.replace('-', '.'))
+                            except:
+                                continue
                             if isinstance(ip, ipaddress.IPv4Address):
                                 fw_hosts.add(str(ip))
 
