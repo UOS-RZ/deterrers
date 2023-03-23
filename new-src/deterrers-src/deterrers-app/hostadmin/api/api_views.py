@@ -23,6 +23,10 @@ class Http409(Exception):
     # Conflict
     pass
 
+class Http500(Exception):
+    # Internal Error
+    pass
+
 def __add_host(request):
     # TODO: implement
     logger.info('Not implemented yet!')
@@ -37,6 +41,9 @@ def __update_host(request):
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        if not ipam.enter_ok:
+            return Response(status=500)
+        
         # check if user has IPAM permission or an admin tag for them exists
         if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
             raise Http404()
@@ -114,6 +121,9 @@ def hosts(request):
     """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        if not ipam.enter_ok:
+            return Response(status=500)
+        
         # check if user has IPAM permission or an admin tag for them exists
         user_exists = ipam.user_exists(hostadmin.username)
         admin_tag_exists = ipam.admin_tag_exists(hostadmin.username)
@@ -158,6 +168,8 @@ def host(request):
         return Response(status=404)
     except Http409:
         return Response(status=409)
+    except Http500:
+        return Response(status=500)
 
 def register_bulk(hostadmin : MyUser, ipv4_addrs : set[str]):
     """
@@ -170,30 +182,35 @@ def register_bulk(hostadmin : MyUser, ipv4_addrs : set[str]):
     """
     ipv4_addrs = set(ipv4_addrs)
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
-        # check if user has IPAM permission or an admin tag for them exists
-        user_exists = ipam.user_exists(hostadmin.username)
-        admin_tag_exists = ipam.admin_tag_exists(hostadmin.username)
-        if not user_exists and not admin_tag_exists:
-            raise Http404()
-        
-        # check if all requested hosts are permitted for this hostadmin
-        for ip in ipv4_addrs:
-            # get host
-            host = ipam.get_host_info_from_ip(ip)
-            if not host:
-                raise Http404()
-            # check if user is admin of this host
-            if not hostadmin.username in host.admin_ids:
-                raise Http404()
-            # check if action is available for this host
-            if not available_actions(host).get('can_register'):
-                raise Http409()
-            # check if host is actually valid
-            if not host.is_valid():
-                raise Http409()
-            
-        # perform actual registration of hosts
+        if not ipam.enter_ok:
+            raise Http500()
         with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
+            if not scanner.enter_ok:
+                raise Http500()
+            
+            # check if user has IPAM permission or an admin tag for them exists
+            user_exists = ipam.user_exists(hostadmin.username)
+            admin_tag_exists = ipam.admin_tag_exists(hostadmin.username)
+            if not user_exists and not admin_tag_exists:
+                raise Http404()
+            
+            # check if all requested hosts are permitted for this hostadmin
+            for ip in ipv4_addrs:
+                # get host
+                host = ipam.get_host_info_from_ip(ip)
+                if not host:
+                    raise Http404()
+                # check if user is admin of this host
+                if not hostadmin.username in host.admin_ids:
+                    raise Http404()
+                # check if action is available for this host
+                if not available_actions(host).get('can_register'):
+                    raise Http409()
+                # check if host is actually valid
+                if not host.is_valid():
+                    raise Http409()
+            
+            # perform actual registration of hosts
             response_url = settings.DOMAIN_NAME + reverse('v_scanner_registration_alert')
             for ip in ipv4_addrs:
                 target_uuid, task_uuid, report_uuid, alert_uuid = scanner.create_registration_scan(ip, response_url)
@@ -212,6 +229,9 @@ def block_bulk(hostadmin : MyUser, ipv4_addrs : set[str]):
     ipv4_addrs = set(ipv4_addrs)
     
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        if not ipam.enter_ok:
+            raise Http500
+        
         # check if user has IPAM permission or an admin tag for them exists
         if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
             raise Http404()
@@ -268,6 +288,8 @@ def action(request):
         return Response(status=404)
     except Http409:
         return Response(status=409)
+    except Http500:
+        return Response(status=500)
     
         
     return Response()

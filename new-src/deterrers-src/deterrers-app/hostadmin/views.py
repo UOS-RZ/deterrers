@@ -88,6 +88,9 @@ def host_detail_view(request, ipv4 : str):
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        if not ipam.enter_ok:
+            return HttpResponse(status=500)
+        
         # check if user has IPAM permission or an admin tag for them exists
         if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
             raise Http404()
@@ -159,6 +162,9 @@ def hosts_list_view(request):
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        if not ipam.enter_ok:
+            return HttpResponse(status=500)
+        
         # check if user has IPAM permission or an admin tag for them exists
         user_exists = ipam.user_exists(hostadmin.username)
         admin_tag_exists = ipam.admin_tag_exists(hostadmin.username)
@@ -220,6 +226,9 @@ def hostadmin_init_view(request):
     logger.info("Request: Initialize hostadmin %s", request.user.username)
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        if not ipam.enter_ok:
+            return HttpResponse(status=500)
+        
         # hostadmin can only initialize if they are a user in IPAM
         if not ipam.user_exists(hostadmin.username):
             raise Http404()
@@ -267,6 +276,9 @@ def update_host_detail(request, ipv4 : str):
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        if not ipam.enter_ok:
+            return HttpResponse(status=500)
+        
         # check if user has IPAM permission or an admin tag for them exists
         if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
             raise Http404()
@@ -373,25 +385,30 @@ def register_host(request, ipv4 : str):
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
-        # check if user has IPAM permission or an admin tag for them exists
-        if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
-            raise Http404()
-        # get host
-        host = ipam.get_host_info_from_ip(ipv4)
-        if not host:
-            raise Http404()
-        # check if user is admin of this host
-        if not hostadmin.username in host.admin_ids:
-            raise Http404()
-        # check if this host can be registered
-        if not available_actions(host).get('can_register'):
-            raise Http404()
-        if not host.is_valid():
-            logger.warning("Host '%s' is not valid!", str(host))
-            messages.error(request, "Host is not valid!")
-        else:
-            # create an initial scan of the host
-            with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
+        if not ipam.enter_ok:
+            return HttpResponse(status=500)
+        with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
+            if not scanner.enter_ok:
+                return HttpResponse(status=500)
+            
+            # check if user has IPAM permission or an admin tag for them exists
+            if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+                raise Http404()
+            # get host
+            host = ipam.get_host_info_from_ip(ipv4)
+            if not host:
+                raise Http404()
+            # check if user is admin of this host
+            if not hostadmin.username in host.admin_ids:
+                raise Http404()
+            # check if this host can be registered
+            if not available_actions(host).get('can_register'):
+                raise Http404()
+            if not host.is_valid():
+                logger.warning("Host '%s' is not valid!", str(host))
+                messages.error(request, "Host is not valid!")
+            else:
+                # create an initial scan of the host
                 own_url = request.get_host() + reverse('v_scanner_registration_alert')
                 target_uuid, task_uuid, report_uuid, alert_uuid = scanner.create_registration_scan(ipv4, own_url)
                 if target_uuid and task_uuid and report_uuid and alert_uuid:
@@ -427,25 +444,30 @@ def scan_host(request, ipv4 : str):
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
-        # check if user has IPAM permission or an admin tag for them exists
-        if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
-            raise Http404()
-        # get host
-        host = ipam.get_host_info_from_ip(ipv4)
-        if not host:
-            raise Http404()
-        # check if user is admin of this host
-        if not hostadmin.username in host.admin_ids:
-            raise Http404()
-        # check if this host can be scanned at the moment or whether there are already processes running for it
-        if not available_actions(host).get('can_scan'):
-            raise Http404()
-        if not host.is_valid():
-            logger.warning("Host '%s' is not valid!", str(host))
-            messages.error(request, "Host is not valid!")
-        else:
+        if not ipam.enter_ok:
+            return HttpResponse(status=500)
+        with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
+            if not scanner.enter_ok:
+                return HttpResponse(status=500)
+            
+            # check if user has IPAM permission or an admin tag for them exists
+            if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+                raise Http404()
+            # get host
+            host = ipam.get_host_info_from_ip(ipv4)
+            if not host:
+                raise Http404()
+            # check if user is admin of this host
+            if not hostadmin.username in host.admin_ids:
+                raise Http404()
+            # check if this host can be scanned at the moment or whether there are already processes running for it
+            if not available_actions(host).get('can_scan'):
+                raise Http404()
+            if not host.is_valid():
+                logger.warning("Host '%s' is not valid!", str(host))
+                messages.error(request, "Host is not valid!")
+            else:
             # create an initial scan of the host
-            with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
                 own_url = request.get_host() + reverse('v_scanner_scan_alert')
                 target_uuid, task_uuid, report_uuid, alert_uuid = scanner.create_ordinary_scan(ipv4, own_url)
                 if target_uuid and task_uuid and report_uuid and alert_uuid:
@@ -480,6 +502,9 @@ def block_host(request, ipv4 : str):
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        if not ipam.enter_ok:
+            return HttpResponse(status=500)
+        
         # check if user has IPAM permission or an admin tag for them exists
         if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
             raise Http404()
@@ -522,6 +547,9 @@ def delete_host_rule(request, ipv4 : str, rule_id : uuid.UUID):
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        if not ipam.enter_ok:
+            return HttpResponse(status=500)
+        
         # check if user has IPAM permission or an admin tag for them exists
         if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
             raise Http404()
@@ -564,6 +592,9 @@ def get_fw_config(request, ipv4 : str):
     logger.info("Request: Generate fw config script for host %s by user %s", ipv4, request.user.username)
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        if not ipam.enter_ok:
+            return HttpResponse(status=500)
+        
         # check if user has IPAM permission or an admin tag for them exists
         if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
             raise Http404()
@@ -627,40 +658,46 @@ def v_scanner_registration_alert(request):
             target_uuid = request.GET['target_uuid']
             alert_uuid = request.GET['alert_uuid']
             with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
-                report_xml = scanner.get_report_xml(report_uuid)
-                scan_start, scan_end, highest_cvss, results = scanner.extract_report_data(report_xml)
-                if results is None:
+                if not scanner.enter_ok:
                     return
-                # Risk assessment
-                hosts_to_block, block_reasons = compute_risk_of_network_exposure(results)
-                    
-                if host_ipv4 not in hosts_to_block:
-                    passed = True
-                    logger.info("Host %s passed the registration scan and will be set online!", host_ipv4)
-                    # change the perimeter firewall configuration so that only hosts service profile is allowed
-                    if not set_host_online(host_ipv4):
-                        raise RuntimeError("Couldn't set host online at perimeter FW!")
-                else:
-                    passed = False
-                    logger.info("Host %s did not pass the registration and will be blocked.", host_ipv4)
-                    if not set_host_offline(host_ipv4):
-                        raise RuntimeError("Couldn't block host")
-
-                # get string representation of cvss severity
-                if highest_cvss < 0.1:
-                    severity = 'None'
-                elif highest_cvss >= 0.1 and highest_cvss < 4.0:
-                    severity = 'Low'
-                elif highest_cvss >= 4.0 and highest_cvss < 7.0:
-                    severity = 'Medium'
-                elif highest_cvss >=7.0 and highest_cvss < 9.0:
-                    severity = 'High'
-                elif highest_cvss >= 9.0:
-                    severity = 'Critical'
-                else:
-                    severity = 'Unknown'
-
                 with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+                    if not ipam.enter_ok:
+                        return
+        
+                    
+                    report_xml = scanner.get_report_xml(report_uuid)
+                    scan_start, scan_end, highest_cvss, results = scanner.extract_report_data(report_xml)
+                    if results is None:
+                        return
+                    # Risk assessment
+                    hosts_to_block, block_reasons = compute_risk_of_network_exposure(results)
+                        
+                    if host_ipv4 not in hosts_to_block:
+                        passed = True
+                        logger.info("Host %s passed the registration scan and will be set online!", host_ipv4)
+                        # change the perimeter firewall configuration so that only hosts service profile is allowed
+                        if not set_host_online(host_ipv4):
+                            raise RuntimeError("Couldn't set host online at perimeter FW!")
+                    else:
+                        passed = False
+                        logger.info("Host %s did not pass the registration and will be blocked.", host_ipv4)
+                        if not set_host_offline(host_ipv4):
+                            raise RuntimeError("Couldn't block host")
+
+                    # get string representation of cvss severity
+                    if highest_cvss < 0.1:
+                        severity = 'None'
+                    elif highest_cvss >= 0.1 and highest_cvss < 4.0:
+                        severity = 'Low'
+                    elif highest_cvss >= 4.0 and highest_cvss < 7.0:
+                        severity = 'Medium'
+                    elif highest_cvss >=7.0 and highest_cvss < 9.0:
+                        severity = 'High'
+                    elif highest_cvss >= 9.0:
+                        severity = 'Critical'
+                    else:
+                        severity = 'Unknown'
+
                     host = ipam.get_host_info_from_ip(host_ipv4)
                     # get HTML report and send via e-mail to admin
                     report_html = scanner.get_report_html(report_uuid)
@@ -716,19 +753,24 @@ def v_scanner_scan_alert(request):
             target_uuid = request.GET['target_uuid']
             alert_uuid = request.GET['alert_uuid']
             with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
-                report_xml = scanner.get_report_xml(report_uuid)
-                scan_start, scan_end, highest_cvss, results = scanner.extract_report_data(report_xml)
-                if results is None:
+                if not scanner.enter_ok:
                     return
-                # Risk assessment
-                hosts_to_block, block_reasons = compute_risk_of_network_exposure(results)
-                
-                # reset hosts status
                 with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+                    if not ipam.enter_ok:
+                        return
+        
+                    report_xml = scanner.get_report_xml(report_uuid)
+                    scan_start, scan_end, highest_cvss, results = scanner.extract_report_data(report_xml)
+                    if results is None:
+                        return
+                    # Risk assessment
+                    hosts_to_block, block_reasons = compute_risk_of_network_exposure(results)
+                    
+                    # reset hosts status
                     host = ipam.get_host_info_from_ip(host_ipv4)
                     with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
                         if not fw.enter_ok:
-                            raise RuntimeError("Connection to FW failed!")
+                            return
                         host.status = fw.get_host_status(str(host.ipv4_addr))
                     if not ipam.update_host_info(host):
                         raise RuntimeError("Couldn't update host information!")
@@ -788,15 +830,20 @@ def v_scanner_periodic_alert(request):
         try:
             task_uuid = request.GET['task_uuid']
             with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
-                report_uuid = scanner.get_latest_report_uuid(task_uuid)
-                report_xml = scanner.get_report_xml(report_uuid)
-                scan_start, scan_end, highest_cvss, results = scanner.extract_report_data(report_xml)
-                if results is None:
+                if not scanner.enter_ok:
                     return
-                # Risk assessment
-                ipv4_addresses_to_block, risky_vuls = compute_risk_of_network_exposure(results)
-
                 with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+                    if not ipam.enter_ok:
+                        return
+                
+                    report_uuid = scanner.get_latest_report_uuid(task_uuid)
+                    report_xml = scanner.get_report_xml(report_uuid)
+                    scan_start, scan_end, highest_cvss, results = scanner.extract_report_data(report_xml)
+                    if results is None:
+                        return
+                    # Risk assessment
+                    ipv4_addresses_to_block, risky_vuls = compute_risk_of_network_exposure(results)
+
                     for ipv4_to_block in ipv4_addresses_to_block:
                         host = ipam.get_host_info_from_ip(ipv4_to_block)
                         logger.info("Host %s did not pass the periodic scan and will be blocked.", str(host.ipv4_addr))
