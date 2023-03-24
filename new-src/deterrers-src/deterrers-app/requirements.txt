@@ -10,3 +10,4 @@ django-bootstrap5
 djangorestframework
 pyyaml
 uritemplate
+cvss

@@ -20,9 +20,8 @@ from .forms import ChangeHostDetailForm, AddHostRulesForm, HostadminForm, AddHos
 from .core.ipam_api_interface import ProteusIPAMInterface
 from .core.v_scanner_interface import GmpVScannerInterface
 from .core.fw_interface import PaloAltoInterface
-from .core.risk_assessor import compute_risk_of_network_exposure
+from .core.risk_assessor import assess_host_risk
 from .core.rule_generator import generate_fw_config
-from .core.host import MyHost
 from .core.contracts import HostBasedRuleSubnetContract, HostBasedRuleProtocolContract, HostStatusContract, HostServiceContract, HostFWContract, PaloAltoAddressGroup
 
 
@@ -666,37 +665,42 @@ def v_scanner_registration_alert(request):
         
                     
                     report_xml = scanner.get_report_xml(report_uuid)
-                    scan_start, scan_end, results = scanner.extract_report_data(report_xml)
-                    if results is None:
+                    scan_start, scan_end, scan_results = scanner.extract_report_data(report_xml)
+                    if scan_results is None:
                         return
                     # Risk assessment
-                    hosts_to_block, block_reasons = compute_risk_of_network_exposure(results)
+                    for host_ipv4, vulnerabilities in scan_results.items():
+                        host = ipam.get_host_info_from_ip(host_ipv4)
+                        if not host or not host.is_valid():
+                            logger.error("Invalid host during risk assessment: %s", str(host))
+                            continue
+                        block_reasons = assess_host_risk(host, vulnerabilities)
                         
-                    if host_ipv4 not in hosts_to_block:
-                        passed = True
-                        logger.info("Host %s passed the registration scan and will be set online!", host_ipv4)
-                        # change the perimeter firewall configuration so that only hosts service profile is allowed
-                        if not set_host_online(host_ipv4):
-                            raise RuntimeError("Couldn't set host online at perimeter FW!")
-                    else:
-                        passed = False
-                        logger.info("Host %s did not pass the registration and will be blocked.", host_ipv4)
-                        if not set_host_offline(host_ipv4):
-                            raise RuntimeError("Couldn't block host")
+                        # block if there were reasons found
+                        if len(block_reasons) == 0:
+                            passed = True
+                            logger.info("Host %s passed the registration scan and will be set online!", host_ipv4)
+                            # change the perimeter firewall configuration so that only hosts service profile is allowed
+                            if not set_host_online(host_ipv4):
+                                raise RuntimeError("Couldn't set host online!")
+                        else:
+                            passed = False
+                            logger.info("Host %s did not pass the registration and will be blocked.", host_ipv4)
+                            if not set_host_offline(host_ipv4):
+                                raise RuntimeError("Couldn't block host")
 
-                    host = ipam.get_host_info_from_ip(host_ipv4)
-                    # get HTML report and send via e-mail to admin
-                    report_html = scanner.get_report_html(report_uuid)
-                    # get all department names for use below
-                    departments = ipam.get_department_tag_names()
-                    # deduce admin email addr and filter out departments
-                    admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments]
-                    __send_report_email(
-                        report_html,
-                        f"DETERRERS - {str(host.ipv4_addr)} - Vulnerability scan finished",
-                        registration_mail_body(host.ipv4_addr, passed, host.admin_ids, host.service_profile, host.dns_rcs, scan_end),
-                        list(set(admin_addresses)),
-                    )
+                        # get HTML report and send via e-mail to admin
+                        report_html = scanner.get_report_html(report_uuid)
+                        # get all department names for use below
+                        departments = ipam.get_department_tag_names()
+                        # deduce admin email addr and filter out departments
+                        admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments]
+                        __send_report_email(
+                            report_html,
+                            f"DETERRERS - {str(host.ipv4_addr)} - Vulnerability scan finished",
+                            registration_mail_body(host.ipv4_addr, passed, host.admin_ids, host.service_profile, host.dns_rcs, scan_end),
+                            list(set(admin_addresses)),
+                        )
 
                 scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
         except Exception:
@@ -806,32 +810,44 @@ def v_scanner_periodic_alert(request):
                     if not ipam.enter_ok:
                         return
                 
+                    admin_mail_copy = ""
                     report_uuid = scanner.get_latest_report_uuid(task_uuid)
                     report_xml = scanner.get_report_xml(report_uuid)
-                    scan_start, scan_end, results = scanner.extract_report_data(report_xml)
-                    if results is None:
+                    scan_start, scan_end, scan_results = scanner.extract_report_data(report_xml)
+                    if scan_results is None:
                         return
                     # Risk assessment
-                    ipv4_addresses_to_block, risky_vuls = compute_risk_of_network_exposure(results)
+                    for host_ipv4, vulnerabilities in scan_results.items():
+                        host = ipam.get_host_info_from_ip(host_ipv4)
+                        if not host or not host.is_valid():
+                            logger.error("Invalid host during risk assessment: %s", str(host))
+                            continue
+                        block_reasons = assess_host_risk(host, vulnerabilities)
+                        # block if there were reasons found
+                        if len(block_reasons) != 0:
+                            logger.info("Host %s did not pass the periodic scan and will be blocked.", str(host.ipv4_addr))
+                            if not set_host_offline(str(host.ipv4_addr)):
+                                raise RuntimeError("Couldn't block host")
+    
+                            # deduce admin email addr and filter out departments
+                            departments = ipam.get_department_tag_names()
+                            admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments]
+                            email_body = periodic_mail_body(host, block_reasons)
 
-                    for ipv4_to_block in ipv4_addresses_to_block:
-                        host = ipam.get_host_info_from_ip(ipv4_to_block)
-                        logger.info("Host %s did not pass the periodic scan and will be blocked.", str(host.ipv4_addr))
-                        if not set_host_offline(str(host.ipv4_addr)):
-                            raise RuntimeError("Couldn't block host")
- 
-                        # get all department names for use below
-                        departments = ipam.get_department_tag_names()
-                        # deduce admin email addr and filter out departments
-                        admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments]
-                        email_body = periodic_mail_body(str(host.ipv4_addr), host.admin_ids, host.service_profile, host.dns_rcs, risky_vuls)
-
-                        __send_report_email(
-                            None,
-                            f"DETERRERS - {str(host.ipv4_addr)} - New vulnerability!",
-                            email_body,
-                            list(set(admin_addresses)),
-                        )
+                            __send_report_email(
+                                None,
+                                f"DETERRERS - {str(host.ipv4_addr)} - Host blocked!",
+                                email_body,
+                                list(set(admin_addresses)),
+                            )
+                            # copy email body for admin mail
+                            admin_mail_copy += f"""To {', '.join(admin_addresses)}:
+                            """
+                            admin_mail_copy += email_body
+                            admin_mail_copy += """
+                            
+                            
+                            """
 
                 # send complete report to DETERRERS admin
                 # get HTML report and send via e-mail to admin
@@ -840,7 +856,13 @@ def v_scanner_periodic_alert(request):
                 __send_report_email(
                     report_html,
                     "DETERRERS - Periodic vulnerability scan report",
-                    "Complete report of the periodic scan! You find the report of the vulnerability scan attached to this e-mail.", # TODO
+                    f"""
+Complete report of the periodic scan!
+You find the report of the vulnerability scan attached to this e-mail.
+
+Admin copy:
+
+{admin_mail_copy}""",
                     list(set(admin_addresses)),
                 )
 

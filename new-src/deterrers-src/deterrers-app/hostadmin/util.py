@@ -242,25 +242,27 @@ Scan completed: {scan_ts}
 Scan report can be found attached to this e-mail."""
 
 
-def periodic_mail_body(ipv4 : str, admins : list[str], service_profile : HostServiceContract, fqdns : list[str], risky_vuls : dict):
+def periodic_mail_body(host : MyHost, risky_vuls : list):
     email_body = f"""
-DETERRERS found a high risk for host {ipv4} and will block it at the perimeter firewall.
+DETERRERS found a high risk for host {str(host.ipv4_addr)} and will block it at the perimeter firewall.
 
 ***System Information***
 
-IPv4 Address: {ipv4}
-Admins: {', '.join(admins)}
-Internet Service Profile: {service_profile.value}
-FQDN: {', '.join(fqdns)}
+IPv4 Address: {str(host.ipv4_addr)}
+Admins: {', '.join(host.admin_ids)}
+Internet Service Profile: {host.service_profile.value}
+FQDN: {', '.join(host.dns_rcs)}
 
 Following vulnerabilities resulted in the blocking:
 
 """
-    for vul in risky_vuls.get(ipv4):
+    for vul in risky_vuls:
         email_body += f"""
 Network Vulnerability Test Name:    {vul.nvt_name}
 Network Vulnerability Test ID:      {vul.nvt_oid}
 CVSS Base Score:                    {vul.cvss_base_score} ({vul.cvss_base_vector})
+Quality of Detection:               {vul.qod}
+Hostname:                           {vul.hostname}
 Port:                               {vul.port}/{vul.proto}
 Vulnerability References:           {", ".join(vul.refs)}
 
