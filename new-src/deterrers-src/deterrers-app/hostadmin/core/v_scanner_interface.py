@@ -106,7 +106,7 @@ class GmpVScannerInterface():
                 logger.error("Authentication with Scanner failed! Status: %s", response.xpath('@status')[0])
                 self.enter_ok = False
         except:
-            logger.exception("")
+            logger.exception("Authentication failed!")
             self.gmp.__exit__(None, None, None)
             self.enter_ok = False
             # raise err
@@ -946,7 +946,7 @@ class GmpVScannerInterface():
             logger.exception("Get report as HTML failed.")
         return None
 
-    def extract_report_data(self, report) -> tuple:
+    def extract_report_data(self, report) -> tuple[str, str, dict]:
         """
         Extract relevant result data from a report.
 
@@ -954,9 +954,8 @@ class GmpVScannerInterface():
             report (_type_): XML etree report objcet.
 
         Returns:
-            tuple: Tuple consisting of the scan start time, the highsest severity and a list of
-                dictionaries which hold the result information. On error, (None, None, None) is
-                returned.
+            tuple[str, str, dict]: Tuple consisting of the scan start and end time, and a dictionary
+                of vulnerabilities per IPv4 address. On error, (None, None, None) is returned.
         """
         try:
             scan_start = report.xpath('//scan_start')[0].text
@@ -965,13 +964,13 @@ class GmpVScannerInterface():
             highest_severity_filtered = report.xpath('report/report/severity/filtered')[0].text
 
             results_xml = report.xpath('report/report/results/result')
-            results = []
+            results = {}
 
             for result_xml in results_xml:
                 result_uuid = result_xml.attrib['id']
                 host_ip = result_xml.xpath('host')[0].text
                 port_proto = result_xml.xpath('port')[0].text
-                if len(port_proto.split('/')) == 2:
+                if port_proto and len(port_proto.split('/')) == 2:
                     port = port_proto.split('/')[0]
                     proto = port_proto.split('/')[1]
                 else:
@@ -994,16 +993,14 @@ class GmpVScannerInterface():
                 refs = [ref.attrib['id'] for ref in result_xml.xpath('nvt/refs/ref')]
 
                 # get newest CVSS version
-                cvss_version, cvss_base_score, cvss_base_vector = None, None, None
-                for version in range(4, 1, -1):
+                cvss_version, cvss_base_score, cvss_base_vector = -1, -1, ''
+                for version in range(2, 5, 1):
                     for sev in cvss_severities:
                         if sev.get('type') == f'cvss_base_v{version}':
                             cvss_version = version
                             cvss_base_score = float(sev.get('base_score', -1.0))
                             cvss_base_vector = sev.get('base_vector', '')
                             break
-                    if cvss_version:
-                        break
 
                 res = VulnerabilityScanResult(
                     uuid=result_uuid,
@@ -1019,7 +1016,10 @@ class GmpVScannerInterface():
                     cvss_base_vector=cvss_base_vector,
                     refs=refs,
                 )
-                results.append(res)
+                if results.get(host_ip):
+                    results[host_ip].append(res)
+                else:
+                    results[host_ip] = [res,]
 
             return scan_start, scan_end, results
         except Exception:
