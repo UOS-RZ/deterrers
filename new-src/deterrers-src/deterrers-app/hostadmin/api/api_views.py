@@ -195,6 +195,7 @@ def register_bulk(hostadmin : MyUser, ipv4_addrs : set[str]):
                 raise Http404()
             
             # check if all requested hosts are permitted for this hostadmin
+            hosts = []
             for ip in ipv4_addrs:
                 # get host
                 host = ipam.get_host_info_from_ip(ip)
@@ -209,20 +210,21 @@ def register_bulk(hostadmin : MyUser, ipv4_addrs : set[str]):
                 # check if host is actually valid
                 if not host.is_valid():
                     raise Http409()
+                hosts.append(host)
             
             # perform actual registration of hosts
             response_url = settings.DOMAIN_NAME + reverse('v_scanner_registration_alert')
-            for ip in ipv4_addrs:
-                target_uuid, task_uuid, report_uuid, alert_uuid = scanner.create_registration_scan(ip, response_url)
+            for host in hosts:
+                target_uuid, task_uuid, report_uuid, alert_uuid = scanner.create_registration_scan(str(host.ipv4_addr), response_url)
                 if target_uuid and task_uuid and report_uuid and alert_uuid:
                     # update state in IPAM
                     host.status = HostStatusContract.UNDER_REVIEW
                     if not ipam.update_host_info(host):
                         scanner.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
-                        logger.error("Couldn't update status of host %s", ip)
+                        logger.error("Couldn't update status of host %s", str(host.ipv4_addr))
                         continue
                 else:
-                    logger.error("Registration for host %s couldn't be started!", ip)
+                    logger.error("Registration for host %s couldn't be started!", str(host.ipv4_addr))
                     continue
 
 def block_bulk(hostadmin : MyUser, ipv4_addrs : set[str]):
