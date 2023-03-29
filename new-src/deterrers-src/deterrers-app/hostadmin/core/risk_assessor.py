@@ -166,16 +166,9 @@ def assess_host_risk(
         qod_threshold : int = 70,
         medium_cvss_threshold : float = 4.0,
         high_cvss_threshold : float = 7.0
-    ) -> list[VulnerabilityScanResult]:
+    ) -> tuple[list[VulnerabilityScanResult], list[VulnerabilityScanResult]]:
     """
     TODO: docu
-
-    Args:
-        host (MyHost): _description_
-        vuls (list[VulnerabilityScanResult]): _description_
-
-    Returns:
-        list[VulnerabilityScanResult]: _description_
     """
     block_reasons = []
     notify_reasons = []
@@ -184,5 +177,6 @@ def assess_host_risk(
         if __block_worthy(risk_flags):
             block_reasons.append(vul)
         elif __notify_worthy(risk_flags):
+            # add vulnerability to notify reasosns only when it is not severe enough for blocking
             notify_reasons.append(vul)
     return block_reasons, notify_reasons
