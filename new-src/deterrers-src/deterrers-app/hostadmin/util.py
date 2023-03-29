@@ -5,11 +5,12 @@ import ipaddress
 from django.conf import settings
 from django.urls import reverse
 
-from .core.host import MyHost
-from .core.contracts import HostStatusContract, HostServiceContract, HostFWContract
+from hostadmin.core.host import MyHost
+from hostadmin.core.contracts import HostStatusContract, HostServiceContract, HostFWContract
 from hostadmin.core.ipam_api_interface import ProteusIPAMInterface
 from hostadmin.core.v_scanner_interface import GmpVScannerInterface
 from hostadmin.core.fw_interface import PaloAltoInterface, PaloAltoAddressGroup
+from hostadmin.core.risk_assessor import VulnerabilityScanResult
 
 
 logger = logging.getLogger(__name__)
@@ -242,7 +243,7 @@ Scan completed: {scan_ts}
 Scan report can be found attached to this e-mail."""
 
 
-def periodic_mail_body(host : MyHost, risky_vuls : list):
+def periodic_mail_body(host : MyHost, block_reasons : list[VulnerabilityScanResult], notify_reasons : list[VulnerabilityScanResult]):
     email_body = f"""
 DETERRERS found a high risk for host {str(host.ipv4_addr)} and will block it at the perimeter firewall.
 
@@ -256,7 +257,7 @@ FQDN: {', '.join(host.dns_rcs)}
 Following vulnerabilities resulted in the blocking:
 
 """
-    for vul in risky_vuls:
+    for vul in block_reasons:
         email_body += f"""
 Network Vulnerability Test Name:    {vul.nvt_name}
 Network Vulnerability Test ID:      {vul.nvt_oid}
