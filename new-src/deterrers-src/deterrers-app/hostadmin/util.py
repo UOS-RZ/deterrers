@@ -122,7 +122,7 @@ def set_host_offline(host_ipv4 : str) -> bool:
                     return False
             
                 # remove from periodic scan
-                if not scanner.remove_host_from_periodic_scan(str(host.ipv4_addr)):
+                if not scanner.remove_host_from_periodic_scans(str(host.ipv4_addr)):
                     return False
         
     return True
@@ -167,7 +167,7 @@ def set_host_online(host_ipv4 : str) -> bool:
 
                 # add only the IPv4 address to periodic vulnerability scan
                 response_url = settings.DOMAIN_NAME + reverse('v_scanner_periodic_alert')
-                if not scanner.add_host_to_periodic_scan(host_ip=host_ipv4, deterrers_url=response_url):
+                if not scanner.add_host_to_periodic_scans(host_ip=host_ipv4, deterrers_url=response_url):
                     logger.error("Couldn't add host %s to periodic scan!", host_ipv4)
                     return False
         

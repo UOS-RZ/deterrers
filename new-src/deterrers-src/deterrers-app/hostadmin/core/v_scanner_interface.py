@@ -60,6 +60,7 @@ class GmpVScannerInterface():
     TIMEOUT = 60*5
 
     PERIODIC_TASK_NAME = "DETERRERS - Periodic task for registered hosts"
+    PERIODIC_CVE_TASK_NAME = "DETERRERS - Periodic task for registered hosts (CVE Scan only)"
 
     
     def __init__(self, username, password, scanner_url, scanner_port=22):
@@ -415,6 +416,60 @@ class GmpVScannerInterface():
         cal.add_component(event)
         return cal
 
+    def __get_task_info(self, task_name : str):
+        filter_str = f'"{task_name}" rows=-1 first=1'
+        response = self.gmp.get_tasks(filter_string=filter_str)
+        response_status = int(response.xpath('@status')[0])
+        if response_status != 200:
+            raise GmpAPIError(f"Couldn't get tasks! Status: {response_status}")
+        try:
+            # get task uuid and uuid of the existing target
+            task_xml = response.xpath('//task')[0]
+            task_uuid = task_xml.attrib['id']
+            target_uuid = task_xml.xpath('//target/@id')[0]
+        except IndexError:
+            task_xml = None
+            task_uuid = None
+            target_uuid = None
+        return task_xml, task_uuid, target_uuid
+
+    def __stop_task_if_running(self, task_name : str):
+        task_xml, task_uuid, target_uuid = self.__get_task_info(task_name)
+        # wait if task is queued or requested, stop task in case it is running
+        task_status = task_xml.xpath('//task/status')[0].text
+        while task_status == "Queued" or task_status == "Requested":
+            sleep(1.0)
+            task_xml, task_uuid, target_uuid = self.__get_task_info(task_name)
+            task_status = task_xml.xpath('//task/status')[0].text
+                
+        running = (task_status == 'Running')
+        if running:
+            response = self.gmp.stop_task(task_uuid)
+            response_status = int(response.xpath('@status')[0])
+            if response_status != 200:
+                raise GmpAPIError("Couldn't stop periodic task.")
+            stopped = True
+        else:
+            stopped = False
+        return task_xml, task_uuid, target_uuid, stopped
+
+    def __restart_scheduled_task(self, schedule_uuid : str):
+        # reschedule task because scheduled tasks cannot be resumed
+        new_cal = self.__create_cal(timedelta(minutes=1))
+        response = self.gmp.modify_schedule(
+                        schedule_uuid,
+                        icalendar=new_cal.to_ical(),
+                        timezone='UTC'
+                    )
+        response_status = int(response.xpath('@status')[0])
+        if response_status not in (200, 201, 202, 203, 204):
+            raise GmpAPIError(f"Couldn't modify schedule. Status: {response_status}")
+
+    def __set_new_target(self, task_uuid, new_target_uuid):
+        response = self.gmp.modify_task(task_uuid, target_id=new_target_uuid)
+        response_status = int(response.xpath('@status')[0])
+        if response_status != 200:
+            raise GmpAPIError(f"Couldn't assign new target to task {task_uuid}! Status: {response_status}")
 
 
     def create_ordinary_scan(self, host_ip : str, deterrers_url : str):
@@ -592,60 +647,12 @@ class GmpVScannerInterface():
         # report_uuid = self.__start_task(task_uuid, self.PERIODIC_TASK_NAME)
         report_uuid = ""
         self.__modify_http_alert_data('', deterrers_url, '', task_uuid, report_uuid, alert_uuid)
-    
 
-    def __get_periodic_task_info(self):
-        filter_str = f'"{self.PERIODIC_TASK_NAME}" rows=-1 first=1'
-        response = self.gmp.get_tasks(filter_string=filter_str)
-        response_status = int(response.xpath('@status')[0])
-        if response_status != 200:
-            raise GmpAPIError(f"Couldn't get tasks! Status: {response_status}")
-        try:
-            # get task uuid and uuid of the existing target
-            task_xml = response.xpath('//task')[0]
-            task_uuid = task_xml.attrib['id']
-            old_target_uuid = task_xml.xpath('//target/@id')[0]
-        except IndexError:
-            task_xml = None
-            task_uuid = None
-            old_target_uuid = None
-        return task_xml, task_uuid, old_target_uuid
-
-    def __stop_periodic_task(self):
-        task_xml, task_uuid, old_target_uuid = self.__get_periodic_task_info()
-        # wait if task is queued or requested, stop task in case it is running
-        task_status = task_xml.xpath('//task/status')[0].text
-        while task_status == "Queued" or task_status == "Requested":
-            sleep(1.0)
-            task_xml, task_uuid, old_target_uuid = self.__get_periodic_task_info()
-            task_status = task_xml.xpath('//task/status')[0].text
-                
-        running = (task_status == 'Running')
-        if running:
-            response = self.gmp.stop_task(task_uuid)
-            response_status = int(response.xpath('@status')[0])
-            if response_status != 200:
-                raise GmpAPIError("Couldn't stop periodic task.")
-            stopped = True
-        else:
-            stopped = False
-        return task_xml, task_uuid, old_target_uuid, stopped
-
-    def __restart_scheduled_task(self, schedule_uuid : str):
-        # reschedule task because scheduled tasks cannot be resumed
-        new_cal = self.__create_cal(timedelta(minutes=1))
-        response = self.gmp.modify_schedule(
-                        schedule_uuid,
-                        icalendar=new_cal.to_ical(),
-                        timezone='UTC'
-                    )
-        response_status = int(response.xpath('@status')[0])
-        if response_status not in (200, 201, 202, 203, 204):
-            raise GmpAPIError("Couldn't modify schedule.")
         
-    def add_host_to_periodic_scan(self, host_ip : str, deterrers_url : str) -> bool:
+    def add_host_to_periodic_scans(self, host_ip : str, deterrers_url : str) -> bool:
         """
         Add a host to the periodic scan task which scans all hosts that are online once a week.
+        Add also to the periodic CVE task.
         If the periodic scan task does not exist yet, it will be created.
 
         Args:
@@ -658,7 +665,7 @@ class GmpVScannerInterface():
         
         try:
             # check whether periodic task exists, if not, IndexError will be raised later
-            task_xml, task_uuid, old_target_uuid = self.__get_periodic_task_info()
+            task_xml, task_uuid, old_target_uuid = self.__get_task_info(self.PERIODIC_TASK_NAME)
 
             if not task_uuid:
                 # periodic scan task does not exist yet
@@ -666,9 +673,12 @@ class GmpVScannerInterface():
                     host_ip=host_ip,
                     deterrers_url=deterrers_url
                 )
+
+                # TODO: Creation of CVE task
             else:
                 # periodic scan task does exist
-                task_xml, task_uuid, old_target_uuid, stopped = self.__stop_periodic_task()
+                task_xml, task_uuid, old_target_uuid, stopped = self.__stop_task_if_running(self.PERIODIC_TASK_NAME)
+                cve_task_xml, cve_task_uuid, _, cve_stopped = self.__stop_task_if_running(self.PERIODIC_CVE_TASK_NAME)
 
                 # 1. clone target
                 response = self.gmp.clone_target(old_target_uuid)
@@ -686,16 +696,14 @@ class GmpVScannerInterface():
                 response = self.gmp.modify_target(
                     new_target_uuid,
                     hosts=hosts,
-                    name=f"Target for task '{self.PERIODIC_TASK_NAME}' | {datetime.now()}"
+                    name=f"Target for task periodic tasks | {datetime.now()}"
                 )
                 response_status = int(response.xpath('@status')[0])
                 if response_status != 200:
                     raise GmpAPIError(f"Couldn't modify host list of new target {new_target_uuid}! Status: {response_status}")
-                # 3. modify task so that it uses new target
-                response = self.gmp.modify_task(task_uuid, target_id=new_target_uuid)
-                response_status = int(response.xpath('@status')[0])
-                if response_status != 200:
-                    raise GmpAPIError(f"Couldn't assign new target to task {task_uuid}! Status: {response_status}")
+                # 3. modify tasks so that they use new target
+                self.__set_new_target(task_uuid, new_target_uuid)
+                self.__set_new_target(cve_task_uuid, new_target_uuid)
                 # 4. delete old target
                 response = self.gmp.delete_target(old_target_uuid, ultimate=True)
                 response_status = int(response.xpath('@status')[0])
@@ -705,6 +713,9 @@ class GmpVScannerInterface():
                 if stopped:
                     schedule_uuid = task_xml.xpath('//schedule/@id')[0]
                     self.__restart_scheduled_task(schedule_uuid)
+                if cve_stopped:
+                    cve_schedule_uuid = cve_task_xml.xpath('//schedule/@id')[0]
+                    self.__restart_scheduled_task(cve_schedule_uuid)
 
         except GmpAPIError:
             logger.exception("Couldn't add host to periodic scan task.")
@@ -712,9 +723,9 @@ class GmpVScannerInterface():
         return True
 
 
-    def remove_host_from_periodic_scan(self, host_ip : str) -> bool:
+    def remove_host_from_periodic_scans(self, host_ip : str) -> bool:
         """
-        Remove a host from the periodic scan task.
+        Remove a host from the periodic scan tasks.
 
         Args:
             host_ip (str): IP address of the host that is to be removed.
@@ -723,10 +734,11 @@ class GmpVScannerInterface():
             bool: Returns True on success and False on failure.
         """
         try:
-            task_xml, task_uuid, old_target_uuid = self.__get_periodic_task_info()
+            task_xml, task_uuid, old_target_uuid = self.__get_task_info(self.PERIODIC_TASK_NAME)
             if task_uuid:
                 # periodic scan task does exist
-                task_xml, task_uuid, old_target_uuid, stopped = self.__stop_periodic_task()
+                task_xml, task_uuid, old_target_uuid, stopped = self.__stop_task_if_running(self.PERIODIC_TASK_NAME)
+                cve_task_xml, cve_task_uuid, _, cve_stopped = self.__stop_task_if_running(self.PERIODIC_CVE_TASK_NAME)
 
                 # 1. clone target
                 response = self.gmp.clone_target(old_target_uuid)
@@ -753,20 +765,22 @@ class GmpVScannerInterface():
                 if response_status != 200:
                     raise GmpAPIError(f"Couldn't modify host list of new target {new_target_uuid}! Status: {response_status}")
                 # 3. modify task so that it uses new target
-                response = self.gmp.modify_task(task_uuid, target_id=new_target_uuid)
-                response_status = int(response.xpath('@status')[0])
-                if response_status != 200:
-                    raise GmpAPIError(f"Couldn't assign new target to task {task_uuid}! Status: {response_status}")
+                self.__set_new_target(task_uuid, new_target_uuid)
+                self.__set_new_target(cve_task_uuid, new_target_uuid)
                 # 4. delete old target
                 response = self.gmp.delete_target(old_target_uuid, ultimate=True)
                 response_status = int(response.xpath('@status')[0])
                 if response_status != 200:
                     raise GmpAPIError(f"Couldn't delete target {old_target_uuid}! Status: {response_status}")
 
-                if stopped is True:
+                if stopped:
                     # reschedule task
                     schedule_uuid = task_xml.xpath('//schedule/@id')[0]
                     self.__restart_scheduled_task(schedule_uuid)
+                if cve_stopped:
+                    # reschedule task
+                    cve_schedule_uuid = cve_task_xml.xpath('//schedule/@id')[0]
+                    self.__restart_scheduled_task(cve_schedule_uuid)
         except GmpAPIError:
             logger.exception("Couldn't add host to periodic scan task.")
             return False
