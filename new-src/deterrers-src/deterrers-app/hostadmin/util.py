@@ -116,15 +116,15 @@ def set_host_offline(host_ipv4 : str) -> bool:
                 # change the perimeter firewall configuration so that host is blocked (IPv4 and IPv6 if available)
                 if not fw.remove_addr_objs_from_addr_grps(ips_to_block, {ag for ag in PaloAltoAddressGroup}):
                     return False
-                # update status in IPAM
-                host.status = HostStatusContract.BLOCKED
-                if not ipam.update_host_info(host):
-                    return False
             
                 # remove from periodic scan
                 if not scanner.remove_host_from_periodic_scans(str(host.ipv4_addr)):
                     return False
         
+                # update status in IPAM
+                host.status = HostStatusContract.BLOCKED
+                if not ipam.update_host_info(host):
+                    return False
     return True
 
 def set_host_bulk_offline(host_ipv4s : set[str]) -> bool:
