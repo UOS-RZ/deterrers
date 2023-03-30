@@ -446,7 +446,7 @@ class GmpVScannerInterface():
         if running:
             response = self.gmp.stop_task(task_uuid)
             response_status = int(response.xpath('@status')[0])
-            if response_status < 300:
+            if response_status >= 300:
                 raise GmpAPIError(f"Couldn't stop periodic task. Status: {response_status}")
             stopped = True
         else:
