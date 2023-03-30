@@ -674,7 +674,7 @@ def v_scanner_registration_alert(request):
                         if not host or not host.is_valid():
                             logger.error("Invalid host during risk assessment: %s", str(host))
                             continue
-                        block_reasons = assess_host_risk(host, vulnerabilities)
+                        block_reasons, notify_reasons = assess_host_risk(host, vulnerabilities)
                         
                         # block if there were reasons found
                         if len(block_reasons) == 0:
@@ -822,9 +822,9 @@ def v_scanner_periodic_alert(request):
                         if not host or not host.is_valid():
                             logger.error("Invalid host during risk assessment: %s", str(host))
                             continue
-                        block_reasons = assess_host_risk(host, vulnerabilities)
+                        block_reasons, notify_reasons = assess_host_risk(host, vulnerabilities)
                         # block if there were reasons found
-                        if len(block_reasons) != 0:
+                        if len(block_reasons) != 0 or len(notify_reasons) != 0:
                             logger.info("Host %s did not pass the periodic scan and will be blocked.", str(host.ipv4_addr))
                             if not set_host_offline(str(host.ipv4_addr)):
                                 raise RuntimeError("Couldn't block host")
@@ -832,7 +832,7 @@ def v_scanner_periodic_alert(request):
                             # deduce admin email addr and filter out departments
                             departments = ipam.get_department_tag_names()
                             admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments]
-                            email_body = periodic_mail_body(host, block_reasons)
+                            email_body = periodic_mail_body(host, block_reasons, notify_reasons)
 
                             __send_report_email(
                                 None,
