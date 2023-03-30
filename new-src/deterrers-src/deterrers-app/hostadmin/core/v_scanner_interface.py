@@ -437,7 +437,7 @@ class GmpVScannerInterface():
         task_xml, task_uuid, target_uuid = self.__get_task_info(task_name)
         # wait if task is queued or requested, stop task in case it is running
         task_status = task_xml.xpath('//task/status')[0].text
-        while task_status == "Queued" or task_status == "Requested":
+        while task_status == "Queued" or task_status == "Requested" or task_status == "Stop Requested":
             sleep(1.0)
             task_xml, task_uuid, target_uuid = self.__get_task_info(task_name)
             task_status = task_xml.xpath('//task/status')[0].text
@@ -446,8 +446,8 @@ class GmpVScannerInterface():
         if running:
             response = self.gmp.stop_task(task_uuid)
             response_status = int(response.xpath('@status')[0])
-            if response_status != 200:
-                raise GmpAPIError("Couldn't stop periodic task.")
+            if response_status < 300:
+                raise GmpAPIError(f"Couldn't stop periodic task. Status: {response_status}")
             stopped = True
         else:
             stopped = False
@@ -529,7 +529,7 @@ class GmpVScannerInterface():
 
             return target_uuid, task_uuid, report_uuid, alert_uuid
 
-        except GmpAPIError:
+        except:
             logger.exception("Error while creating a scan for host %s.", host_ip)
             self.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
             
@@ -597,7 +597,7 @@ class GmpVScannerInterface():
 
             return target_uuid, task_uuid, report_uuid, alert_uuid
 
-        except Exception:
+        except:
             logger.exception("Error while creating a registration scan for host %s.", host_ip)
             self.clean_up_scan_objects(target_uuid, task_uuid, report_uuid, alert_uuid)
             
@@ -782,7 +782,7 @@ class GmpVScannerInterface():
                     cve_schedule_uuid = cve_task_xml.xpath('//schedule/@id')[0]
                     self.__restart_scheduled_task(cve_schedule_uuid)
         except GmpAPIError:
-            logger.exception("Couldn't add host to periodic scan task.")
+            logger.exception("Couldn't remove host from periodic scan task.")
             return False
         return True
 
