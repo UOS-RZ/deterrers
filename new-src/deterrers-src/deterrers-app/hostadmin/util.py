@@ -244,31 +244,87 @@ Scan report can be found attached to this e-mail."""
 
 
 def periodic_mail_body(host : MyHost, block_reasons : list[VulnerabilityScanResult], notify_reasons : list[VulnerabilityScanResult]):
-    email_body = f"""
+    if len(block_reasons) != 0:
+        email_body = f"""
 DETERRERS found a high risk for host {str(host.ipv4_addr)} and will block it at the perimeter firewall.
 
-***System Information***
+*************** System Information ***************
 
-IPv4 Address: {str(host.ipv4_addr)}
-Admins: {', '.join(host.admin_ids)}
+IPv4 Address:             {str(host.ipv4_addr)}
+FQDN:                     {', '.join(host.dns_rcs)}
+Admins:                   {', '.join(host.admin_ids)}
 Internet Service Profile: {host.service_profile.value}
-FQDN: {', '.join(host.dns_rcs)}
+
+**************************************************
 
 Following vulnerabilities resulted in the blocking:
+"""
+        for vul in block_reasons:
+            email_body += f"""
+    Network Vulnerability Test Name:    {vul.nvt_name}
+    Network Vulnerability Test ID:      {vul.nvt_oid}
+    CVSS Base Score:                    {vul.cvss_base_score} ({vul.cvss_base_vector})
+    Quality of Detection:               {vul.qod}
+    Hostname:                           {vul.hostname}
+    Port:                               {vul.port}/{vul.proto}
+    Vulnerability References:           {", ".join(vul.refs)}
 
 """
-    for vul in block_reasons:
-        email_body += f"""
-Network Vulnerability Test Name:    {vul.nvt_name}
-Network Vulnerability Test ID:      {vul.nvt_oid}
-CVSS Base Score:                    {vul.cvss_base_score} ({vul.cvss_base_vector})
-Quality of Detection:               {vul.qod}
-Hostname:                           {vul.hostname}
-Port:                               {vul.port}/{vul.proto}
-Vulnerability References:           {", ".join(vul.refs)}
+        # if block reasons and notify reasons
+        if len(notify_reasons) != 0:
+            email_body += """
+Additionally, following vulnerabilities were found but do not result in blocking.
+They are either not exposed to the internet, affect only the availability or are not severe enough to legitimize blocking the host:
+"""
+            for vul in notify_reasons:
+                email_body += f"""
+    Network Vulnerability Test Name:    {vul.nvt_name}
+    Network Vulnerability Test ID:      {vul.nvt_oid}
+    CVSS Base Score:                    {vul.cvss_base_score} ({vul.cvss_base_vector})
+    Quality of Detection:               {vul.qod}
+    Hostname:                           {vul.hostname}
+    Port:                               {vul.port}/{vul.proto}
+    Vulnerability References:           {", ".join(vul.refs)}
 
 """
-    email_body += """
+
+        email_body += """
 Please remediate the security risks and re-register the host in DETERRERS!"""
+
+    # no block reasons only notify reasons
+    elif len(notify_reasons) != 0:
+        email_body = f"""
+DETERRERS found vulnerabilities for host {str(host.ipv4_addr)} but will not be blocked at the perimeter firewall.
+
+*************** System Information ***************
+
+IPv4 Address:             {str(host.ipv4_addr)}
+FQDN:                     {', '.join(host.dns_rcs)}
+Admins:                   {', '.join(host.admin_ids)}
+Internet Service Profile: {host.service_profile.value}
+
+**************************************************
+
+Following vulnerabilities were found but do not result in blocking.
+They are either not exposed to the internet, affect only the availability or are not severe enough to legitimize blocking the host:
+"""
+        for vul in notify_reasons:
+            email_body += f"""
+    Network Vulnerability Test Name:    {vul.nvt_name}
+    Network Vulnerability Test ID:      {vul.nvt_oid}
+    CVSS Base Score:                    {vul.cvss_base_score} ({vul.cvss_base_vector})
+    Quality of Detection:               {vul.qod}
+    Hostname:                           {vul.hostname}
+    Port:                               {vul.port}/{vul.proto}
+    Vulnerability References:           {", ".join(vul.refs)}
+
+"""
+        email_body += """
+Remediation of these vulnerabilities will still increase the security level of the whole campus network.
+"""
+
+    # if no block reasons and no notify reasons
+    else:
+        email_body = ""
     
     return email_body
