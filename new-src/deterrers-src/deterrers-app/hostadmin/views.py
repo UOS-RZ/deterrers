@@ -855,7 +855,7 @@ def v_scanner_periodic_alert(request):
 
                             __send_report_email(
                                 None,
-                                f"DETERRERS - {str(host.ipv4_addr)} - Vulnerabilities found during periodic scan!",
+                                f"DETERRERS - {str(host.ipv4_addr)} - Vulnerabilities found during periodic scan",
                                 email_body,
                                 list(set(admin_addresses)),
                             )
