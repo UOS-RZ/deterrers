@@ -824,11 +824,10 @@ def v_scanner_periodic_alert(request):
                             continue
                         block_reasons, notify_reasons = assess_host_risk(host, vulnerabilities)
                         # block if there were reasons found
-                        if len(block_reasons) != 0 or len(notify_reasons) != 0:
+                        if len(block_reasons) != 0:
                             logger.info("Host %s did not pass the periodic scan and will be blocked.", str(host.ipv4_addr))
                             if not set_host_offline(str(host.ipv4_addr)):
                                 raise RuntimeError("Couldn't block host")
-    
                             # deduce admin email addr and filter out departments
                             departments = ipam.get_department_tag_names()
                             admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments]
@@ -836,7 +835,27 @@ def v_scanner_periodic_alert(request):
 
                             __send_report_email(
                                 None,
-                                f"DETERRERS - {str(host.ipv4_addr)} - Host blocked!",
+                                f"DETERRERS - {str(host.ipv4_addr)} - Host blocked after periodic scan!",
+                                email_body,
+                                list(set(admin_addresses)),
+                            )
+                            # copy email body for admin mail
+                            admin_mail_copy += f"""To {', '.join(admin_addresses)}:
+                            """
+                            admin_mail_copy += email_body
+                            admin_mail_copy += """
+                            
+                            
+                            """
+                        # only send mail if not block
+                        elif len(notify_reasons) != 0:
+                            departments = ipam.get_department_tag_names()
+                            admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments]
+                            email_body = periodic_mail_body(host, block_reasons, notify_reasons)
+
+                            __send_report_email(
+                                None,
+                                f"DETERRERS - {str(host.ipv4_addr)} - Vulnerabilities found during periodic scan!",
                                 email_body,
                                 list(set(admin_addresses)),
                             )
