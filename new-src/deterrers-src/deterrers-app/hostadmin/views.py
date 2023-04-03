@@ -674,7 +674,12 @@ def v_scanner_registration_alert(request):
                         if not host or not host.is_valid():
                             logger.error("Invalid host during risk assessment: %s", str(host))
                             continue
-                        block_reasons, notify_reasons = assess_host_risk(host, vulnerabilities)
+                        block_reasons, notify_reasons = assess_host_risk(
+                            host,
+                            vulnerabilities,
+                            medium_cvss_threshold=5.0,
+                            high_cvss_threshold=8.5
+                        )
                         
                         # block if there were reasons found
                         if len(block_reasons) == 0:
@@ -822,7 +827,12 @@ def v_scanner_periodic_alert(request):
                         if not host or not host.is_valid():
                             logger.error("Invalid host during risk assessment: %s", str(host))
                             continue
-                        block_reasons, notify_reasons = assess_host_risk(host, vulnerabilities)
+                        block_reasons, notify_reasons = assess_host_risk(
+                            host,
+                            vulnerabilities,
+                            medium_cvss_threshold=5.0,
+                            high_cvss_threshold=8.5
+                        )
                         # block if there were reasons found
                         if len(block_reasons) != 0:
                             logger.info("Host %s did not pass the periodic scan and will be blocked.", str(host.ipv4_addr))
