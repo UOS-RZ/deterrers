@@ -29,12 +29,12 @@ urlpatterns = [
     path('greenbone-scan-alert/', views.v_scanner_scan_alert, name='v_scanner_scan_alert'),
     path('greenbone-periodic-alert/', views.v_scanner_periodic_alert, name='v_scanner_periodic_alert'),
     # API views
+    # path('api/openapi-schema', get_schema_view(
+    #     title="DETERRERS",
+    #     description="API Prototype",
+    #     version="0.0.1"
+    # ), name='openapi-schema'),
     path('api/hosts/', api_views.hosts),
     path('api/host/', api_views.host),
     path('api/action/', api_views.action),
-    path('api/openapi-schema', get_schema_view(
-        title="DETERRERS",
-        description="API Prototype",
-        version="0.0.1"
-    ), name='openapi-schema'),
 ]

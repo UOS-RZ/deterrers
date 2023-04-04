@@ -73,7 +73,7 @@ class MyHostSerializer(serializers.Serializer):
     entity_id = serializers.IntegerField(required=False, read_only=True)
     ipv4_addr = serializers.IPAddressField(required=True, protocol='ipv4')
     mac_addr = serializers.CharField(required=False, read_only=True)
-    admin_ids = serializers.ListField(required=False, child=serializers.CharField(read_only=True), read_only=True)
+    admin_ids = serializers.ListField(required=False, child=serializers.CharField())
     status = HostStatusField(required=False, read_only=True)
     name = serializers.CharField(required=False, read_only=True)
     dns_rcs = serializers.ListField(required=False, child=serializers.CharField(read_only=True), read_only=True)

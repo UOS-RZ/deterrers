@@ -19,6 +19,10 @@ from .serializers import MyHostSerializer, HostActionSerializer
 
 logger = logging.getLogger(__name__)
 
+class Http400(Exception):
+    # Bad Request
+    pass
+
 class Http409(Exception):
     # Conflict
     pass
@@ -29,8 +33,38 @@ class Http500(Exception):
 
 def __add_host(request):
     # TODO: implement
-    logger.info('Not implemented yet!')
+    hostadmin = get_object_or_404(MyUser, username=request.user.username)
+
+    with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        if not ipam.enter_ok:
+            raise Http500()
+        
+        # get host by deserializing and then querying IPAM
+        host_serializer = MyHostSerializer(data=request.data)
+        if not host_serializer.is_valid():
+            return Response(status=400)
+        host_update_data = host_serializer.validated_data
+        host_ipv4 = host_update_data['ipv4_addr']
+        try:
+            tag_names = host_update_data['admin_ids']
+        except KeyError:
+            raise Http400()
+        
+        for tag_name in tag_names:
+            if tag_name in ipam.get_department_tag_names() or ipam.admin_tag_exists(tag_name):
+                if not ipam.add_tag_to_host(tag_name, host_ipv4):
+                    raise Http500()
+            else:
+                continue
+    
+    return Response()
+
+
+def __remove_host(request):
+    # TODO: implement
+    logger.info('Not implemented yet.')
     return Response(status=501)
+
 
 def __get_host(request):
     # TODO: implement
@@ -42,7 +76,7 @@ def __update_host(request):
 
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
         if not ipam.enter_ok:
-            return Response(status=500)
+            raise Http500()
         
         # check if user has IPAM permission or an admin tag for them exists
         if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
@@ -50,7 +84,7 @@ def __update_host(request):
         # get host by deserializing and then querying IPAM
         host_serializer = MyHostSerializer(data=request.data)
         if not host_serializer.is_valid():
-            return Response(status=400)
+            raise Http400()
         host_update_data = host_serializer.validated_data
         host = ipam.get_host_info_from_ip(host_update_data['ipv4_addr'])
         if not host:
@@ -62,7 +96,7 @@ def __update_host(request):
 
         # check if this host can be changed at the moment or whether there are already processes running for it
         if not available_actions(host).get('can_update'):
-            raise Http409()
+            raise Http400()
 
         # update the actual host instance
         if host_update_data.get('service_profile', None):
@@ -75,7 +109,7 @@ def __update_host(request):
             if host.service_profile == HostServiceContract.EMPTY:
                 raise Http409()
             if not set_host_online(str(host.ipv4_addr)):
-                return Response(status=500)
+                raise Http500()
 
         # auto-add some host-based policies
         match host.service_profile:
@@ -99,7 +133,7 @@ def __update_host(request):
                 logger.error("Service profile '%s' is not supported.", host.service_profile)
         
         if not ipam.update_host_info(host):
-            return Response(status=500)
+            raise Http500()
     return Response()
 
 
@@ -161,9 +195,13 @@ def host(request):
                 return __add_host(request)
             case 'PATCH':
                 return __update_host(request)
+            case 'DELETE':
+                return __remove_host(request)
             case _:
                 logger.error('Unsupported host action!')
                 return Response(status=405)
+    except Http400:
+        return Response(status=400)
     except Http404:
         return Response(status=404)
     except Http409:
@@ -279,7 +317,7 @@ def action(request):
     ipv4_addrs = set(bulk_action.validated_data.get('ipv4_addrs', []))
 
     try:
-        match  action:
+        match action:
             case 'register':
                 register_bulk(hostadmin=hostadmin, ipv4_addrs=ipv4_addrs)
             case 'block':
