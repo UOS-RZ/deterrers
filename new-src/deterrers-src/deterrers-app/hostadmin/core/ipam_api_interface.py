@@ -30,6 +30,7 @@ class ProteusIPAMInterface():
         self.main_url = "https://" + ipam_url + "/Services/REST/v1/"
         self.header = ''
         self.__tag_group_id = None
+        self.__department_tag_names = None
 
         self.enter_ok = True
 
@@ -496,18 +497,21 @@ deterrers_rules={json.dumps([p.to_string() for p in host.host_based_policies])}|
         Returns:
             list: Returns list of department tag names.
         """
-        admin_tag_grps = []
         try:
-            tag_group_id = self.__get_tag_grp_id()
-            data = self.__get_child_tags(tag_group_id)
-            for tag_entity in data:
-                tag_name = tag_entity['name']
-                admin_tag_grps.append(tag_name)
+            # simple caching of department tag names
+            if not self.__department_tag_names:
+                admin_tag_grps = []
+                tag_group_id = self.__get_tag_grp_id()
+                data = self.__get_child_tags(tag_group_id)
+                for tag_entity in data:
+                    tag_name = tag_entity['name']
+                    admin_tag_grps.append(tag_name)
+                self.__department_tag_names = admin_tag_grps
         except Exception:
             logger.exception("Couldn't query department tags from IPAM!")
             return []
 
-        return admin_tag_grps
+        return self.__department_tag_names
 
     def get_department_to_admin(self, admin_tag_name : str) -> str|None:
         """
@@ -620,6 +624,41 @@ deterrers_rules={json.dumps([p.to_string() for p in host.host_based_policies])}|
             logger.exception("Couldn't query IPAM whether tag exists!")
 
         return None
+    
+    def host_is_tagged(self, host_id : str|int,  tag_id : str|int) -> bool:
+        """
+        Checks if tag is already linked to host or if tag is admin tag and corresponding department tag is linked.
+
+        Args:
+            host_id (str | int): Proteus entity ID of IPv4Address object.
+            tag_id (str | int): Proteus entity ID of Tag object.
+
+        Returns:
+            bool: Returns True if tag or parent tag is linked to host. False otherwise.
+        """
+        try:
+            department_names = self.get_department_tag_names()
+
+            linkedentities_parameters = f"count=-1&entityId={host_id}&start=0&type=Tag"
+            get_linkedentities_url = self.main_url + "getLinkedEntities?" + linkedentities_parameters
+            response = requests.get(get_linkedentities_url, headers=self.header, timeout=self.TIMEOUT)
+            data = response.json()
+            # check for each tag of host if it is the given tag or the parent of the given tag
+            for t_entity in data:
+                t_id = t_entity['id']
+                t_name = t_entity['name']
+                if int(t_id) == int(tag_id):
+                    return True
+                if t_name in department_names:
+                    for t_c_entity in self.__get_child_tags(t_id):
+                        t_c_id = t_c_entity['id']
+                        if int(t_c_id) == int(tag_id):
+                            return True
+        except:
+            logger.exception("Couldn't query if host is already tagged!")
+
+        return False
+
 
     def add_tag_to_host(self, tag_name : str, host_ip : str) -> bool:
         """
@@ -641,13 +680,44 @@ deterrers_rules={json.dumps([p.to_string() for p in host.host_based_policies])}|
             tag_id = self.__get_tag_id(tag_name)
 
             # link tag to host
-            linkentities_params = f"entity1Id={host_id}&entity2Id={tag_id}"
-            linkentities_url = self.main_url + "linkEntities?" + linkentities_params
-            response = requests.put(linkentities_url, headers=self.header, timeout=self.TIMEOUT)
-            if response.status_code == 200:
-                return True
+            if not self.host_is_tagged(host_id, tag_id):
+                linkentities_params = f"entity1Id={host_id}&entity2Id={tag_id}"
+                linkentities_url = self.main_url + "linkEntities?" + linkentities_params
+                response = requests.put(linkentities_url, headers=self.header, timeout=self.TIMEOUT)
+                if response.status_code in (200,204): # NOTE: API docu says 204 is returned but that seems to be false
+                    return True
         except Exception:
             logger.exception("Couldn't add tag to host!")
+
+        return False
+    
+    def remove_tag_from_host(self, tag_name : str, host_ip : str) -> bool:
+        """
+        Unlink tag from an IPv4Address object.
+
+        Args:
+            tag_name (str): Tag name.
+            host_ip (str): IPv4 address of the host.
+
+        Returns:
+            bool: Retruns True on success and False if something goes wrong.
+        """
+        try:
+            # get IPv4Address object
+            data = self.__get_IP4Address(host_ip)
+            host_id = data['id']
+
+            # get tag object
+            tag_id = self.__get_tag_id(tag_name)
+
+            # unlink tag from host
+            linkentities_params = f"entity1Id={host_id}&entity2Id={tag_id}"
+            linkentities_url = self.main_url + "unlinkEntities?" + linkentities_params
+            response = requests.put(linkentities_url, headers=self.header, timeout=self.TIMEOUT)
+            if response.status_code in (200,204):
+                return True
+        except Exception:
+            logger.exception("Couldn't remove tag from host!")
 
         return False
 

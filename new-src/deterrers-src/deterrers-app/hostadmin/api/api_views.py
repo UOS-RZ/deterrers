@@ -39,7 +39,7 @@ def __add_host(request):
         if not ipam.enter_ok:
             raise Http500()
         
-        # get host by deserializing and then querying IPAM
+        # get ipv4 address and amin_ids (i.e. tag names) by deserializing
         host_serializer = MyHostSerializer(data=request.data)
         if not host_serializer.is_valid():
             return Response(status=400)
@@ -49,7 +49,7 @@ def __add_host(request):
             tag_names = host_update_data['admin_ids']
         except KeyError:
             raise Http400()
-        
+        # check if tag names are either department or admin tag and add them to host
         for tag_name in tag_names:
             if tag_name in ipam.get_department_tag_names() or ipam.admin_tag_exists(tag_name):
                 if not ipam.add_tag_to_host(tag_name, host_ipv4):
