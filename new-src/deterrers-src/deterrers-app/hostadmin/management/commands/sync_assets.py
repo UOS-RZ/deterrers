@@ -80,7 +80,7 @@ class Command(BaseCommand):
 
                     print('---------------------------------------------------------------------')
                     print(f"IPAM Hosts online: {len(ipam_hosts_online)}")
-                    print(f"IPAM Hosts under review. {len(ipam_hosts_under_review)}")
+                    print(f"IPAM Hosts under review: {len(ipam_hosts_under_review)} ({ipam_hosts_under_review})")
                     print(f"Scanner hosts online: {len(v_scanner_hosts)}")
                     print(f"FW hosts online: {len(fw_hosts)}")
                     print()

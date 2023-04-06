@@ -98,7 +98,7 @@ Example:
 
 Edit only the internet service profile of host 0.0.0.0 to 'HTTP':
 
-    curl -X PATCH -H 'Authorization: Token <user_token>' -H "Content-Type: application/json" -d '{"ipv4_addr" : "0.0.0.0", "service_provile" : "HTTP"}' https://deterrers.rz.uos.de:443/hostadmin/api/host/
+    curl -X PATCH -H 'Authorization: Token <user_token>' -H "Content-Type: application/json" -d '{"ipv4_addr" : "0.0.0.0", "service_profile" : "HTTP"}' https://deterrers.rz.uos.de:443/hostadmin/api/host/
 
 ---
 
