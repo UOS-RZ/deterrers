@@ -62,30 +62,35 @@ def available_actions(host : MyHost) -> dict:
             flags['can_scan'] = True
             flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
             flags['can_block'] = False
+            flags['can_remove'] = True
         case HostStatusContract.UNDER_REVIEW:
             flags['can_update'] = False
             flags['can_register'] = False
             flags['can_scan'] = False
             flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
             flags['can_block'] = False
+            flags['can_remove'] = False
         case HostStatusContract.BLOCKED:
             flags['can_update'] = True
             flags['can_register'] = host.service_profile != HostServiceContract.EMPTY and is_public_ip(host.ipv4_addr)
             flags['can_scan'] = True
             flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
             flags['can_block'] = False
+            flags['can_remove'] = True
         case HostStatusContract.ONLINE:
             flags['can_update'] = True
             flags['can_register'] = False
             flags['can_scan'] = True
             flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
             flags['can_block'] = True
+            flags['can_remove'] = True
         case _:
             flags['can_update'] = False
             flags['can_register'] = False
             flags['can_scan'] = False
             flags['can_download_config'] = False
             flags['can_block'] = False
+            flags['can_remove'] = False
     return flags
 
 
