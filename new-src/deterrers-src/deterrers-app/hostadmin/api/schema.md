@@ -32,6 +32,50 @@ Get all hosts that are added for me in DETERRERS:
 
 ---
 
+## Add a host:
+
+    /hostadmin/api/host/:
+        post:
+            description: 'API method for adding a new host.
+            Supports POST.'
+            parameters: []
+            requestBody:
+                content:
+                application/json:
+                    schema: {
+                        'ipv4_addr' : <ip>,
+                        'admin_ids' : [<RZ-ID or department name>,]
+                    }
+            responses:
+                '200':
+Example:
+
+Add host 0.0.0.0 for department 'testDepartment':
+
+    curl -X POST -H 'Authorization: Token <user_token>' -H "Content-Type: application/json" -d '{"ipv4_addr" : "0.0.0.0", "admin_ids" : ["testDepartment"]}' https://deterrers.rz.uos.de:443/hostadmin/api/host/
+
+## Remove a host:
+
+    /hostadmin/api/host/:
+        delete:
+            description: 'API method for removing a host from DETERRERS. Removes all tagged admins and blocks the host
+            Supports DELETE.'
+            parameters: []
+            requestBody:
+                content:
+                application/json:
+                    schema: {
+                        'ipv4_addr' : <ip>,
+                    }
+            responses:
+                '200':
+Example:
+
+Remove host 0.0.0.0:
+
+    curl -X DELETE -H 'Authorization: Token <user_token>' -H "Content-Type: application/json" -d '{"ipv4_addr" : "0.0.0.0"}' https://deterrers.rz.uos.de:443/hostadmin/api/host/
+
+
 ## Edit a host:
 
     /hostadmin/api/host/:
