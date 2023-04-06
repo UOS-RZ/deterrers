@@ -11,3 +11,4 @@ djangorestframework
 pyyaml
 uritemplate
 cvss
+markdown

@@ -29,6 +29,7 @@ urlpatterns = [
     path('greenbone-scan-alert/', views.v_scanner_scan_alert, name='v_scanner_scan_alert'),
     path('greenbone-periodic-alert/', views.v_scanner_periodic_alert, name='v_scanner_periodic_alert'),
     # API views
+    path('api/schema/', views.api_schema, name='api_schema'),
     # path('api/openapi-schema', get_schema_view(
     #     title="DETERRERS",
     #     description="API Prototype",
