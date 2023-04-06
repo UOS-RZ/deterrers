@@ -4,6 +4,7 @@ import io
 from threading import Thread
 import os
 import markdown
+import pathlib
 
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponseRedirect, HttpResponse, FileResponse
@@ -69,7 +70,7 @@ def about_view(request):
 
 @require_http_methods(['GET',])
 def api_schema(request):
-    with open('./api/schema.md', 'r', encoding='utf-8') as f:
+    with open(pathlib.Path(__file__).parent.resolve().joinpath('/api/schema.md'), 'r', encoding='utf-8') as f:
         context = {
             'schema_html' : markdown.markdown(f.read()),
         }
