@@ -14,7 +14,7 @@ from myuser.models import MyUser
 from hostadmin.util import available_actions, set_host_bulk_offline, set_host_online, set_host_offline
 from hostadmin.core.ipam_api_interface import ProteusIPAMInterface
 from hostadmin.core.v_scanner_interface import GmpVScannerInterface
-from hostadmin.core.contracts import HostStatusContract, HostServiceContract, HostBasedRuleSubnetContract, HostBasedRuleProtocolContract
+from hostadmin.core.contracts import HostStatusContract, HostServiceContract, HostBasedRuleSubnetContract, HostBasedRuleProtocolContract, HostFWContract
 from .serializers import MyHostSerializer, HostActionSerializer
 
 logger = logging.getLogger(__name__)
@@ -102,6 +102,12 @@ def __remove_host(request):
         # block
         if not set_host_offline(str(host.ipv4_addr)):
             raise Http500()
+        
+        # set all DETERRERS fields to blank
+        host.service_profile = HostServiceContract.EMPTY
+        host.fw = HostFWContract.EMPTY
+        host.host_based_policies = []
+        ipam.update_host_info(host)
     
     return Response()
 
