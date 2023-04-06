@@ -11,7 +11,7 @@ from django.http import Http404
 from django.urls import reverse
 
 from myuser.models import MyUser
-from hostadmin.util import available_actions, set_host_bulk_offline, set_host_online
+from hostadmin.util import available_actions, set_host_bulk_offline, set_host_online, set_host_offline
 from hostadmin.core.ipam_api_interface import ProteusIPAMInterface
 from hostadmin.core.v_scanner_interface import GmpVScannerInterface
 from hostadmin.core.contracts import HostStatusContract, HostServiceContract, HostBasedRuleSubnetContract, HostBasedRuleProtocolContract
@@ -31,10 +31,14 @@ class Http500(Exception):
     # Internal Error
     pass
 
-def __add_host(request):
-    # TODO: implement
-    hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
+def __get_host(request):
+    # TODO: implement
+    logger.info('Not implemented yet.')
+    return Response(status=501)
+
+def __add_host(request):
+    # TODO: docu
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
         if not ipam.enter_ok:
             raise Http500()
@@ -59,17 +63,49 @@ def __add_host(request):
     
     return Response()
 
-
 def __remove_host(request):
-    # TODO: implement
-    logger.info('Not implemented yet.')
-    return Response(status=501)
+    # TODO: docu
+    hostadmin = get_object_or_404(MyUser, username=request.user.username)
+
+    with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        if not ipam.enter_ok:
+            raise Http500()
+         # check if user has IPAM permission or an admin tag for them exists
+        if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+            raise Http404()
+        
+        # get host by deserializing and then querying IPAM
+        host_serializer = MyHostSerializer(data=request.data)
+        if not host_serializer.is_valid():
+            raise Http400()
+        host_update_data = host_serializer.validated_data
+        host = ipam.get_host_info_from_ip(host_update_data['ipv4_addr'])
+        if not host:
+            raise Http404()
+
+        # check if user is admin of this host
+        if not hostadmin.username in host.admin_ids:
+            raise Http404()
+
+        # check if this host can be removed at the moment or whether there are processes running for it
+        if not available_actions(host).get('can_remove'):
+            raise Http409()
+        
+        # remove all admin tags
+        for admin_tag_name in host.admin_ids:
+            ipam.remove_tag_from_host(admin_tag_name, str(host.ipv4_addr))
+        # check that no admins are left for this host
+        if len(ipam.get_tagged_admins(host.entity_id)) > 0:
+            logger.error("Couldn't remove all tags from host '%s'", str(host.ipv4_addr))
+            raise Http500()
+
+        # block
+        if not set_host_offline(str(host.ipv4_addr)):
+            raise Http500()
+    
+    return Response()
 
 
-def __get_host(request):
-    # TODO: implement
-    logger.info('Not implemented yet.')
-    return Response(status=501)
 
 def __update_host(request):
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
