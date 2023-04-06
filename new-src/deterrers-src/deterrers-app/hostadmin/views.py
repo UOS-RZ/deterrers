@@ -3,6 +3,7 @@ import uuid
 import io
 from threading import Thread
 import os
+import markdown
 
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponseRedirect, HttpResponse, FileResponse
@@ -65,6 +66,15 @@ def about_view(request):
         'changelog' : add_changelog()
     }
     return render(request, 'about.html', context)
+
+@require_http_methods(['GET',])
+def api_schema(request):
+    with open('./api/schema.md', 'r', encoding='utf-8') as f:
+        context = {
+            'schema_html' : markdown.markdown(f.read()),
+        }
+    return render(request, 'api_schema.html', context)
+
 
 
 @login_required
