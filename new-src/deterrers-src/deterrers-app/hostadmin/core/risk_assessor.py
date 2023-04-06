@@ -95,6 +95,8 @@ def assess_vulnerability_risk(
         host (MyHost): Host the vulnerability was found on.
         vul (VulnerabilityScanResult): Vulnerability to assess.
         qod_threshold (int, optional): Quality of Detection threshold used to reduce false positives. Defaults to 70.
+        medium_cvss_threshold (float, optional): Threshold at which CVSS scores are interpreted as medium severe. Defaults to 4.0.
+        high_cvss_threshold (float, optional): Threshold at which CVSS scores are interpreted as highly severe. Defaults to 7.0.
 
     Returns:
         RiskFlag: Returns flags on the risk conditions of the vulnerability.
@@ -109,6 +111,7 @@ def assess_vulnerability_risk(
         if vul.qod >= qod_threshold:
             risk = risk | RiskFlag.HIGH_QOD
         
+        # set flag if the vulnerability is remotly exploitable
         if __is_remote_exploitable(vul.cvss_version, vul.cvss_base_vector):
             risk = risk | RiskFlag.REMOTE
 
@@ -146,11 +149,13 @@ def assess_vulnerability_risk(
             case _:
                 logger.error("Invalid service profile: %s", host.service_profile.value)
         
+        # set flags for CVSS base score severity
         if vul.cvss_base_score >= medium_cvss_threshold:
             risk = risk | RiskFlag.MEDIUM_CVSS
         if vul.cvss_base_score >= high_cvss_threshold:
             risk = risk | RiskFlag.HIGH_CVSS
         
+        # set flags for customized CVSS base score severity
         if __cvss_score_without_availability_impact(vul) >= medium_cvss_threshold:
             risk = risk | RiskFlag.MEDIUM_CVSS_NO_AVAILABILITY
         if __cvss_score_without_availability_impact(vul) >= high_cvss_threshold:
@@ -169,6 +174,16 @@ def assess_host_risk(
     ) -> tuple[list[VulnerabilityScanResult], list[VulnerabilityScanResult]]:
     """
     TODO: docu
+
+    Args:
+        host (MyHost): _description_
+        vuls (list[VulnerabilityScanResult]): _description_
+        qod_threshold (int, optional): _description_. Defaults to 70.
+        medium_cvss_threshold (float, optional): _description_. Defaults to 4.0.
+        high_cvss_threshold (float, optional): _description_. Defaults to 7.0.
+
+    Returns:
+        tuple[list[VulnerabilityScanResult], list[VulnerabilityScanResult]]: _description_
     """
     block_reasons = []
     notify_reasons = []
