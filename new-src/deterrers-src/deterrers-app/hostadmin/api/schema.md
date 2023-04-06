@@ -117,7 +117,7 @@ Edit only the internet service profile of host 0.0.0.0 to 'HTTP':
                         'ipv4_addrs' : [<ip>,]
                     }
             responses:
-                '201':
+                '200':
 
 Example:
 
