@@ -300,46 +300,52 @@ def update_host_detail(request, ipv4 : str):
 
             if form.is_valid():
                 # update the actual model instance
+                service_profile_change = host.service_profile != HostServiceContract(form.cleaned_data['service_profile'])
                 host.service_profile = HostServiceContract(form.cleaned_data['service_profile'])
+                fw_change = host.fw != HostFWContract(form.cleaned_data['fw'])
                 host.fw = HostFWContract(form.cleaned_data['fw'])
 
-                # if host is already online, update the perimeter FW
-                if host.status == HostStatusContract.ONLINE:
-                    if host.service_profile == HostServiceContract.EMPTY:
-                        form.add_error(None, "Please make sure to choose a service profile.")
-                        context = {
-                            'form' : form,
-                            'host_instance' : host
-                        }
-                        return render(request, 'update_host_detail.html', context=context)
-                    if not set_host_online(str(host.ipv4_addr)):
-                        form.add_error(None, "Perimeter firewall could not be updated.")
-                        context = {
-                            'form' : form,
-                            'host_instance' : host
-                        }
-                        return render(request, 'update_host_detail.html', context=context)
+                if not service_profile_change and not fw_change:
+                    # return immediatly if nothing was changed
+                    return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ip_escaped()}))
+                elif service_profile_change:
+                    # if host is already online, update the perimeter FW
+                    if host.status == HostStatusContract.ONLINE:
+                        if host.service_profile == HostServiceContract.EMPTY:
+                            form.add_error(None, "Please make sure to choose a service profile.")
+                            context = {
+                                'form' : form,
+                                'host_instance' : host
+                            }
+                            return render(request, 'update_host_detail.html', context=context)
+                        if not set_host_online(str(host.ipv4_addr)):
+                            form.add_error(None, "Perimeter firewall could not be updated.")
+                            context = {
+                                'form' : form,
+                                'host_instance' : host
+                            }
+                            return render(request, 'update_host_detail.html', context=context)
 
-                # auto-add some host-based policies
-                match host.service_profile:
-                    case HostServiceContract.EMPTY:
-                        pass
-                    case (HostServiceContract.SSH | HostServiceContract.HTTP | HostServiceContract.HTTP_SSH) as s_p:
-                        # allow SSH standard port 22 over TCP if a service profile is specified
-                        host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['22'], HostBasedRuleProtocolContract.TCP.value)
-                        match s_p:
-                            case HostServiceContract.SSH:
-                                # since SSH rules have already been added do nothing else
-                                pass
-                            case (HostServiceContract.HTTP | HostServiceContract.HTTP_SSH):
-                                # allow HTTP and HTTPS standard ports 80 and 443 over TCP
-                                host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['80'], HostBasedRuleProtocolContract.TCP.value)
-                                host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['443'], HostBasedRuleProtocolContract.TCP.value)
-                    case HostServiceContract.MULTIPURPOSE:
-                        # allow nothing else; users are expected to configure their own rules
-                        messages.warning(request, f"Please make sure to configure custom rules for your desired services when choosing the {HostServiceContract.MULTIPURPOSE.value} profile!")
-                    case _:
-                        logger.error("%s is not supported yet.", host.service_profile)
+                    # auto-add some host-based policies
+                    match host.service_profile:
+                        case HostServiceContract.EMPTY:
+                            pass
+                        case (HostServiceContract.SSH | HostServiceContract.HTTP | HostServiceContract.HTTP_SSH) as s_p:
+                            # allow SSH standard port 22 over TCP if a service profile is specified
+                            host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['22'], HostBasedRuleProtocolContract.TCP.value)
+                            match s_p:
+                                case HostServiceContract.SSH:
+                                    # since SSH rules have already been added do nothing else
+                                    pass
+                                case (HostServiceContract.HTTP | HostServiceContract.HTTP_SSH):
+                                    # allow HTTP and HTTPS standard ports 80 and 443 over TCP
+                                    host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['80'], HostBasedRuleProtocolContract.TCP.value)
+                                    host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['443'], HostBasedRuleProtocolContract.TCP.value)
+                        case HostServiceContract.MULTIPURPOSE:
+                            # allow nothing else; users are expected to configure their own rules
+                            messages.warning(request, f"Please make sure to configure custom rules for your desired services when choosing the {HostServiceContract.MULTIPURPOSE.value} profile!")
+                        case _:
+                            logger.error("%s is not supported yet.", host.service_profile)
                 
                 if ipam.update_host_info(host):
                     # redirect to a new URL:

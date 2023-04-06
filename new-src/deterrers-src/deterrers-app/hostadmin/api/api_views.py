@@ -135,38 +135,44 @@ def __update_host(request):
             raise Http400()
 
         # update the actual host instance
+        service_profile_change = host.service_profile != host_update_data.get('service_profile', host.service_profile)
         if host_update_data.get('service_profile', None):
             host.service_profile = host_update_data['service_profile']
+        fw_change = host.fw != host_update_data.get('fw', host.fw)
         if host_update_data.get('fw', None):
             host.fw = host_update_data['fw']
 
-        # if host is already online, update the perimeter FW
-        if host.status == HostStatusContract.ONLINE:
-            if host.service_profile == HostServiceContract.EMPTY:
-                raise Http409()
-            if not set_host_online(str(host.ipv4_addr)):
-                raise Http500()
+        # if nothing changes return immediatly
+        if not service_profile_change and not fw_change:
+            return Response()
+        elif service_profile_change:
+            # if host is already online, update the perimeter FW
+            if host.status == HostStatusContract.ONLINE:
+                if host.service_profile == HostServiceContract.EMPTY:
+                    raise Http409()
+                if not set_host_online(str(host.ipv4_addr)):
+                    raise Http500()
 
-        # auto-add some host-based policies
-        match host.service_profile:
-            case HostServiceContract.EMPTY:
-                pass
-            case (HostServiceContract.SSH | HostServiceContract.HTTP | HostServiceContract.HTTP_SSH) as s_p:
-                # allow SSH standard port 22 over TCP if a service profile is specified
-                host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['22'], HostBasedRuleProtocolContract.TCP.value)
-                match s_p:
-                    case HostServiceContract.SSH:
-                        # since SSH rules have already been added do nothing else
-                        pass
-                    case (HostServiceContract.HTTP | HostServiceContract.HTTP_SSH):
-                        # allow HTTP and HTTPS standard ports 80 and 443 over TCP
-                        host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['80'], HostBasedRuleProtocolContract.TCP.value)
-                        host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['443'], HostBasedRuleProtocolContract.TCP.value)
-            case HostServiceContract.MULTIPURPOSE:
-                # allow nothing else; users are expected to configure their own rules
-                pass
-            case _:
-                logger.error("Service profile '%s' is not supported.", host.service_profile)
+            # auto-add some host-based policies
+            match host.service_profile:
+                case HostServiceContract.EMPTY:
+                    pass
+                case (HostServiceContract.SSH | HostServiceContract.HTTP | HostServiceContract.HTTP_SSH) as s_p:
+                    # allow SSH standard port 22 over TCP if a service profile is specified
+                    host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['22'], HostBasedRuleProtocolContract.TCP.value)
+                    match s_p:
+                        case HostServiceContract.SSH:
+                            # since SSH rules have already been added do nothing else
+                            pass
+                        case (HostServiceContract.HTTP | HostServiceContract.HTTP_SSH):
+                            # allow HTTP and HTTPS standard ports 80 and 443 over TCP
+                            host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['80'], HostBasedRuleProtocolContract.TCP.value)
+                            host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['443'], HostBasedRuleProtocolContract.TCP.value)
+                case HostServiceContract.MULTIPURPOSE:
+                    # allow nothing else; users are expected to configure their own rules
+                    pass
+                case _:
+                    logger.error("Service profile '%s' is not supported.", host.service_profile)
         
         if not ipam.update_host_info(host):
             raise Http500()
