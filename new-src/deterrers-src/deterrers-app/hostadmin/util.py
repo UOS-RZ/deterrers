@@ -21,7 +21,9 @@ def add_changelog(history : int = 10) -> list[str]:
         ("2023-02-21", "New: DNS names are now displayed per host."),
         ("2023-03-07", "New: 'My Hosts' page loads faster."),
         ("2023-03-12", "New: IPv6 will also be de-/blocked at the perimeter firewall in case an IPv6 address is linked to the same host record as the corresponding IPv4 address in Proteus IPAM."),
-        ("2023-03-13", "Security Fix: Firewalld script generation was faulty. If a configuration script was deployed in the past, a new script should be downloaded and deployed!")
+        ("2023-03-13", "Security Fix: Firewalld script generation was faulty. If a configuration script was deployed in the past, a new script should be downloaded and deployed!"),
+        ("2023-04-04", "New: Risk assessment of vulnerabilities is more informed. Policy will be available soon."),
+        ("2023-04-11", "New: Hosts can be removed from DETERRERS via a button on a host detail page."),
     ]
 
     today = datetime.datetime.today().date()
