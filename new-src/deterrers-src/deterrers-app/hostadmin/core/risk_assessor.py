@@ -83,7 +83,8 @@ def __notify_worthy(risk_falgs : RiskFlag) -> bool:
 
 
 def assess_vulnerability_risk(
-        host : MyHost, vul : VulnerabilityScanResult,
+        host : MyHost,
+        vul : VulnerabilityScanResult,
         qod_threshold : int = 70,
         medium_cvss_threshold : float = 4.0,
         high_cvss_threshold : float = 7.0
