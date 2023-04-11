@@ -27,7 +27,7 @@ class PaloAltoInterface():
 
     def __init__(self, username : str, password : str, fw_url : str):
         self.username = username
-        self.password = password
+        self.__password = password
         self.fw_url = fw_url
         self.rest_url = f"https://{fw_url}/restapi/{self.VERSION}/"
         self.xml_url = f"https://{fw_url}/api/"
@@ -41,7 +41,7 @@ class PaloAltoInterface():
         logger.debug("Start firewall interface session.")
         try:
             # get api key for this session
-            req_url = f"https://{self.fw_url}/api/?type=keygen&user={self.username}&password={self.password}"
+            req_url = f"https://{self.fw_url}/api/?type=keygen&user={self.username}&password={self.__password}"
             response = requests.get(req_url, timeout=self.TIMEOUT)
             response_xml = etree.XML(response.content)
             status_code = response.status_code
@@ -55,7 +55,7 @@ class PaloAltoInterface():
 
             self.__acquire_config_lock()
         except (requests.ConnectionError, requests.ConnectTimeout):
-            logger.exception("Connection to FW failed!")
+            logger.exception("Connection to %s failed!", self.fw_url)
             self.enter_ok = False
             
         return self

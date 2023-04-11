@@ -67,7 +67,7 @@ class GmpVScannerInterface():
         Create a Gmp instance based on a TLS connection.
         """
         self.username = username
-        self.password = password
+        self.__password = password
         self.scanner_url = scanner_url
         self.scanner_port = scanner_port
 
@@ -101,7 +101,7 @@ class GmpVScannerInterface():
         self.gmp = self.gmp.__enter__()
         try:
             # further initialization need to be enclosed here
-            response = self.gmp.authenticate(self.username, self.password)
+            response = self.gmp.authenticate(self.username, self.__password)
             if int(response.xpath('@status')[0]) != 200:
                 logger.error("Authentication with Scanner failed! Status: %s", response.xpath('@status')[0])
                 self.enter_ok = False
@@ -802,25 +802,25 @@ class GmpVScannerInterface():
                 self.gmp.stop_task(task_id=task_uuid)
             except GvmError as err:
                 logger.warning("Couldn't stop task! Error: %s", str(err))
-                self.gmp.authenticate(self.username, self.password) # TODO: instead of reauthentication, we could check beforehand if the task is running
+                self.gmp.authenticate(self.username, self.__password) # TODO: instead of reauthentication, we could check beforehand if the task is running
         if report_uuid:
             try:
                 self.gmp.delete_report(report_uuid)
             except GvmError as err:
                 logger.warning("Couldn't delete report! Error: %s", str(err))
-                self.gmp.authenticate(self.username, self.password)
+                self.gmp.authenticate(self.username, self.__password)
         if task_uuid:
             try:
                 self.gmp.delete_task(task_uuid, ultimate=True)
             except GvmError as err:
                 logger.warning("Couldn't delete task! Error: %s", str(err))
-                self.gmp.authenticate(self.username, self.password)
+                self.gmp.authenticate(self.username, self.__password)
         if target_uuid:
             try:
                 self.gmp.delete_target(target_id=target_uuid, ultimate=True)
             except GvmError as err:
                 logger.warning("Couldn't delete target! Error: %s", str(err))
-                self.gmp.authenticate(self.username, self.password)
+                self.gmp.authenticate(self.username, self.__password)
         if alert_uuid:
             try:
                 if type(alert_uuid) is str:
@@ -830,7 +830,7 @@ class GmpVScannerInterface():
                         self.gmp.delete_alert(a_uuid, ultimate=True)
             except GvmError as err:
                 logger.warning("Couldn't delete alert! Error: %s", str(err))
-                self.gmp.authenticate(self.username, self.password)
+                self.gmp.authenticate(self.username, self.__password)
 
 
     def __clean_up_all_history(self):
