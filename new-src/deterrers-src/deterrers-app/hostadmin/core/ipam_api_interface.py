@@ -25,7 +25,7 @@ class ProteusIPAMInterface():
 
     def __init__(self, username, password, ipam_url):
         self.username = username
-        self.password = password
+        self.__password = password
         self.ipam_url = ipam_url
         self.main_url = "https://" + ipam_url + "/Services/REST/v1/"
         self.header = ''
@@ -35,7 +35,7 @@ class ProteusIPAMInterface():
         self.enter_ok = True
 
     def __enter__(self):
-        login_url = self.main_url + "login?username=" + self.username + "&password=" + self.password
+        login_url = self.main_url + "login?username=" + self.username + "&password=" + self.__password
         try:
             # login to BlueCat
             response = requests.get(login_url, timeout=self.TIMEOUT)
@@ -46,13 +46,13 @@ class ProteusIPAMInterface():
             # set http header
             self.header = {'Authorization': token, 'Content-Type': 'application/json'}
         except requests.exceptions.ConnectTimeout:
-            logger.exception('Connection to %s timed out!', login_url)
+            logger.exception('Connection to %s timed out!', self.main_url)
             self.enter_ok = False
         except requests.exceptions.ConnectionError:
-            logger.exception('Could not establish connection to "%s"!', login_url)
+            logger.exception('Could not establish connection to "%s"!', self.main_url)
             self.enter_ok = False
         except:
-            logger.exception('Unexpected error during login to %s!', login_url)
+            logger.exception('Unexpected error during login to %s!', self.main_url)
             self.enter_ok = False
 
         return self
