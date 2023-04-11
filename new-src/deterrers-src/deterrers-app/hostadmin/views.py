@@ -639,6 +639,69 @@ def get_fw_config(request, ipv4 : str):
     return Http404()
 
 
+@login_required
+@require_http_methods(['POST',])
+def remove_host(request, ipv4 : str):
+    """
+    TODO: docu
+
+    Args:
+        request (_type_): _description_
+        ipv4 (str): _description_
+
+    Raises:
+        RuntimeError: _description_
+        RuntimeError: _description_
+        RuntimeError: _description_
+        RuntimeError: _description_
+
+    Returns:
+        _type_: _description_
+    """
+    hostadmin = get_object_or_404(MyUser, username=request.user.username)
+
+    with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        if not ipam.enter_ok:
+            return HttpResponse(status=500)
+         # check if user has IPAM permission or an admin tag for them exists
+        if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+            raise Http404()
+        
+        # get host
+        host = ipam.get_host_info_from_ip(ipv4) # TODO: could be changed to get_host_info_from_id() for better performance
+        # check if host is valid
+        if not host:
+            raise Http404()
+        # check if user is admin of this host
+        if not hostadmin.username in host.admin_ids:
+            raise Http404()
+
+        # check if this host can be removed at the moment or whether there are processes running for it
+        if not available_actions(host).get('can_remove'):
+            return HttpResponse(status=409)
+
+        # block
+        if not set_host_offline(str(host.ipv4_addr)):
+            return HttpResponse(status=500)
+        
+        # set all DETERRERS fields to blank
+        host.service_profile = HostServiceContract.EMPTY
+        host.fw = HostFWContract.EMPTY
+        host.host_based_policies = []
+        if not ipam.update_host_info(host):
+            return HttpResponse(status=500)
+        
+        # remove all admin tags
+        for admin_tag_name in host.admin_ids:
+            ipam.remove_tag_from_host(admin_tag_name, str(host.ipv4_addr))
+        # check that no admins are left for this host
+        if len(ipam.get_tagged_admins(host.entity_id)) > 0:
+            logger.error("Couldn't remove all tags from host '%s'", str(host.ipv4_addr))
+            return HttpResponse(status=500)
+
+    return HttpResponseRedirect(reverse('hosts_list', kwargs={'ipv4': host.get_ip_escaped()}))
+
+
 ############################## Vulnerability Scanner alerts ######################################
 
 @require_http_methods(['GET', ])

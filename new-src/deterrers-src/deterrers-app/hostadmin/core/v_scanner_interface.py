@@ -46,7 +46,6 @@ class ReportFormat(Enum):
     HTML_UUID = "ffa123c9-a2d2-409e-bbbb-a6c1385dbeaa"
 
 
-# TODO: test implement for Open Scanner Protocol https://python-gvm.readthedocs.io/en/latest/usage.html#using-osp
 
 
 class GmpAPIError(Exception):

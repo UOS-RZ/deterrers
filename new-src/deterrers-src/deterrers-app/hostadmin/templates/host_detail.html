@@ -39,7 +39,7 @@
                     <div class="d-grid gap-2 col-6 mx-auto">
                         {% csrf_token %}
                         {% if can_update %}
-                            {% bootstrap_button name="update_btn" button_type="submit" content="Edit Details" button_class="btn btn-primary" %}
+                            {% bootstrap_button name="update_btn" button_type="submit" content="Edit Details" button_class="btn btn-primary" title="Edit details, e.g., internet service profile or host-based firewall tool." %}
                         {% else %}
                             {% bootstrap_button name="update_btn" button_type="submit" content="Edit Details" button_class="btn btn-primary" disabled=True %}
                         {% endif %}
@@ -52,9 +52,22 @@
                     <div class="d-grid gap-2 col-6 mx-auto">
                         {% csrf_token %}
                         {% if can_block %}
-                            {% bootstrap_button name="block_btn" button_type="submit" content="Block" button_class="btn btn-primary" %}
+                            {% bootstrap_button name="block_btn" button_type="submit" content="Block" button_class="btn btn-primary" title="Block host from the internet." %}
                         {% else %}
                             {% bootstrap_button name="block_btn" button_type="submit" content="Block" button_class="btn btn-primary" disabled=True %}
+                        {% endif %}
+                    </div>
+                </form>
+            </p>
+
+            <p>
+                <form action="{{request.path}}remove/" method="post">
+                    <div class="d-grid gap-2 col-6 mx-auto">
+                        {% csrf_token %}
+                        {% if can_remove %}
+                            {% bootstrap_button name="remove_btn" button_type="submit" content="Remove from DETERRERS" button_class="btn btn-primary" title="Remove host from DETERRERS. Blocks it and removes all information on it." %}
+                        {% else %}
+                            {% bootstrap_button name="remove_btn" button_type="submit" content="Remove from DETERRERS" button_class="btn btn-primary" disabled=True %}
                         {% endif %}
                     </div>
                 </form>
@@ -66,7 +79,7 @@
                     <div class="d-grid gap-2 col-6 mx-auto">
                         {% csrf_token %}
                         {% if can_register %}
-                            {% bootstrap_button name="register_btn" button_type="submit" content="Register" button_class="btn btn-primary" %}
+                            {% bootstrap_button name="register_btn" button_type="submit" content="Register" button_class="btn btn-primary" title="Start vulnerability scan and unblock it from internet on success." %}
                         {% else %}
                             {% bootstrap_button name="register_btn" button_type="submit" content="Register" button_class="btn btn-primary" disabled=True %}
                         {% endif %}
@@ -79,7 +92,7 @@
                     <div class="d-grid gap-2 col-6 mx-auto">
                         {% csrf_token %}
                         {% if can_scan %}
-                            {% bootstrap_button name="scan_btn" button_type="submit" content="Ordinary Scan" button_class="btn btn-primary" %}
+                            {% bootstrap_button name="scan_btn" button_type="submit" content="Ordinary Scan" button_class="btn btn-primary" title="Start vulnerability scan but do not change status." %}
                         {% else %}
                             {% bootstrap_button name="scan_btn" button_type="submit" content="Ordinary Scan" button_class="btn btn-primary" disabled=True %}
                         {% endif %}
@@ -144,7 +157,7 @@
             <div class="d-grid gap-2 col-6 mx-auto">
                 {% csrf_token %}
                 {% if can_download_config %}
-                    {% bootstrap_button name="fw_config_btn" button_type="submit" content="Download Firewall Configuration Script" button_class="btn btn-primary" %}
+                    {% bootstrap_button name="fw_config_btn" button_type="submit" content="Download Firewall Configuration Script" button_class="btn btn-primary" title="Download script for specified firewall tool." %}
                 {% else %}
                     {% bootstrap_button name="fw_config_btn" button_type="submit" content="Download Firewall Configuration Script" button_class="btn btn-primary" disabled=True %}
                 {% endif %}

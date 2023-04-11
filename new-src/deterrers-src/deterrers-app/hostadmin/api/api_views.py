@@ -90,14 +90,6 @@ def __remove_host(request):
         # check if this host can be removed at the moment or whether there are processes running for it
         if not available_actions(host).get('can_remove'):
             raise Http409()
-        
-        # remove all admin tags
-        for admin_tag_name in host.admin_ids:
-            ipam.remove_tag_from_host(admin_tag_name, str(host.ipv4_addr))
-        # check that no admins are left for this host
-        if len(ipam.get_tagged_admins(host.entity_id)) > 0:
-            logger.error("Couldn't remove all tags from host '%s'", str(host.ipv4_addr))
-            raise Http500()
 
         # block
         if not set_host_offline(str(host.ipv4_addr)):
@@ -108,6 +100,14 @@ def __remove_host(request):
         host.fw = HostFWContract.EMPTY
         host.host_based_policies = []
         ipam.update_host_info(host)
+        
+        # remove all admin tags
+        for admin_tag_name in host.admin_ids:
+            ipam.remove_tag_from_host(admin_tag_name, str(host.ipv4_addr))
+        # check that no admins are left for this host
+        if len(ipam.get_tagged_admins(host.entity_id)) > 0:
+            logger.error("Couldn't remove all tags from host '%s'", str(host.ipv4_addr))
+            raise Http500()
     
     return Response()
 
