@@ -685,6 +685,7 @@ def remove_host(request, ipv4 : str):
             return HttpResponse(status=500)
         
         # set all DETERRERS fields to blank
+        host.status = HostStatusContract.UNREGISTERED
         host.service_profile = HostServiceContract.EMPTY
         host.fw = HostFWContract.EMPTY
         host.host_based_policies = []
