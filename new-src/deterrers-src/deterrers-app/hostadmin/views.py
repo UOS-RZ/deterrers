@@ -699,7 +699,7 @@ def remove_host(request, ipv4 : str):
             logger.error("Couldn't remove all tags from host '%s'", str(host.ipv4_addr))
             return HttpResponse(status=500)
 
-    return HttpResponseRedirect(reverse('hosts_list', kwargs={'ipv4': host.get_ip_escaped()}))
+    return HttpResponseRedirect(reverse('hosts_list'))
 
 
 ############################## Vulnerability Scanner alerts ######################################
