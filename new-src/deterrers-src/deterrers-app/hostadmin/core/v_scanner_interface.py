@@ -911,7 +911,7 @@ class GmpVScannerInterface():
             return None
 
 
-    def get_report_xml(self, report_uuid : str, min_qod : int = 70):
+    def get_report_xml(self, report_uuid : str, min_qod : int = 70, report_format_id : str = ReportFormat.XML_UUID.value):
         """
         Query the XML report for some report UUID.
 
@@ -923,7 +923,7 @@ class GmpVScannerInterface():
         """
         rep_filter = f"status=Done apply_overrides=0 rows=-1 min_qod={min_qod} first=1 sort-reverse=severity"
         try:
-            response = self.gmp.get_report(report_uuid, filter_string=rep_filter, report_format_id=ReportFormat.XML_UUID.value, ignore_pagination=True, details=True)
+            response = self.gmp.get_report(report_uuid, filter_string=rep_filter, report_format_id=report_format_id, ignore_pagination=True, details=True)
             response_status = int(response.xpath('@status')[0])
             if response_status != 200:
                 raise GmpAPIError(f"Couldn't query report {report_uuid}!")
