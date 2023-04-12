@@ -46,7 +46,7 @@ def __get_host(request):
         # get host from IPAM
         ipv4 = request.GET['ipv4_addr']
         host = ipam.get_host_info_from_ip(ipv4)
-        if not host:
+        if not host or not host.is_valid():
             raise Http404()
 
         host_serializer = MyHostSerializer(host)
