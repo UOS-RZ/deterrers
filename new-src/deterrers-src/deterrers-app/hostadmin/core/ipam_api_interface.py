@@ -12,6 +12,7 @@ from .rule_generator import HostBasedPolicy
 logger = logging.getLogger(__name__)
 
 # TODO: check response codes of requests
+# TODO: make functions not return bools but rather status codes like in add_tag_to_host()
 
 class ProteusIPAMInterface():
     """
