@@ -112,8 +112,8 @@ Remove host 0.0.0.0:
                 application/json:
                     schema: {
                         'ipv4_addr' : <ip>,
-                        'service_profile' : <'HTTP'|'SSH'|'HTTP+SSH'|'Multipurpose'>,
-                        'fw' : <'UFW'|'FirewallD'|'nftables'>
+                        'service_profile' : <'HTTP'|'SSH'|'HTTP+SSH'|'Multipurpose'|''>,
+                        'fw' : <'UFW'|'FirewallD'|'nftables'|''>
                     }
             responses:
                 '200':
