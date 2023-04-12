@@ -32,6 +32,30 @@ Get all hosts that are added for me in DETERRERS:
 
 ---
 
+## Get a single host:
+
+    /hostadmin/api/host/:
+        get:
+            description: 'API method for getting a single hosts.
+            Supports GET.'
+            parameters:
+                ipv4_addr: IP address to request
+            responses:
+                '200':
+                content:
+                    application/json:
+                    schema:
+                        type: object
+                description: ''
+
+Example:
+
+Get host with IP address 131.121.123.1:
+
+    curl -X GET -H 'Authorization: Token <user_token>' 'https://deterrers.rz.uos.de:443/hostadmin/api/hosts/?ipv4_addr=131.121.123.1'
+
+---
+
 ## Add a host:
 
     /hostadmin/api/host/:

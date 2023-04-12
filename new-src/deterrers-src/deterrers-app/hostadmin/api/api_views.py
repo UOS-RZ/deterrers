@@ -33,9 +33,25 @@ class Http500(Exception):
 
 
 def __get_host(request):
-    # TODO: implement
-    logger.info('Not implemented yet.')
-    return Response(status=501)
+    hostadmin = get_object_or_404(MyUser, username=request.user.username)
+
+    with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+        if not ipam.enter_ok:
+            raise Http500()
+
+        # check if user has IPAM permission and an admin tag for them exists
+        if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+            raise Http404()
+
+        # get host from IPAM
+        ipv4 = request.GET['ipv4_addr']
+        host = ipam.get_host_info_from_ip(ipv4)
+        if not host:
+            raise Http404()
+
+        host_serializer = MyHostSerializer(host)
+        return Response(data=host_serializer.data)
+
 
 def __add_host(request):
     # TODO: docu
