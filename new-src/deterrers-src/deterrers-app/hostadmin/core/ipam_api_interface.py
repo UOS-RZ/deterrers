@@ -679,6 +679,8 @@ deterrers_rules={json.dumps([p.to_string() for p in host.host_based_policies])}|
                 linkentities_url = self.main_url + "linkEntities?" + linkentities_params
                 response = requests.put(linkentities_url, headers=self.header, timeout=self.TIMEOUT)
                 return response.status_code
+            else:
+                return 409
         except Exception:
             logger.exception("Couldn't add tag to host!")
 
