@@ -52,7 +52,7 @@ Example:
 
 Get host with IP address 131.121.123.1:
 
-    curl -X GET -H 'Authorization: Token <user_token>' 'https://deterrers.rz.uos.de:443/hostadmin/api/hosts/?ipv4_addr=131.121.123.1'
+    curl -X GET -H 'Authorization: Token <user_token>' 'https://deterrers.rz.uos.de:443/hostadmin/api/host/?ipv4_addr=131.121.123.1'
 
 ---
 
