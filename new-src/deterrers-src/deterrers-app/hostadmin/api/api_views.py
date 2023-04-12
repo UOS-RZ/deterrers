@@ -49,6 +49,10 @@ def __get_host(request):
         if not host or not host.is_valid():
             raise Http404()
 
+        # check if user is admin of this host
+        if not hostadmin.username in host.admin_ids:
+            raise Http404()
+
         host_serializer = MyHostSerializer(host)
         return Response(data=host_serializer.data)
 
