@@ -191,8 +191,11 @@ def hosts_list_view(request):
             if form.is_valid():
                 tag_name = form.cleaned_data['admin_tag']
                 host_ip = form.cleaned_data['ipv4_addr']
-                if ipam.add_tag_to_host(tag_name, host_ip) in range(200, 205, 1):
+                code = ipam.add_tag_to_host(tag_name, host_ip)
+                if code in range(200, 205, 1):   # NOTE: return codes are not well defined by Proteus but any 2xx is fine
                     return HttpResponseRedirect(reverse('hosts_list'))
+                elif code == 409:
+                    form.add_error(None, "Conflict while adding host! Has it been added before?")
                 else:
                     form.add_error(None, "Couldn't add host! Is information in IPAM correct?")
         else:
