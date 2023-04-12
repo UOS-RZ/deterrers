@@ -654,7 +654,7 @@ deterrers_rules={json.dumps([p.to_string() for p in host.host_based_policies])}|
         return False
 
 
-    def add_tag_to_host(self, tag_name : str, host_ip : str) -> bool:
+    def add_tag_to_host(self, tag_name : str, host_ip : str) -> int:
         """
         Link a tag to a IPv4Address object.
 
@@ -663,7 +663,7 @@ deterrers_rules={json.dumps([p.to_string() for p in host.host_based_policies])}|
             host_ip (str): IP address of the host.
 
         Returns:
-            bool: Returns True on success and False if something goes wrong.
+            int: Returns HTTP status code of the response.
         """
         try:
             # get IPv4Address object
@@ -678,14 +678,13 @@ deterrers_rules={json.dumps([p.to_string() for p in host.host_based_policies])}|
                 linkentities_params = f"entity1Id={host_id}&entity2Id={tag_id}"
                 linkentities_url = self.main_url + "linkEntities?" + linkentities_params
                 response = requests.put(linkentities_url, headers=self.header, timeout=self.TIMEOUT)
-                if response.status_code in (200,204): # NOTE: API docu says 204 is returned but that seems to be false
-                    return True
+                return response.status_code
         except Exception:
             logger.exception("Couldn't add tag to host!")
 
-        return False
+        return 500
     
-    def remove_tag_from_host(self, tag_name : str, host_ip : str) -> bool:
+    def remove_tag_from_host(self, tag_name : str, host_ip : str) -> int:
         """
         Unlink tag from an IPv4Address object.
 
@@ -694,7 +693,7 @@ deterrers_rules={json.dumps([p.to_string() for p in host.host_based_policies])}|
             host_ip (str): IPv4 address of the host.
 
         Returns:
-            bool: Retruns True on success and False if something goes wrong.
+            int: Returns HTTP status code of the response.
         """
         try:
             # get IPv4Address object
@@ -708,12 +707,11 @@ deterrers_rules={json.dumps([p.to_string() for p in host.host_based_policies])}|
             linkentities_params = f"entity1Id={host_id}&entity2Id={tag_id}"
             linkentities_url = self.main_url + "unlinkEntities?" + linkentities_params
             response = requests.put(linkentities_url, headers=self.header, timeout=self.TIMEOUT)
-            if response.status_code in (200,204):
-                return True
+            return response.status_code
         except Exception:
             logger.exception("Couldn't remove tag from host!")
 
-        return False
+        return 500
 
     def user_exists(self, username : str) -> bool|None:
         """

@@ -56,8 +56,9 @@ def __add_host(request):
         # check if tag names are either department or admin tag and add them to host
         for tag_name in tag_names:
             if tag_name in ipam.get_department_tag_names() or ipam.admin_tag_exists(tag_name):
-                if not ipam.add_tag_to_host(tag_name, host_ipv4):
-                    raise Http500()
+                code = ipam.add_tag_to_host(tag_name, host_ipv4)
+                if code not in range(200,  205, 1):
+                    return Response(status=code)
             else:
                 continue
     
