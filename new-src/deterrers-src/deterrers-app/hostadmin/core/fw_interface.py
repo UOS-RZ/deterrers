@@ -41,7 +41,7 @@ class PaloAltoInterface():
         logger.debug("Start firewall interface session.")
         try:
             # get api key for this session
-            req_url = f"https://{self.xml_url}?type=keygen&user={self.username}&password={self.__password}"
+            req_url = f"{self.xml_url}?type=keygen&user={self.username}&password={self.__password}"
             response = requests.get(req_url, timeout=self.TIMEOUT)
             response_xml = etree.XML(response.content)
             status_code = response.status_code
