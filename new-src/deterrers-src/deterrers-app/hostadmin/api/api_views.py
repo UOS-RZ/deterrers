@@ -115,8 +115,9 @@ def __remove_host(request):
             raise Http409()
 
         # block
-        if not set_host_offline(str(host.ipv4_addr)):
-            raise Http500()
+        if host.status == HostStatusContract.ONLINE:
+            if not set_host_offline(str(host.ipv4_addr)):
+                raise Http500()
         
         # set all DETERRERS fields to blank
         host.status = HostStatusContract.UNREGISTERED
