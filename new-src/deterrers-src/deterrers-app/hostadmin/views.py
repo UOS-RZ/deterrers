@@ -319,6 +319,10 @@ def update_host_detail(request, ipv4 : str):
                 host.service_profile = HostServiceContract(form.cleaned_data['service_profile'])
                 fw_change = host.fw != HostFWContract(form.cleaned_data['fw'])
                 host.fw = HostFWContract(form.cleaned_data['fw'])
+                if not ipam.update_host_info(host):
+                    form.add_error(None, "Host information could not be updated! Try again later...")
+                    # redirect to a new URL:
+                    return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ip_escaped()}))
 
                 if not service_profile_change and not fw_change:
                     # return immediatly if nothing was changed
@@ -361,12 +365,12 @@ def update_host_detail(request, ipv4 : str):
                             messages.warning(request, f"Please make sure to configure custom rules for your desired services when choosing the {HostServiceContract.MULTIPURPOSE.value} profile!")
                         case _:
                             logger.error("%s is not supported yet.", host.service_profile)
+                    ipam.update_host_info(host)
                 
-                if ipam.update_host_info(host):
-                    # redirect to a new URL:
-                    return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ip_escaped()}))
                 
-                form.add_error(None, "Host information could not be updated! Try again later...")
+                # redirect to a new URL:
+                return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ip_escaped()}))
+                
         else:
             form = ChangeHostDetailForm(
                 initial={
