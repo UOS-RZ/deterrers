@@ -40,15 +40,15 @@ class Command(BaseCommand):
                                 # get all hosts in IPAM
                                 print("Get assets from IPAM!")
                                 ipam_hosts_total = set()
-                                ipam_hosts_online = set()
+                                ipam_hosts_online = []
                                 ipam_hosts_under_review = set()
                                 admin_tag_names = ipam.get_admin_tag_names()
                                 for a_tag_name in admin_tag_names:
                                     hosts = ipam.get_hosts_of_admin(admin_rz_id=a_tag_name)
                                     for host in hosts:
-                                        ipam_hosts_total.add(host)
+                                        ipam_hosts_total.add(str(host.ipv4_addr))
                                         if host.status == HostStatusContract.ONLINE:
-                                            ipam_hosts_online.add(str(host.ipv4_addr))
+                                            ipam_hosts_online.append(host)
                                         elif host.status == HostStatusContract.UNDER_REVIEW:
                                             ipam_hosts_under_review.add(str(host.ipv4_addr))
                                 
@@ -114,21 +114,21 @@ class Command(BaseCommand):
                                 print(f"FW - Scanner: {fw_hosts.difference(v_scanner_hosts)}")
                                 print()
                                 for host in ipam_hosts_total:
-                                    match host.service_profile:
+                                    match fw:
                                         case HostServiceContract.HTTP:
                                             if not str(host.ipv4_addr) in fw_web_hosts:
-                                                print(f"{host} is not in {PaloAltoAddressGroup.HTTP}")
+                                                print(f"{str(host.ipv4_addr)} is not in {PaloAltoAddressGroup.HTTP}")
                                         case HostServiceContract.SSH:
                                             if not str(host.ipv4_addr) in fw_ssh_hosts:
-                                                print(f"{host} is not in {PaloAltoAddressGroup.SSH}")
+                                                print(f"{str(host.ipv4_addr)} is not in {PaloAltoAddressGroup.SSH}")
                                         case HostServiceContract.HTTP_SSH:
                                             if not str(host.ipv4_addr) in fw_web_hosts:
-                                                print(f"{host} is not in {PaloAltoAddressGroup.HTTP}")
+                                                print(f"{str(host.ipv4_addr)} is not in {PaloAltoAddressGroup.HTTP}")
                                             if not str(host.ipv4_addr) in fw_ssh_hosts:
-                                                print(f"{host} is not in {PaloAltoAddressGroup.SSH}")
+                                                print(f"{str(host.ipv4_addr)} is not in {PaloAltoAddressGroup.SSH}")
                                         case HostServiceContract.MULTIPURPOSE:
                                             if not str(host.ipv4_addr) in fw_open_hosts:
-                                                print(f"{host} is not in {PaloAltoAddressGroup.OPEN}")
+                                                print(f"{str(host.ipv4_addr)} is not in {PaloAltoAddressGroup.OPEN}")
 
                                 return
 
