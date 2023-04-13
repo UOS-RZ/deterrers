@@ -7,7 +7,7 @@ import ipaddress
 from hostadmin.core.ipam_api_interface import ProteusIPAMInterface
 from hostadmin.core.v_scanner_interface import GmpVScannerInterface
 from hostadmin.core.fw_interface import PaloAltoInterface, PaloAltoAddressGroup
-from hostadmin.core.contracts import HostStatusContract
+from hostadmin.core.contracts import HostStatusContract, HostServiceContract
 
 class Command(BaseCommand):
     help = 'Compares data in IPAM with data in V-Scanner and perimeter FW.'
@@ -46,7 +46,7 @@ class Command(BaseCommand):
                                 for a_tag_name in admin_tag_names:
                                     hosts = ipam.get_hosts_of_admin(admin_rz_id=a_tag_name)
                                     for host in hosts:
-                                        ipam_hosts_total.add(str(host.ipv4_addr))
+                                        ipam_hosts_total.add(host)
                                         if host.status == HostStatusContract.ONLINE:
                                             ipam_hosts_online.add(str(host.ipv4_addr))
                                         elif host.status == HostStatusContract.UNDER_REVIEW:
@@ -76,6 +76,9 @@ class Command(BaseCommand):
                                 # get all hosts that online in FW
                                 print('Get assets unblocked by FW!')
                                 fw_hosts = set()
+                                fw_web_hosts = set()
+                                fw_ssh_hosts = set()
+                                fw_open_hosts = set()
                                 for ag in PaloAltoAddressGroup:
                                     addr_objs = fw.get_addr_objs_in_addr_grp(ag)
                                     for addr_obj in addr_objs:
@@ -85,6 +88,13 @@ class Command(BaseCommand):
                                             continue
                                         if isinstance(ip, ipaddress.IPv4Address):
                                             fw_hosts.add(str(ip))
+                                            match ag:
+                                                case PaloAltoAddressGroup.HTTP:
+                                                    fw_web_hosts.add(str(ip))
+                                                case PaloAltoAddressGroup.SSH:
+                                                    fw_ssh_hosts.add(str(ip))
+                                                case PaloAltoAddressGroup.OPEN:
+                                                    fw_open_hosts.add(str(ip))
 
 
                                 print('---------------------------------------------------------------------')
@@ -102,6 +112,23 @@ class Command(BaseCommand):
                                 print()
                                 print(f"Scanner - FW: {v_scanner_hosts.difference(fw_hosts)}")
                                 print(f"FW - Scanner: {fw_hosts.difference(v_scanner_hosts)}")
+                                print()
+                                for host in ipam_hosts_total:
+                                    match host.service_profile:
+                                        case HostServiceContract.HTTP:
+                                            if not str(host.ipv4_addr) in fw_web_hosts:
+                                                print(f"{host} is not in {PaloAltoAddressGroup.HTTP}")
+                                        case HostServiceContract.SSH:
+                                            if not str(host.ipv4_addr) in fw_ssh_hosts:
+                                                print(f"{host} is not in {PaloAltoAddressGroup.SSH}")
+                                        case HostServiceContract.HTTP_SSH:
+                                            if not str(host.ipv4_addr) in fw_web_hosts:
+                                                print(f"{host} is not in {PaloAltoAddressGroup.HTTP}")
+                                            if not str(host.ipv4_addr) in fw_ssh_hosts:
+                                                print(f"{host} is not in {PaloAltoAddressGroup.SSH}")
+                                        case HostServiceContract.MULTIPURPOSE:
+                                            if not str(host.ipv4_addr) in fw_open_hosts:
+                                                print(f"{host} is not in {PaloAltoAddressGroup.OPEN}")
 
                                 return
 
