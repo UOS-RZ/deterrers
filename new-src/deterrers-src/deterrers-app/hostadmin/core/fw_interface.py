@@ -41,7 +41,7 @@ class PaloAltoInterface():
         logger.debug("Start firewall interface session.")
         try:
             # get api key for this session
-            req_url = f"https://{self.fw_url}/api/?type=keygen&user={self.username}&password={self.__password}"
+            req_url = f"https://{self.xml_url}?type=keygen&user={self.username}&password={self.__password}"
             response = requests.get(req_url, timeout=self.TIMEOUT)
             response_xml = etree.XML(response.content)
             status_code = response.status_code
@@ -201,35 +201,47 @@ from firewall! Status code: {response.status_code}. Status: {data.get('@status')
         Returns:
             bool: Returns True on success and False on error.
         """
-        commit_params = f"type=commit&cmd=<commit><partial><admin><member>{self.username}</member></admin></partial></commit>"
-        commit_url = self.xml_url + "?" + commit_params
-        response = requests.get(commit_url, headers=self.header, timeout=self.TIMEOUT)
+        # check if changes are pending
+        pending_params = "type=op&cmd=<check><pending-changes></pending-changes></check>"
+        pending_url = self.xml_url + "?" + pending_params
+        response = requests.get(pending_url, headers=self.header, timeout=self.TIMEOUT)
         response_xml = etree.XML(response.content)
         status_code = response.status_code
         status = response_xml.xpath("//response/@status")[0]
         if status_code != 200 or status != 'success':
-            logger.error("Queueing commit failed. Status code: %d. Status: %s", status_code, status)
-            return False
+            logger.error("Couldn't query pending changes. Status code: %d. Status: %s", status_code, status)
+        pending = response_xml.xpath("//response/result")[0].text == "yes"
 
-        # job_id = response_xml.xpath("//result/job")[0].text
-        # if not job_id:
-        #     return False
-        # # wait until commit has been submitted
-        # get_job_status_params = f"type=op&cmd=<show><jobs><id>{job_id}</id></jobs></show>"
-        # get_job_status_url = self.xml_url + "?" + get_job_status_params
-        # start = time.time()
-        # while True:
-        #     if time.time() - start > self.TIMEOUT:
-        #         logger.error("Commit took to long!")
-        #         self.__cancle_commit()
-        #         return False
-        #     response = requests.get(get_job_status_url, headers=self.header, timeout=self.TIMEOUT)
-        #     response_xml =  etree.XML(response.content)
-        #     job_status = response_xml.xpath("//job/status")[0].text
-        #     if job_status == "FIN":
-        #         logger.debug("Commit finished!")
-        #         break
-        #     time.sleep(2)
+        if pending:
+            commit_params = f"type=commit&cmd=<commit><partial><admin><member>{self.username}</member></admin></partial></commit>"
+            commit_url = self.xml_url + "?" + commit_params
+            response = requests.get(commit_url, headers=self.header, timeout=self.TIMEOUT)
+            response_xml = etree.XML(response.content)
+            status_code = response.status_code
+            status = response_xml.xpath("//response/@status")[0]
+            if status_code != 200 or status != 'success':
+                logger.error("Queueing commit failed. Status code: %d. Status: %s", status_code, status)
+                return False
+
+            # job_id = response_xml.xpath("//result/job")[0].text
+            # if not job_id:
+            #     return False
+            # # wait until commit has been submitted
+            # get_job_status_params = f"type=op&cmd=<show><jobs><id>{job_id}</id></jobs></show>"
+            # get_job_status_url = self.xml_url + "?" + get_job_status_params
+            # start = time.time()
+            # while True:
+            #     if time.time() - start > self.TIMEOUT:
+            #         logger.error("Commit took to long!")
+            #         self.__cancle_commit()
+            #         return False
+            #     response = requests.get(get_job_status_url, headers=self.header, timeout=self.TIMEOUT)
+            #     response_xml =  etree.XML(response.content)
+            #     job_status = response_xml.xpath("//job/status")[0].text
+            #     if job_status == "FIN":
+            #         logger.debug("Commit finished!")
+            #         break
+            #     time.sleep(2)
 
         return True
 
