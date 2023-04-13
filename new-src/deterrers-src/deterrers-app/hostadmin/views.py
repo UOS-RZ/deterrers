@@ -684,8 +684,9 @@ def remove_host(request, ipv4 : str):
             return HttpResponse(status=409)
 
         # block
-        if not set_host_offline(str(host.ipv4_addr)):
-            return HttpResponse(status=500)
+        if host.status == HostStatusContract.ONLINE:
+            if not set_host_offline(str(host.ipv4_addr)):
+                return HttpResponse(status=500)
         
         # set all DETERRERS fields to blank
         host.status = HostStatusContract.UNREGISTERED
