@@ -46,8 +46,10 @@ def __get_host(request):
         # get host from IPAM
         ipv4 = request.GET['ipv4_addr']
         host = ipam.get_host_info_from_ip(ipv4)
-        if not host or not host.is_valid():
+        if not host:
             raise Http404()
+        if not host.is_valid():
+            raise Http409()
 
         # check if user is admin of this host
         if not hostadmin.username in host.admin_ids:
@@ -153,6 +155,8 @@ def __update_host(request):
         host = ipam.get_host_info_from_ip(host_update_data['ipv4_addr'])
         if not host:
             raise Http404()
+        if not host.is_valid():
+            raise Http409()
 
         # check if user is admin of this host
         if not hostadmin.username in host.admin_ids:
