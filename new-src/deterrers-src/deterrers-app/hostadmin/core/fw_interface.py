@@ -201,7 +201,7 @@ from firewall! Status code: {response.status_code}. Status: {data.get('@status')
         Returns:
             bool: Returns True on success and False on error.
         """
-        commit_params = "type=commit&cmd=<commit></commit>"
+        commit_params = f"type=commit&cmd=<commit><partial><admin><member>{self.username}</member></admin></partial></commit>"
         commit_url = self.xml_url + "?" + commit_params
         response = requests.get(commit_url, headers=self.header, timeout=self.TIMEOUT)
         response_xml = etree.XML(response.content)
@@ -211,25 +211,25 @@ from firewall! Status code: {response.status_code}. Status: {data.get('@status')
             logger.error("Queueing commit failed. Status code: %d. Status: %s", status_code, status)
             return False
 
-        job_id = response_xml.xpath("//result/job")[0].text
-        if not job_id:
-            return False
-        # wait until commit has been submitted
-        get_job_status_params = f"type=op&cmd=<show><jobs><id>{job_id}</id></jobs></show>"
-        get_job_status_url = self.xml_url + "?" + get_job_status_params
-        start = time.time()
-        while True:
-            if time.time() - start > self.TIMEOUT:
-                logger.error("Commit took to long!")
-                self.__cancle_commit()
-                return False
-            response = requests.get(get_job_status_url, headers=self.header, timeout=self.TIMEOUT)
-            response_xml =  etree.XML(response.content)
-            job_status = response_xml.xpath("//job/status")[0].text
-            if job_status == "FIN":
-                logger.debug("Commit finished!")
-                break
-            time.sleep(2)
+        # job_id = response_xml.xpath("//result/job")[0].text
+        # if not job_id:
+        #     return False
+        # # wait until commit has been submitted
+        # get_job_status_params = f"type=op&cmd=<show><jobs><id>{job_id}</id></jobs></show>"
+        # get_job_status_url = self.xml_url + "?" + get_job_status_params
+        # start = time.time()
+        # while True:
+        #     if time.time() - start > self.TIMEOUT:
+        #         logger.error("Commit took to long!")
+        #         self.__cancle_commit()
+        #         return False
+        #     response = requests.get(get_job_status_url, headers=self.header, timeout=self.TIMEOUT)
+        #     response_xml =  etree.XML(response.content)
+        #     job_status = response_xml.xpath("//job/status")[0].text
+        #     if job_status == "FIN":
+        #         logger.debug("Commit finished!")
+        #         break
+        #     time.sleep(2)
 
         return True
 
