@@ -1,0 +1,39 @@
+# Dockerfile to create image with cron services
+FROM ubuntu:latest
+
+ENV MICRO_SERVICE=/home/app/microservice
+RUN mkdir -p $MICRO_SERVICE
+RUN mkdir -p $MICRO_SERVICE/static
+
+# where the code lives
+WORKDIR $MICRO_SERVICE
+# set environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+# install dependencies
+COPY ./requirements.txt $MICRO_SERVICE
+RUN pip install --upgrade pip
+RUN pip install -r requirements.txt
+COPY ./entrypoint.sh $MICRO_SERVICE
+RUN chmod +x $MICRO_SERVICE/entrypoint.sh
+
+# copy project
+COPY . $MICRO_SERVICE
+
+# create APP_USER, make APP_USER owner of the app directory and switch to APP_USER
+ENV APP_USER=deterrers_user
+# RUN addgroup -S $APP_USER && adduser -S $APP_USER -G $APP_USER
+RUN addgroup $APP_USER && adduser $APP_USER --ingroup $APP_USER
+RUN chown -R ${APP_USER}:${APP_USER} ${MICRO_SERVICE}
+USER ${APP_USER}:${APP_USER}
+
+#Install Cron
+RUN apt-get update
+RUN apt-get -y install cron
+
+# Add the cron job
+RUN crontab -l | { cat; echo "1 * * * * python ${MICRO_SERVICE}/manage.py commit_to_perimeter_fw"; } | crontab -
+
+# Run the command on container startup
+CMD cron

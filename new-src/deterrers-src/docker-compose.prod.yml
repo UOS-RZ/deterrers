@@ -56,6 +56,15 @@ services:
     #   - 8000
     restart: "on-failure"
 
+  routines:
+    depends_on:
+      - vpn
+    network_mode: "service:vpn"
+    build: 
+      context: ./deterrers-app
+      dockerfile: Dockerfile-routines
+    restart: "on-failure"
+
 volumes:
   static_volume:
 
