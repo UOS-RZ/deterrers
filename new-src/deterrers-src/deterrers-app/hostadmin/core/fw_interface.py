@@ -65,7 +65,7 @@ class PaloAltoInterface():
         try:
             self.__release_config_lock()
             # commit changes
-            Thread(target=self.__commit_changes, daemon=True).start()
+            Thread(target=self.commit_changes, daemon=True).start()
         except Exception:
             logger.exception("")
 
@@ -194,25 +194,14 @@ from firewall! Status code: {response.status_code}. Status: {data.get('@status')
         return addr_grp_props
 
 
-    def __commit_changes(self):
+    def commit_changes(self):
         """
         Commit changes.
 
         Returns:
             bool: Returns True on success and False on error.
         """
-        # check if changes are pending
-        pending_params = "type=op&cmd=<check><pending-changes></pending-changes></check>"
-        pending_url = self.xml_url + "?" + pending_params
-        response = requests.get(pending_url, headers=self.header, timeout=self.TIMEOUT)
-        response_xml = etree.XML(response.content)
-        status_code = response.status_code
-        status = response_xml.xpath("//response/@status")[0]
-        if status_code != 200 or status != 'success':
-            logger.error("Couldn't query pending changes. Status code: %d. Status: %s", status_code, status)
-        pending = response_xml.xpath("//response/result")[0].text == "yes"
-
-        if pending:
+        if self.changes_pending():
             commit_params = f"type=commit&cmd=<commit><partial><admin><member>{self.username}</member></admin></partial></commit>"
             commit_url = self.xml_url + "?" + commit_params
             response = requests.get(commit_url, headers=self.header, timeout=self.TIMEOUT)
@@ -244,6 +233,24 @@ from firewall! Status code: {response.status_code}. Status: {data.get('@status')
             #     time.sleep(2)
 
         return True
+
+    def changes_pending(self) -> bool:
+        """
+        Checks if changes are pending.
+
+        Returns:
+            bool: Retruns boolean.
+        """
+        pending_params = "type=op&cmd=<check><pending-changes></pending-changes></check>"
+        pending_url = self.xml_url + "?" + pending_params
+        response = requests.get(pending_url, headers=self.header, timeout=self.TIMEOUT)
+        response_xml = etree.XML(response.content)
+        status_code = response.status_code
+        status = response_xml.xpath("//response/@status")[0]
+        if status_code != 200 or status != 'success':
+            logger.error("Couldn't query pending changes. Status code: %d. Status: %s", status_code, status)
+        pending = (response_xml.xpath("//response/result")[0].text == "yes")
+        return pending
 
     def __cancle_commit(self):
         """

@@ -8,6 +8,7 @@ from hostadmin.core.ipam_api_interface import ProteusIPAMInterface
 from hostadmin.core.v_scanner_interface import GmpVScannerInterface
 from hostadmin.core.fw_interface import PaloAltoInterface, PaloAltoAddressGroup
 from hostadmin.core.contracts import HostStatusContract, HostServiceContract
+from hostadmin.util import set_host_online
 
 class Command(BaseCommand):
     help = 'Compares data in IPAM with data in V-Scanner and perimeter FW.'
@@ -39,16 +40,16 @@ class Command(BaseCommand):
                                     continue
                                 # get all hosts in IPAM
                                 print("Get assets from IPAM!")
-                                ipam_hosts_total = set()
-                                ipam_hosts_online = []
+                                ipam_hosts_total = []
+                                ipam_hosts_online = set()
                                 ipam_hosts_under_review = set()
                                 admin_tag_names = ipam.get_admin_tag_names()
                                 for a_tag_name in admin_tag_names:
                                     hosts = ipam.get_hosts_of_admin(admin_rz_id=a_tag_name)
                                     for host in hosts:
-                                        ipam_hosts_total.add(str(host.ipv4_addr))
+                                        ipam_hosts_total.append(host)
                                         if host.status == HostStatusContract.ONLINE:
-                                            ipam_hosts_online.append(host)
+                                            ipam_hosts_online.add(str(host.ipv4_addr))
                                         elif host.status == HostStatusContract.UNDER_REVIEW:
                                             ipam_hosts_under_review.add(str(host.ipv4_addr))
                                 
@@ -113,22 +114,43 @@ class Command(BaseCommand):
                                 print(f"Scanner - FW: {v_scanner_hosts.difference(fw_hosts)}")
                                 print(f"FW - Scanner: {fw_hosts.difference(v_scanner_hosts)}")
                                 print()
+
+                                # check if Service Profile is consistent in IPAM and FW
                                 for host in ipam_hosts_total:
-                                    match fw:
+                                    if host.status != HostStatusContract.ONLINE:
+                                        continue
+                                    ipv4 = str(host.ipv4_addr)
+                                    inconsistent = False
+                                    match host.service_profile:
                                         case HostServiceContract.HTTP:
-                                            if not str(host.ipv4_addr) in fw_web_hosts:
-                                                print(f"{str(host.ipv4_addr)} is not in {PaloAltoAddressGroup.HTTP}")
+                                            if ipv4 not in fw_web_hosts or \
+                                                ipv4 in fw_ssh_hosts or \
+                                                    ipv4 in fw_open_hosts:
+                                                print(f"{ipv4} is in wrong fw profile")
+                                                inconsistent = True
                                         case HostServiceContract.SSH:
-                                            if not str(host.ipv4_addr) in fw_ssh_hosts:
-                                                print(f"{str(host.ipv4_addr)} is not in {PaloAltoAddressGroup.SSH}")
+                                            if ipv4 not in fw_ssh_hosts or \
+                                                ipv4 in fw_web_hosts or \
+                                                    ipv4 in fw_open_hosts:
+                                                print(f"{ipv4} is in wrong fw profile")
+                                                inconsistent = True
                                         case HostServiceContract.HTTP_SSH:
-                                            if not str(host.ipv4_addr) in fw_web_hosts:
-                                                print(f"{str(host.ipv4_addr)} is not in {PaloAltoAddressGroup.HTTP}")
-                                            if not str(host.ipv4_addr) in fw_ssh_hosts:
-                                                print(f"{str(host.ipv4_addr)} is not in {PaloAltoAddressGroup.SSH}")
+                                            if ipv4 not in fw_web_hosts or \
+                                                ipv4 not in fw_ssh_hosts or \
+                                                    ipv4 in fw_open_hosts:
+                                                print(f"{ipv4} is in wrong fw profile")
+                                                inconsistent = True
                                         case HostServiceContract.MULTIPURPOSE:
-                                            if not str(host.ipv4_addr) in fw_open_hosts:
-                                                print(f"{str(host.ipv4_addr)} is not in {PaloAltoAddressGroup.OPEN}")
+                                            if ipv4 not in fw_open_hosts or \
+                                                ipv4 in fw_web_hosts or \
+                                                    ipv4 in fw_ssh_hosts:
+                                                print(f"{ipv4} is in wrong fw profile")
+                                                inconsistent = True
+                                        case _:
+                                            print(f"Invlaid service profile: {host.service_profile}")
+
+                                    if inconsistent and __name__ != "__main__":
+                                        set_host_online(ipv4)
 
                                 return
 
