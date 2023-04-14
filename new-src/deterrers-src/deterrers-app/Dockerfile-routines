@@ -1,5 +1,5 @@
 # Dockerfile to create image with cron services
-FROM ubuntu:latest
+FROM python:3.10-slim-bullseye
 
 ENV MICRO_SERVICE=/home/app/microservice
 RUN mkdir -p $MICRO_SERVICE
