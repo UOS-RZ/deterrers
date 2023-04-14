@@ -5,6 +5,7 @@ FROM python:3.10-slim-bullseye
 #Install Cron
 RUN apt-get update
 RUN apt-get -y install cron
+RUN systemctl start cron
 
 ENV MICRO_SERVICE=/home/app/microservice
 RUN mkdir -p $MICRO_SERVICE
