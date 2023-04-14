@@ -18,9 +18,9 @@ class Command(BaseCommand):
         pass
 
     def handle(self, *args, **options):
-        fw_username = os.environ.get('FW_USERNAME', input('FW username: '))
-        fw_password = os.environ.get('FW_SECRET_KEY', getpass.getpass('FW password: '))
-        fw_url = os.environ.get('FW_URL', input('FW URL: '))
+        fw_username = os.environ.get('FIREWALL_USERNAME', input('FW username: '))
+        fw_password = os.environ.get('FIREWALL_SECRET_KEY', getpass.getpass('FW password: '))
+        fw_url = os.environ.get('FIREWALL_URL', input('FW URL: '))
         with PaloAltoInterface(fw_username, fw_password, fw_url) as fw:
             if not fw.enter_ok:
                 logger.error("Couldn't start session with perimter FW!")
@@ -31,7 +31,7 @@ class Command(BaseCommand):
                 subject="Test",
                 body=f"Time: {datetime.datetime.now()}",
                 from_email=None,
-                to="nwintering@uos.de"
+                to=["nwintering@uos.de"]
             )
             try:
                 email.send()
