@@ -674,14 +674,15 @@ deterrers_rules={json.dumps([p.to_string() for p in host.host_based_policies])}|
             # get tag object
             tag_id = self.__get_tag_id(tag_name)
 
+            # host host is already tagged, we are done
+            if self.host_is_tagged(host_id, tag_id):
+                return 200
+
             # link tag to host
-            if not self.host_is_tagged(host_id, tag_id):
-                linkentities_params = f"entity1Id={host_id}&entity2Id={tag_id}"
-                linkentities_url = self.main_url + "linkEntities?" + linkentities_params
-                response = requests.put(linkentities_url, headers=self.header, timeout=self.TIMEOUT)
-                return response.status_code
-            else:
-                return 409
+            linkentities_params = f"entity1Id={host_id}&entity2Id={tag_id}"
+            linkentities_url = self.main_url + "linkEntities?" + linkentities_params
+            response = requests.put(linkentities_url, headers=self.header, timeout=self.TIMEOUT)
+            return response.status_code
         except Exception:
             logger.exception("Couldn't add tag to host!")
 
