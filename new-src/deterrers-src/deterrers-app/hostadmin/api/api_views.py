@@ -72,7 +72,7 @@ def __add_host(request):
         host_update_data = host_serializer.validated_data
         host_ipv4 = host_update_data['ipv4_addr']
         try:
-            tag_names = host_update_data['admin_ids']
+            tag_names = set(host_update_data['admin_ids'])
         except KeyError:
             raise Http400()
         # check if tag names are either department or admin tag and add them to host
@@ -81,9 +81,7 @@ def __add_host(request):
                 code = ipam.add_tag_to_host(tag_name, host_ipv4)
                 if code not in range(200,  205, 1):
                     return Response(status=code)
-            else:
-                continue
-    
+
     return Response()
 
 def __remove_host(request):
