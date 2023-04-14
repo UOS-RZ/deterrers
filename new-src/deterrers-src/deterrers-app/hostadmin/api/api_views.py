@@ -174,6 +174,8 @@ def __update_host(request):
         fw_change = host.fw != host_update_data.get('fw', host.fw)
         if host_update_data.get('fw', None):
             host.fw = host_update_data['fw']
+        if not ipam.update_host_info(host):
+            raise Http500()
 
         # if nothing changes return immediatly
         if not service_profile_change and not fw_change:
@@ -206,9 +208,9 @@ def __update_host(request):
                     pass
                 case _:
                     logger.error("Service profile '%s' is not supported.", host.service_profile)
-        
-        if not ipam.update_host_info(host):
-            raise Http500()
+            if not ipam.update_host_info(host):
+                raise Http500()
+            
     return Response()
 
 
