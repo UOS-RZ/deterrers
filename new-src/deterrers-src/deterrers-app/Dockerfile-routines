@@ -1,6 +1,10 @@
 # Dockerfile to create image with cron services
 FROM python:3.10-slim-bullseye
 
+#Install Cron
+RUN apt-get update
+RUN apt-get -y install cron
+
 ENV MICRO_SERVICE=/home/app/microservice
 RUN mkdir -p $MICRO_SERVICE
 RUN mkdir -p $MICRO_SERVICE/static
@@ -27,10 +31,6 @@ ENV APP_USER=deterrers_user
 RUN addgroup $APP_USER && adduser $APP_USER --ingroup $APP_USER
 RUN chown -R ${APP_USER}:${APP_USER} ${MICRO_SERVICE}
 USER ${APP_USER}:${APP_USER}
-
-#Install Cron
-RUN apt-get update
-RUN apt-get -y install cron
 
 # Add the cron job
 RUN crontab -l | { cat; echo "1 * * * * python ${MICRO_SERVICE}/manage.py commit_to_perimeter_fw"; } | crontab -
