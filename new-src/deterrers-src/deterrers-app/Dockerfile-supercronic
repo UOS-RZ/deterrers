@@ -3,6 +3,10 @@
 FROM python:3.10-slim-bullseye
 
 
+# install cron
+RUN apt-get update
+RUN apt-get -y install cron curl
+
 ENV MICRO_SERVICE=/home/app/microservice
 RUN mkdir -p $MICRO_SERVICE
 RUN mkdir -p $MICRO_SERVICE/static
@@ -30,10 +34,6 @@ ENV APP_USER=deterrers_user
 RUN addgroup $APP_USER && adduser $APP_USER --ingroup $APP_USER
 RUN chown -R ${APP_USER}:${APP_USER} ${MICRO_SERVICE}
 USER ${APP_USER}:${APP_USER}
-
-# install cron
-RUN apt update
-RUN apt -y install cron curl
 
 # install supercronic
 # Latest releases available at https://github.com/aptible/supercronic/releases
