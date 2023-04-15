@@ -7,6 +7,17 @@ FROM python:3.10-slim-bullseye
 RUN apt-get update
 RUN apt-get -y install cron curl
 
+# install supercronic
+# Latest releases available at https://github.com/aptible/supercronic/releases
+ENV SUPERCRONIC_URL=https://github.com/aptible/supercronic/releases/download/v0.2.23/supercronic-linux-amd64 \
+    SUPERCRONIC=supercronic-linux-amd64 \
+    SUPERCRONIC_SHA1SUM=dbed853c06aba2c611bbb1955b2c1667b51dcb0a
+RUN curl -fsSLO "$SUPERCRONIC_URL" \
+ && echo "${SUPERCRONIC_SHA1SUM}  ${SUPERCRONIC}" | sha1sum -c - \
+ && chmod +x "$SUPERCRONIC" \
+ && mv "$SUPERCRONIC" "/usr/local/bin/${SUPERCRONIC}" \
+ && ln -s "/usr/local/bin/${SUPERCRONIC}" /usr/local/bin/supercronic
+
 ENV MICRO_SERVICE=/home/app/microservice
 RUN mkdir -p $MICRO_SERVICE
 RUN mkdir -p $MICRO_SERVICE/static
@@ -34,17 +45,6 @@ ENV APP_USER=deterrers_user
 RUN addgroup $APP_USER && adduser $APP_USER --ingroup $APP_USER
 RUN chown -R ${APP_USER}:${APP_USER} ${MICRO_SERVICE}
 USER ${APP_USER}:${APP_USER}
-
-# install supercronic
-# Latest releases available at https://github.com/aptible/supercronic/releases
-ENV SUPERCRONIC_URL=https://github.com/aptible/supercronic/releases/download/v0.2.23/supercronic-linux-amd64 \
-    SUPERCRONIC=supercronic-linux-amd64 \
-    SUPERCRONIC_SHA1SUM=dbed853c06aba2c611bbb1955b2c1667b51dcb0a
-RUN curl -fsSLO "$SUPERCRONIC_URL" \
- && echo "${SUPERCRONIC_SHA1SUM}  ${SUPERCRONIC}" | sha1sum -c - \
- && chmod +x "$SUPERCRONIC" \
- && mv "$SUPERCRONIC" "/usr/local/bin/${SUPERCRONIC}" \
- && ln -s "/usr/local/bin/${SUPERCRONIC}" /usr/local/bin/supercronic
 
 RUN echo '*/1 * * * * python ${MICRO_SERVICE}/manage.py commit_to_perimeter_fw' > ./my_crontab
 
