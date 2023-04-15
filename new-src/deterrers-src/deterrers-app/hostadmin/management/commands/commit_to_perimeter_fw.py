@@ -29,10 +29,3 @@ class Command(BaseCommand):
                     
             if not fw.commit_changes():
                 logger.error("Couldn't commit changes to perimeter FW!")
-            else:
-                logger.info("Requested commit successfully!")
-
-
-
-if __name__ == "__main__":
-    Command().handle()

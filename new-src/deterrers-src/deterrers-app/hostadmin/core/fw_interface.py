@@ -227,6 +227,8 @@ from firewall! Status code: {response.status_code}. Status: {data.get('@status')
             if status_code != 200 or status != 'success':
                 logger.error("Queueing commit failed. Status code: %d. Status: %s", status_code, status)
                 return False
+            
+            logger.info("Requested commit successfully!")
 
             # job_id = response_xml.xpath("//result/job")[0].text
             # if not job_id:
@@ -247,6 +249,8 @@ from firewall! Status code: {response.status_code}. Status: {data.get('@status')
             #         logger.debug("Commit finished!")
             #         break
             #     time.sleep(2)
+        else:
+            logger.info("No changes pending at perimeter FW.")
 
         return True
 
