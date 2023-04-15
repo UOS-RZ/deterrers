@@ -40,7 +40,7 @@ def __get_host(request):
             raise Http500()
 
         # check if user has IPAM permission and an admin tag for them exists
-        if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+        if not ipam.is_admin(hostadmin.username):
             raise Http404()
 
         # get host from IPAM
@@ -77,7 +77,7 @@ def __add_host(request):
             raise Http400()
         # check if tag names are either department or admin tag and add them to host
         for tag_name in tag_names:
-            if tag_name in ipam.get_department_tag_names() or ipam.admin_tag_exists(tag_name):
+            if tag_name in ipam.get_department_tag_names() or ipam.is_admin(tag_name):
                 code = ipam.add_tag_to_host(tag_name, host_ipv4)
                 if code not in range(200,  205, 1):
                     return Response(status=code)
@@ -92,7 +92,7 @@ def __remove_host(request):
         if not ipam.enter_ok:
             raise Http500()
          # check if user has IPAM permission or an admin tag for them exists
-        if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+        if not ipam.is_admin(hostadmin.username):
             raise Http404()
         
         # get host by deserializing and then querying IPAM
@@ -144,7 +144,7 @@ def __update_host(request):
             raise Http500()
         
         # check if user has IPAM permission or an admin tag for them exists
-        if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+        if not ipam.is_admin(hostadmin.username):
             raise Http404()
         # get host by deserializing and then querying IPAM
         host_serializer = MyHostSerializer(data=request.data)
@@ -234,9 +234,7 @@ def hosts(request):
             return Response(status=500)
         
         # check if user has IPAM permission or an admin tag for them exists
-        user_exists = ipam.user_exists(hostadmin.username)
-        admin_tag_exists = ipam.admin_tag_exists(hostadmin.username)
-        if not user_exists or not admin_tag_exists:
+        if not ipam.is_admin(hostadmin.username):
             return Response(status=404)
         # get hosts
         hosts_list = ipam.get_hosts_of_admin(hostadmin.username)
@@ -302,9 +300,7 @@ def register_bulk(hostadmin : MyUser, ipv4_addrs : set[str]):
                 raise Http500()
             
             # check if user has IPAM permission or an admin tag for them exists
-            user_exists = ipam.user_exists(hostadmin.username)
-            admin_tag_exists = ipam.admin_tag_exists(hostadmin.username)
-            if not user_exists and not admin_tag_exists:
+            if not ipam.is_admin(hostadmin.username):
                 raise Http404()
             
             # check if all requested hosts are permitted for this hostadmin
@@ -348,7 +344,7 @@ def block_bulk(hostadmin : MyUser, ipv4_addrs : set[str]):
             raise Http500
         
         # check if user has IPAM permission or an admin tag for them exists
-        if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+        if not ipam.is_admin(hostadmin.username):
             raise Http404()
         
         # check if all requested hosts are permitted for this hostadmin
