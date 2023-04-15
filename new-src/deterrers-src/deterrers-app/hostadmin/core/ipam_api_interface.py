@@ -592,7 +592,7 @@ class ProteusIPAMInterface():
 
         return False
 
-    def admin_tag_exists(self, admin_tag_name : str) -> bool|None:
+    def is_admin(self, admin_tag_name : str) -> bool|None:
         """
         Check whether an admin tag exists.
 

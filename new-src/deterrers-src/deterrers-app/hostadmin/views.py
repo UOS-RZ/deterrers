@@ -103,7 +103,7 @@ def host_detail_view(request, ipv4 : str):
             return HttpResponse(status=500)
         
         # check if user has IPAM permission or an admin tag for them exists
-        if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+        if not ipam.is_admin(hostadmin.username):
             raise Http404()
         host = ipam.get_host_info_from_ip(ipv4) # TODO: could be changed to get_host_info_from_id() for better performance
         # check if host is valid
@@ -176,14 +176,12 @@ def hosts_list_view(request):
         if not ipam.enter_ok:
             return HttpResponse(status=500)
         
-        # check if user has IPAM permission or an admin tag for them exists
-        user_exists = ipam.user_exists(hostadmin.username)
-        admin_tag_exists = ipam.admin_tag_exists(hostadmin.username)
-        if not user_exists and not admin_tag_exists:
-            raise Http404()
         # if for this admin no tag exists yet, they should be redirected to the init page
-        if not admin_tag_exists:
-            return HttpResponseRedirect(reverse('hostadmin_init'))
+        if not ipam.is_admin(hostadmin.username):
+            if ipam.user_exists(hostadmin.username):
+                return HttpResponseRedirect(reverse('hostadmin_init'))
+            else:
+                raise Http404()
 
         tag_choices = [hostadmin.username, ipam.get_department_to_admin(hostadmin.username)]
         if request.method == 'POST':
@@ -247,7 +245,7 @@ def hostadmin_init_view(request):
         if not ipam.user_exists(hostadmin.username):
             raise Http404()
         # check if hostadmin already has a tag
-        if ipam.admin_tag_exists(hostadmin.username):
+        if ipam.is_admin(hostadmin.username):
             return HttpResponseRedirect(reverse('hosts_list'))
 
         department_choices = ipam.get_department_tag_names()
@@ -294,7 +292,7 @@ def update_host_detail(request, ipv4 : str):
             return HttpResponse(status=500)
         
         # check if user has IPAM permission or an admin tag for them exists
-        if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+        if not ipam.is_admin(hostadmin.username):
             raise Http404()
         # get host
         host = ipam.get_host_info_from_ip(ipv4)
@@ -416,7 +414,7 @@ def register_host(request, ipv4 : str):
                 return HttpResponse(status=500)
             
             # check if user has IPAM permission or an admin tag for them exists
-            if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+            if not ipam.is_admin(hostadmin.username):
                 raise Http404()
             # get host
             host = ipam.get_host_info_from_ip(ipv4)
@@ -475,7 +473,7 @@ def scan_host(request, ipv4 : str):
                 return HttpResponse(status=500)
             
             # check if user has IPAM permission or an admin tag for them exists
-            if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+            if not ipam.is_admin(hostadmin.username):
                 raise Http404()
             # get host
             host = ipam.get_host_info_from_ip(ipv4)
@@ -530,7 +528,7 @@ def block_host(request, ipv4 : str):
             return HttpResponse(status=500)
         
         # check if user has IPAM permission or an admin tag for them exists
-        if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+        if not ipam.is_admin(hostadmin.username):
             raise Http404()
         # get host
         host = ipam.get_host_info_from_ip(ipv4)
@@ -575,7 +573,7 @@ def delete_host_rule(request, ipv4 : str, rule_id : uuid.UUID):
             return HttpResponse(status=500)
         
         # check if user has IPAM permission or an admin tag for them exists
-        if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+        if not ipam.is_admin(hostadmin.username):
             raise Http404()
         # get host
         host = ipam.get_host_info_from_ip(ipv4) # TODO: could be changed to get_host_info_from_id() for better performance
@@ -620,7 +618,7 @@ def get_fw_config(request, ipv4 : str):
             return HttpResponse(status=500)
         
         # check if user has IPAM permission or an admin tag for them exists
-        if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+        if not ipam.is_admin(hostadmin.username):
             raise Http404()
         # get host
         host = ipam.get_host_info_from_ip(ipv4) # TODO: could be changed to get_host_info_from_id() for better performance
@@ -671,7 +669,7 @@ def remove_host(request, ipv4 : str):
         if not ipam.enter_ok:
             return HttpResponse(status=500)
          # check if user has IPAM permission or an admin tag for them exists
-        if not ipam.user_exists(hostadmin.username) and not ipam.admin_tag_exists(hostadmin.username):
+        if not ipam.is_admin(hostadmin.username):
             raise Http404()
         
         # get host
