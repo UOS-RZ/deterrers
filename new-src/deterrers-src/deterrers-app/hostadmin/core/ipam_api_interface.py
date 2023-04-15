@@ -376,7 +376,7 @@ class ProteusIPAMInterface():
         hosts  = []
         try:
             admin_tag_id = self.__get_tag_id(admin_rz_id)
-            department_tag_id = self.__get_parent_tag(admin_tag_id)
+            department_tag_id = self.__get_parent_tag(admin_tag_id)['id']
             # get all linked hosts to this admin tag
             hosts += __get_linked_hosts(admin_tag_id)
             # get all linked hosts to the parent tag
