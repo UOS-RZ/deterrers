@@ -128,7 +128,7 @@ def __remove_host(request):
         for admin_tag_name in host.admin_ids:
             ipam.remove_tag_from_host(admin_tag_name, str(host.ipv4_addr))
         # check that no admins are left for this host
-        if len(ipam.get_tagged_admins(host.entity_id)) > 0:
+        if len(ipam.get_admins_of_host(host.entity_id)) > 0:
             logger.error("Couldn't remove all tags from host '%s'", str(host.ipv4_addr))
             raise Http500()
     

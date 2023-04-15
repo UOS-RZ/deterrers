@@ -704,7 +704,7 @@ def remove_host(request, ipv4 : str):
         for admin_tag_name in host.admin_ids:
             ipam.remove_tag_from_host(admin_tag_name, str(host.ipv4_addr))
         # check that no admins are left for this host
-        if len(ipam.get_tagged_admins(host.entity_id)) > 0:
+        if len(ipam.get_admins_of_host(host.entity_id)) > 0:
             logger.error("Couldn't remove all tags from host '%s'", str(host.ipv4_addr))
             return HttpResponse(status=500)
 
@@ -793,7 +793,7 @@ def v_scanner_registration_alert(request):
                         __send_report_email(
                             report_html,
                             f"DETERRERS - {str(host.ipv4_addr)} - Vulnerability scan finished",
-                            registration_mail_body(host.ipv4_addr, passed, host.admin_ids, host.service_profile, host.dns_rcs, scan_end),
+                            registration_mail_body(host, passed, scan_end, block_reasons),
                             list(set(admin_addresses)),
                         )
 
@@ -867,7 +867,7 @@ def v_scanner_scan_alert(request):
                 __send_report_email(
                     report_html,
                         f"DETERRERS - {str(host.ipv4_addr)} - Vulnerability scan finished",
-                    scan_mail_body(host.ipv4_addr, host.admin_ids, host.service_profile, host.dns_rcs, scan_end),
+                    scan_mail_body(host, scan_end),
                     list(set(admin_addresses)),
                 )
 
