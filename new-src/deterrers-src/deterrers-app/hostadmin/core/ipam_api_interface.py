@@ -328,7 +328,7 @@ class ProteusIPAMInterface():
             list(): Returns a list of MyHost instances.
         """
 
-        def __get_linked_hosts(tag_id):
+        def __get_linked_hosts(tag_id : str|int):
             threads = []
             hosts = []
 
@@ -375,29 +375,12 @@ class ProteusIPAMInterface():
 
         hosts  = []
         try:
-            tag_group_id = self.__get_tag_grp_id()
-            # get all parent tags (department tags) which themselves hold the actual admin tags
-            data = self.__get_child_tags(tag_group_id)
-            for tag_entity in data:
-                parent_tag_id = tag_entity['id']
-                # query whether the admin is a sub-tag of this tag
-                entitybyname_parameters = f"name={admin_rz_id}&parentId={parent_tag_id}&start=0&type=Tag"
-                get_entitiesbyname_url = self.main_url + "getEntityByName?" + entitybyname_parameters
-                response = requests.get(get_entitiesbyname_url, headers = self.header, timeout=self.TIMEOUT)
-                data = response.json()
-                try:
-                    admin_tag_id = data["id"]
-                    if admin_tag_id == 0:
-                        # admin is no sub-tag of this parent tag, therefore continue with next one
-                        continue
-                except KeyError:
-                    continue
-                # get all linked hosts to this admin tag
-                hosts += __get_linked_hosts(admin_tag_id)
-                # get all linked hosts to the parent tag
-                hosts += __get_linked_hosts(parent_tag_id)
-                # admins are only allowed to be sub-tag of one parent tag therefore break here
-                break
+            admin_tag_id = self.__get_tag_id(admin_rz_id)
+            department_tag_id = self.__get_parent_tag(admin_tag_id)
+            # get all linked hosts to this admin tag
+            hosts += __get_linked_hosts(admin_tag_id)
+            # get all linked hosts to the parent tag
+            hosts += __get_linked_hosts(department_tag_id)
 
         except requests.exceptions.ConnectTimeout:
             logger.exception('Connection to %s timed out!', self.main_url)
@@ -410,7 +393,7 @@ class ProteusIPAMInterface():
 
     def get_admins_of_host(self, host_id : int) -> list:
         """
-        Queries the Proteus IPAM system for all tagged admins of a certain host.
+        Queries the Proteus IPAM system for all tagged admins of a host.
 
         Args:
             host_id (int): Entity ID of the host in the Proteus IPAM system.
@@ -501,6 +484,12 @@ class ProteusIPAMInterface():
             return set()
 
     def get_department_tags(self) -> list[dict]:
+        """
+        TODO: docu
+
+        Returns:
+            list[dict]: _description_
+        """
         try:
             # simple caching of department tag names
             if not self.__department_tags:
