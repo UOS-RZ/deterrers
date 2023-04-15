@@ -50,7 +50,7 @@ if __name__ == "__main__":
                         exit()
             
                     # get IPv6 address to all IPv4 address
-                    ips_to_update = ipam.get_IP6Address_if_linked(host.entity_id)
+                    ips_to_update = ipam.get_IP6Addresses(host.entity_id)
                     ips_to_update.add(str(host.ipv4_addr))
 
                     # first make sure ip is not already in any AddressGroups

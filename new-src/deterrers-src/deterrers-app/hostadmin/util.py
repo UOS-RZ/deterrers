@@ -119,7 +119,7 @@ def set_host_offline(host_ipv4 : str) -> bool:
                     return False
             
                 host = ipam.get_host_info_from_ip(host_ipv4)
-                ips_to_block = ipam.get_IP6Address_if_linked(host.entity_id)
+                ips_to_block = ipam.get_IP6Addresses(host.entity_id)
                 ips_to_block.add(str(host.ipv4_addr))
                 # change the perimeter firewall configuration so that host is blocked (IPv4 and IPv6 if available)
                 if not fw.remove_addr_objs_from_addr_grps(ips_to_block, {ag for ag in PaloAltoAddressGroup}):
@@ -180,7 +180,7 @@ def set_host_online(host_ipv4 : str) -> bool:
                     return False
         
                 # get IPv6 address to all IPv4 address
-                ips_to_update = ipam.get_IP6Address_if_linked(host.entity_id)
+                ips_to_update = ipam.get_IP6Addresses(host.entity_id)
                 ips_to_update.add(str(host.ipv4_addr))
 
                 # first make sure ip is not already in any AddressGroups
@@ -217,32 +217,55 @@ def set_host_online(host_ipv4 : str) -> bool:
 
 
 
-def registration_mail_body(ipv4 : str, passed : bool, admins : list[str], service_profile : HostServiceContract, fqdns : list[str], scan_ts):
-    return f"""
+def registration_mail_body(host : MyHost, passed : bool, scan_ts : str, block_reasons : list[VulnerabilityScanResult]) -> str:
+    email_body = f"""
 The registration was {'passed' if passed else 'NOT passed'}.
 
 
-***System Information***
+*************** System Information ***************
 
-IPv4 Address: {ipv4}
-Admins: {', '.join(admins)}
-Internet Service Profile: {service_profile.value}
-FQDN: {', '.join(fqdns)}
+IPv4 Address:             {str(host.ipv4_addr)}
+FQDN:                     {', '.join(host.dns_rcs)}
+Admins:                   {', '.join(host.admin_ids)}
+Internet Service Profile: {host.service_profile.value}
 
+**************************************************
 
 Scan completed: {scan_ts}
 
-Scan report can be found attached to this e-mail."""
+Complete scan report can be found attached to this e-mail.
+
+--------------------------------------------------
+"""
+    if not passed:
+        email_body += """
+Following vulnerabilities resulted in the blocking:
+"""
+        for vul in block_reasons:
+            email_body += f"""
+    Network Vulnerability Test Name:    {vul.nvt_name}
+    Network Vulnerability Test ID:      {vul.nvt_oid}
+    CVSS Base Score:                    {vul.cvss_base_score} ({vul.cvss_base_vector})
+    Quality of Detection:               {vul.qod}
+    Hostname:                           {vul.hostname}
+    Port:                               {vul.port}/{vul.proto}
+    Vulnerability References:           {", ".join(vul.refs)}
+
+"""
+
+    return email_body
 
 
-def scan_mail_body(ipv4 : str, admins : list[str], service_profile : HostServiceContract, fqdns : list[str], scan_ts):
+def scan_mail_body(host : MyHost, scan_ts):
     return f"""
-***System Information***
+*************** System Information ***************
 
-IPv4 Address: {ipv4}
-Admins: {', '.join(admins)}
-Internet Service Profile: {service_profile.value}
-FQDN: {', '.join(fqdns)}
+IPv4 Address:             {str(host.ipv4_addr)}
+FQDN:                     {', '.join(host.dns_rcs)}
+Admins:                   {', '.join(host.admin_ids)}
+Internet Service Profile: {host.service_profile.value}
+
+**************************************************
 
 
 Scan completed: {scan_ts}

@@ -116,50 +116,6 @@ class ProteusIPAMInterface():
             rules = []
         return host_id, name, ip, mac, status, service_profile, fw, rules
 
-    def get_tagged_admins(self, host_id : int) -> list:
-        """
-        Queries the Proteus IPAM system for all tagged admins of a certain host.
-
-        Args:
-            host_id (int): Entity ID of the host in the Proteus IPAM system.
-
-        Returns:
-            list: Returns a list of admin rz-ids.
-        """
-        tagged_admins = []
-        try:
-            tag_group_id = self.__get_tag_grp_id()
-            # get all tags
-            linkedentities_parameters = f"count=-1&entityId={host_id}&start=0&type=Tag"
-            get_linkedentities_url = self.main_url + "getLinkedEntities?" + linkedentities_parameters
-            response = requests.get(get_linkedentities_url, headers=self.header, timeout=self.TIMEOUT)
-            data = response.json()
-            # check for all tags whether they belong to the Deterrers Host Admins Tag Group or a sub-tag
-            for tag_entity in data:
-                tag_id = tag_entity['id']
-                tag_name = tag_entity['name']
-                
-                parent_tag = self.__get_parent_tag(tag_id)
-                if parent_tag['id'] == tag_group_id:
-                    # tag is a sub-tag of the Deterrers Host Admins Tag Group
-                    tagged_admins.append(tag_name) # add department tag for completeness
-                    # get all admin tags that are children of this tag
-                    data = self.__get_child_tags(tag_id)
-                    for tag_entity in data:
-                        tag_id = tag_entity['id']
-                        tag_name = tag_entity['name']
-                        tagged_admins.append(tag_name)
-                else:
-                    # check if parent-tag is a sub-tag of Deterrers Host Admins Tag Group
-                    parent_parent_tag = self.__get_parent_tag(parent_tag['id'])
-                    if parent_parent_tag['id'] == tag_group_id:
-                        tagged_admins.append(tag_name)
-
-        except Exception:
-            logger.exception("Caught an exception in ProteusIPAMInterface.__get_tagged_admins()!")
-
-        return tagged_admins
-
     def __escape_user_input(self, input_str : str) -> str:
         """
         Escape special characters for Proteus IPAM by replacement with their hexadecimal equivalent.
@@ -283,7 +239,7 @@ class ProteusIPAMInterface():
             data = self.__get_IP4Address(ip)
             host_id, name, ip, mac, status, service, fw, rules = self.__parse_ipam_host_entity(data)
             # get all tagged admins
-            tagged_admins = self.get_tagged_admins(host_id)
+            tagged_admins = self.get_admins_of_host(host_id)
             # get dns records
             dns_rcs = self.__get_linked_dns_records(ip)
 
@@ -330,7 +286,7 @@ class ProteusIPAMInterface():
             data = response.json()
             host_id, name, ip, mac, status, service, fw, rules = self.__parse_ipam_host_entity(data)
             # get all tagged admins
-            tagged_admins = self.get_tagged_admins(host_id)
+            tagged_admins = self.get_admins_of_host(host_id)
             # get dns records
             dns_rcs = self.__get_linked_dns_records(ip)
 
@@ -379,7 +335,7 @@ class ProteusIPAMInterface():
             def get_host_task(hosts : list, host_e):
                 host_id, name, ip, mac, status, service, fw, rules = self.__parse_ipam_host_entity(host_e)
                 # get all tagged admins
-                tagged_admins = self.get_tagged_admins(host_id)
+                tagged_admins = self.get_admins_of_host(host_id)
                 # get dns records
                 dns_rcs = self.__get_linked_dns_records(ip)
                 my_host = MyHost(
@@ -452,44 +408,97 @@ class ProteusIPAMInterface():
 
         return hosts
 
-    def update_host_info(self, host : MyHost) -> bool:
+    def get_admins_of_host(self, host_id : int) -> list:
         """
-        Updates host information in the Proteus IPAM system.
+        Queries the Proteus IPAM system for all tagged admins of a certain host.
 
         Args:
-            host (MyHost): Host instance that holds all the latest information.
+            host_id (int): Entity ID of the host in the Proteus IPAM system.
 
         Returns:
-            bool: Returns True on success and False on error.
+            list: Returns a list of admin rz-ids.
         """
-        if host.is_valid():
-            try:
-                update_host_url = f"{self.main_url}update"
-                update_host_body = {
-                    'id': host.entity_id,
-                    'name': host.name, # NOTE: Do not remove this or else IP Address Name field is overwritten with empty string
-                    'type': 'IP4Address',
-                    'properties': f'macAddress={self.__escape_user_input(host.mac_addr)}|\
-deterrers_service_profile={self.__escape_user_input(host.get_service_profile_display())}|\
-deterrers_fw={self.__escape_user_input(host.get_fw_display())}|\
-deterrers_status={self.__escape_user_input(host.get_status_display())}|\
-deterrers_rules={json.dumps([p.to_string() for p in host.host_based_policies])}|'}
+        tagged_admins = []
+        try:
+            tag_group_id = self.__get_tag_grp_id()
+            # get all tags
+            linkedentities_parameters = f"count=-1&entityId={host_id}&start=0&type=Tag"
+            get_linkedentities_url = self.main_url + "getLinkedEntities?" + linkedentities_parameters
+            response = requests.get(get_linkedentities_url, headers=self.header, timeout=self.TIMEOUT)
+            data = response.json()
+            # check for all tags whether they belong to the Deterrers Host Admins Tag Group or a sub-tag
+            for tag_entity in data:
+                tag_id = tag_entity['id']
+                tag_name = tag_entity['name']
+                
+                parent_tag = self.__get_parent_tag(tag_id)
+                if parent_tag['id'] == tag_group_id:
+                    # tag is a sub-tag of the Deterrers Host Admins Tag Group
+                    tagged_admins.append(tag_name) # add department tag for completeness
+                    # get all admin tags that are children of this tag
+                    data = self.__get_child_tags(tag_id)
+                    for tag_entity in data:
+                        tag_id = tag_entity['id']
+                        tag_name = tag_entity['name']
+                        tagged_admins.append(tag_name)
+                else:
+                    # check if parent-tag is a sub-tag of Deterrers Host Admins Tag Group
+                    parent_parent_tag = self.__get_parent_tag(parent_tag['id'])
+                    if parent_parent_tag['id'] == tag_group_id:
+                        tagged_admins.append(tag_name)
 
-                response = requests.put(update_host_url, json=update_host_body, headers=self.header, timeout=self.TIMEOUT)
+        except Exception:
+            logger.exception("Caught an exception in ProteusIPAMInterface.__get_tagged_admins()!")
 
-                if response.status_code == 200:
-                    return True
-                    
-            except requests.exceptions.ConnectTimeout:
-                logger.exception('Connection to %s timed out!', self.main_url)
-            except requests.exceptions.ConnectionError:
-                logger.exception('Could not estaplish connection to "%s"!', self.main_url)
-            except Exception:
-                logger.exception("Caught an exception in ProteusIPAMInterface.update_host_info()!")
-        else:
-            logger.error("Host not valid: %s", str(host))
+        return tagged_admins
+    
+    def get_IP6Addresses(self, ipv4_id : int) -> set[str]:
+        """
+        Queries the corresponding IPv6 addresses if they exist.
 
-        return False
+        Args:
+            ipv4_id (int): ID of the IP4Address entitiy in IPAM.
+
+        Returns:
+            set[str]: Returns all unique public IPv6 addresses which are linked to IPv4 address by common Host Record. Otherwise returns None.
+        """
+        try:
+            addrs = set()
+            ipv4_id = int(ipv4_id)
+            linkedentities_parameters = f"count=10000&entityId={ipv4_id}&start=0&type=HostRecord"
+            get_linkedentities_url = self.main_url + "getLinkedEntities?" + linkedentities_parameters
+            response = requests.get(get_linkedentities_url, headers=self.header, timeout=self.TIMEOUT)
+            host_records = response.json()
+            for h_r in host_records:
+                properties = h_r.get('properties')
+                try:
+                    properties = properties.split('|')
+                except:
+                    continue
+                for property in properties:
+                    try:
+                        key = property.split('=')[0]
+                        value = property.split('=')[1]
+                        if key == 'addresses':
+                            addresses = value.split(',')
+                            addrs.update(addresses)
+                    except:
+                        continue
+
+            # filter out all addresses which are not public IPv6 addresses
+            ipv6_addrs = set()
+            for ip in addrs:
+                try: 
+                    if not ipaddress.IPv6Address(ip).is_private:
+                        ipv6_addrs.add(ip)
+                except ipaddress.AddressValueError:
+                    continue
+
+            return ipv6_addrs
+
+        except Exception:
+            logger.exception("Couldn't get IPv6 address for IP4Address with ID %d!", ipv4_id)
+            return set()
 
     def get_department_tags(self) -> list[dict]:
         try:
@@ -717,6 +726,45 @@ deterrers_rules={json.dumps([p.to_string() for p in host.host_based_policies])}|
 
         return 500
 
+    def update_host_info(self, host : MyHost) -> bool:
+        """
+        Updates host information in the Proteus IPAM system.
+
+        Args:
+            host (MyHost): Host instance that holds all the latest information.
+
+        Returns:
+            bool: Returns True on success and False on error.
+        """
+        if host.is_valid():
+            try:
+                update_host_url = f"{self.main_url}update"
+                update_host_body = {
+                    'id': host.entity_id,
+                    'name': host.name, # NOTE: Do not remove this or else IP Address Name field is overwritten with empty string
+                    'type': 'IP4Address',
+                    'properties': f'macAddress={self.__escape_user_input(host.mac_addr)}|\
+deterrers_service_profile={self.__escape_user_input(host.get_service_profile_display())}|\
+deterrers_fw={self.__escape_user_input(host.get_fw_display())}|\
+deterrers_status={self.__escape_user_input(host.get_status_display())}|\
+deterrers_rules={json.dumps([p.to_string() for p in host.host_based_policies])}|'}
+
+                response = requests.put(update_host_url, json=update_host_body, headers=self.header, timeout=self.TIMEOUT)
+
+                if response.status_code == 200:
+                    return True
+                    
+            except requests.exceptions.ConnectTimeout:
+                logger.exception('Connection to %s timed out!', self.main_url)
+            except requests.exceptions.ConnectionError:
+                logger.exception('Could not estaplish connection to "%s"!', self.main_url)
+            except Exception:
+                logger.exception("Caught an exception in ProteusIPAMInterface.update_host_info()!")
+        else:
+            logger.error("Host not valid: %s", str(host))
+
+        return False
+
     def user_exists(self, username : str) -> bool|None:
         """
         Check whether a user of given name exists.
@@ -740,51 +788,3 @@ deterrers_rules={json.dumps([p.to_string() for p in host.host_based_policies])}|
             logger.exception("Couldn't query IPAM whether user exists!")
 
         return None
-    
-    def get_IP6Address_if_linked(self, ipv4_id : int) -> set[str]:
-        """
-        Queries the corresponding IPv6 address if it exists.
-
-        Args:
-            ipv4_id (int): ID of the IP4Address entitiy in IPAM.
-
-        Returns:
-            set[str]: Returns all unique public IPv6 addresses which are linked to IPv4 address by common Host Record. Otherwise returns None.
-        """
-        try:
-            addrs = set()
-            ipv4_id = int(ipv4_id)
-            linkedentities_parameters = f"count=10000&entityId={ipv4_id}&start=0&type=HostRecord"
-            get_linkedentities_url = self.main_url + "getLinkedEntities?" + linkedentities_parameters
-            response = requests.get(get_linkedentities_url, headers=self.header, timeout=self.TIMEOUT)
-            host_records = response.json()
-            for h_r in host_records:
-                properties = h_r.get('properties')
-                try:
-                    properties = properties.split('|')
-                except:
-                    continue
-                for property in properties:
-                    try:
-                        key = property.split('=')[0]
-                        value = property.split('=')[1]
-                        if key == 'addresses':
-                            addresses = value.split(',')
-                            addrs.update(addresses)
-                    except:
-                        continue
-
-            # filter out all addresses which are not public IPv6 addresses
-            ipv6_addrs = set()
-            for ip in addrs:
-                try: 
-                    if not ipaddress.IPv6Address(ip).is_private:
-                        ipv6_addrs.add(ip)
-                except ipaddress.AddressValueError:
-                    continue
-
-            return ipv6_addrs
-
-        except Exception:
-            logger.exception("Couldn't get IPv6 address for IP4Address with ID %d!", ipv4_id)
-            return set()

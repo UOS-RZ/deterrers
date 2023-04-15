@@ -34,7 +34,7 @@ if __name__ == "__main__":
                         continue
                     # get ipv6 address if exists
                     ip_id = ipam.get_id_of_addr(ip_addr)
-                    ipv6_addrs = ipam.get_IP6Address_if_linked(ip_id)
+                    ipv6_addrs = ipam.get_IP6Addresses(ip_id)
                     if ipv6_addrs:
                         addrs_to_add.extend(ipv6_addrs)
 
