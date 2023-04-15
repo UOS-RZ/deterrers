@@ -833,60 +833,60 @@ class GmpVScannerInterface():
                 self.gmp.authenticate(self.username, self.__password)
 
 
-    def __clean_up_all_history(self):
-        """
-        Delete all elements that were created by DETERRERS at some point in time.
-        **ATTENTION**: Also stops and deletes running scan tasks.
-        """
-        filter_str = "DETERRERS"
-        # delete all reports by DETERRERS
-        logger.info("Deleting all reports by DETERRERS!")
-        response = self.gmp.get_reports(filter_string=filter_str, ignore_pagination=True)
-        to_del_set = set()
-        for report in response.xpath('//report'):
-            to_del_set.add( report.attrib['id'])
-        for uuid in to_del_set:
-            try:
-                self.gmp.delete_report(uuid)
-            except GvmError as err:
-                logger.warning("Couldn't delete report! Error: %s", str(err))
+    # def __clean_up_all_history(self):
+    #     """
+    #     Delete all elements that were created by DETERRERS at some point in time.
+    #     **ATTENTION**: Also stops and deletes running scan tasks.
+    #     """
+    #     filter_str = "DETERRERS"
+    #     # delete all reports by DETERRERS
+    #     logger.info("Deleting all reports by DETERRERS!")
+    #     response = self.gmp.get_reports(filter_string=filter_str, ignore_pagination=True)
+    #     to_del_set = set()
+    #     for report in response.xpath('//report'):
+    #         to_del_set.add( report.attrib['id'])
+    #     for uuid in to_del_set:
+    #         try:
+    #             self.gmp.delete_report(uuid)
+    #         except GvmError as err:
+    #             logger.warning("Couldn't delete report! Error: %s", str(err))
 
-        # delete all tasks by DETERRERS
-        logger.info("Deleting all tasks by DETERRERS!")
-        response = self.gmp.get_tasks(filter_string=filter_str)
-        to_del_set = set()
-        for task in response.xpath('//task'):
-            to_del_set.add(task.attrib['id'])
-        for uuid in to_del_set:
-            try:
-                self.gmp.stop_task(task_id=uuid)
-                self.gmp.delete_task(uuid, ultimate=True)
-            except GvmError as err:
-                logger.warning("Couldn't stop/delete task! Error: %s", str(err))
+    #     # delete all tasks by DETERRERS
+    #     logger.info("Deleting all tasks by DETERRERS!")
+    #     response = self.gmp.get_tasks(filter_string=filter_str)
+    #     to_del_set = set()
+    #     for task in response.xpath('//task'):
+    #         to_del_set.add(task.attrib['id'])
+    #     for uuid in to_del_set:
+    #         try:
+    #             self.gmp.stop_task(task_id=uuid)
+    #             self.gmp.delete_task(uuid, ultimate=True)
+    #         except GvmError as err:
+    #             logger.warning("Couldn't stop/delete task! Error: %s", str(err))
 
-        # delete all targets by DETERRERS
-        logger.info("Deleting all targets by DETERRERS!")
-        response = self.gmp.get_targets(filter_string=filter_str)
-        to_del_set = set()
-        for task in response.xpath('//target'):
-            to_del_set.add(task.attrib['id'])
-        for uuid in to_del_set:
-            try:
-                self.gmp.delete_target(uuid, ultimate=True)
-            except GvmError as err:
-                logger.warning("Couldn't delete target! Error: %s", str(err))
+    #     # delete all targets by DETERRERS
+    #     logger.info("Deleting all targets by DETERRERS!")
+    #     response = self.gmp.get_targets(filter_string=filter_str)
+    #     to_del_set = set()
+    #     for task in response.xpath('//target'):
+    #         to_del_set.add(task.attrib['id'])
+    #     for uuid in to_del_set:
+    #         try:
+    #             self.gmp.delete_target(uuid, ultimate=True)
+    #         except GvmError as err:
+    #             logger.warning("Couldn't delete target! Error: %s", str(err))
 
-        # delete all alerts by DETERRERS
-        logger.info("Deleting all alerts by DETERRERS!")
-        response = self.gmp.get_alerts(filter_string=filter_str)
-        to_del_set = set()
-        for task in response.xpath('//alert'):
-            to_del_set.add(task.attrib['id'])
-        for uuid in to_del_set:
-            try:
-                self.gmp.delete_alert(uuid, ultimate=True)
-            except GvmError as err:
-                logger.warning("Couldn't delete alert! Error: %s", str(err))
+    #     # delete all alerts by DETERRERS
+    #     logger.info("Deleting all alerts by DETERRERS!")
+    #     response = self.gmp.get_alerts(filter_string=filter_str)
+    #     to_del_set = set()
+    #     for task in response.xpath('//alert'):
+    #         to_del_set.add(task.attrib['id'])
+    #     for uuid in to_del_set:
+    #         try:
+    #             self.gmp.delete_alert(uuid, ultimate=True)
+    #         except GvmError as err:
+    #             logger.warning("Couldn't delete alert! Error: %s", str(err))
 
 
     def get_latest_report_uuid(self, task_uuid : str) -> str|None:
