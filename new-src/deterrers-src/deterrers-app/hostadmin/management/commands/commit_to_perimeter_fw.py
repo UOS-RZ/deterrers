@@ -6,6 +6,7 @@ import datetime
 
 
 from django.core.mail import EmailMessage
+from django.conf import settings
 
 from hostadmin.core.fw_interface import PaloAltoInterface
 
@@ -18,9 +19,9 @@ class Command(BaseCommand):
         pass
 
     def handle(self, *args, **options):
-        fw_username = os.environ.get('FIREWALL_USERNAME', input('FW username: '))
-        fw_password = os.environ.get('FIREWALL_SECRET_KEY', getpass.getpass('FW password: '))
-        fw_url = os.environ.get('FIREWALL_URL', input('FW URL: '))
+        fw_username = settings.FIREWALL_USERNAME # os.environ.get('FIREWALL_USERNAME', input('FW username: '))
+        fw_password = settings.FIREWALL_SECRET_KEY # os.environ.get('FIREWALL_SECRET_KEY', getpass.getpass('FW password: '))
+        fw_url = settings.FIREWALL_URL # os.environ.get('FIREWALL_URL', input('FW URL: '))
         with PaloAltoInterface(fw_username, fw_password, fw_url) as fw:
             if not fw.enter_ok:
                 logger.error("Couldn't start session with perimter FW!")
