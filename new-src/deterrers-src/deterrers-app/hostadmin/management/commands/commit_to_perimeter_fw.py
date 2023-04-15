@@ -29,8 +29,8 @@ class Command(BaseCommand):
                     
             if not fw.commit_changes():
                 logger.error("Couldn't commit changes to perimeter FW!")
-            
-        logger.info("Commit successful!")
+            else:
+                logger.info("Requested commit successfully!")
 
 
 
