@@ -19,28 +19,16 @@ class Command(BaseCommand):
         pass
 
     def handle(self, *args, **options):
-        fw_username = settings.FIREWALL_USERNAME # os.environ.get('FIREWALL_USERNAME', input('FW username: '))
-        fw_password = settings.FIREWALL_SECRET_KEY # os.environ.get('FIREWALL_SECRET_KEY', getpass.getpass('FW password: '))
-        fw_url = settings.FIREWALL_URL # os.environ.get('FIREWALL_URL', input('FW URL: '))
+        fw_username = settings.FIREWALL_USERNAME
+        fw_password = settings.FIREWALL_SECRET_KEY
+        fw_url = settings.FIREWALL_URL
         with PaloAltoInterface(fw_username, fw_password, fw_url) as fw:
             if not fw.enter_ok:
                 logger.error("Couldn't start session with perimter FW!")
                 return
-            
-
-            email = EmailMessage(
-                subject="Test",
-                body=f"Time: {datetime.datetime.now()}",
-                from_email=None,
-                to=["nwintering@uos.de"]
-            )
-            try:
-                email.send()
-            except Exception:
-                logger.exception("Couldn't send e-mail!")
                     
-            # if not fw.commit_changes():
-            #     logger.error("Couldn't commit changes to perimeter FW!")
+            if not fw.commit_changes():
+                logger.error("Couldn't commit changes to perimeter FW!")
             
         logger.info("Commit successful!")
 

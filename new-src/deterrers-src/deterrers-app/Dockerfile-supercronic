@@ -46,6 +46,7 @@ RUN addgroup $APP_USER && adduser $APP_USER --ingroup $APP_USER
 RUN chown -R ${APP_USER}:${APP_USER} ${MICRO_SERVICE}
 USER ${APP_USER}:${APP_USER}
 
-RUN echo '*/1 * * * * python ${MICRO_SERVICE}/manage.py commit_to_perimeter_fw' > ./my_crontab
+# schedule commit task every 15 minutes
+RUN echo '*/15 * * * * python ${MICRO_SERVICE}/manage.py commit_to_perimeter_fw' > ./my_crontab
 
 CMD supercronic ./my_crontab
