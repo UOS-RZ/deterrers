@@ -192,7 +192,7 @@ from firewall! Status code: {response.status_code}. Status: {data.get('@status')
         return addr_grp_props
 
 
-    def changes_pending(self) -> bool:
+    def __changes_pending(self) -> bool:
         """
         Checks if changes are pending.
 
@@ -217,7 +217,7 @@ from firewall! Status code: {response.status_code}. Status: {data.get('@status')
         Returns:
             bool: Returns True on success and False on error.
         """
-        if self.changes_pending():
+        if self.__changes_pending():
             commit_params = f"type=commit&cmd=<commit><partial><admin><member>{self.username}</member></admin></partial></commit>"
             commit_url = self.xml_url + "?" + commit_params
             response = requests.get(commit_url, headers=self.header, timeout=self.TIMEOUT)
