@@ -17,7 +17,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.mail import EmailMessage
 
-from .util import add_changelog, available_actions, registration_mail_body, scan_mail_body, periodic_mail_body, set_host_offline, set_host_online
+from .util import add_changelog, available_actions, registration_mail_body, scan_mail_body, periodic_mail_body, set_host_offline, set_host_online, extract_report_data
 
 from .forms import ChangeHostDetailForm, AddHostRulesForm, HostadminForm, AddHostForm
 from .core.ipam_api_interface import ProteusIPAMInterface
@@ -753,7 +753,7 @@ def v_scanner_registration_alert(request):
         
                     
                     report_xml = scanner.get_report_xml(report_uuid)
-                    scan_start, scan_end, scan_results = scanner.extract_report_data(report_xml)
+                    scan_start, scan_end, scan_results = extract_report_data(report_xml)
                     if scan_results is None:
                         return
                     # Risk assessment
@@ -843,7 +843,7 @@ def v_scanner_scan_alert(request):
                         return
         
                     report_xml = scanner.get_report_xml(report_uuid)
-                    scan_start, scan_end, results = scanner.extract_report_data(report_xml)
+                    scan_start, scan_end, results = extract_report_data(report_xml)
                     if results is None:
                         return
                     
@@ -906,7 +906,7 @@ def v_scanner_periodic_alert(request):
                     admin_mail_copy = ""
                     report_uuid = scanner.get_latest_report_uuid(task_uuid)
                     report_xml = scanner.get_report_xml(report_uuid)
-                    scan_start, scan_end, scan_results = scanner.extract_report_data(report_xml)
+                    scan_start, scan_end, scan_results = extract_report_data(report_xml)
                     if scan_results is None:
                         return
                     # Risk assessment

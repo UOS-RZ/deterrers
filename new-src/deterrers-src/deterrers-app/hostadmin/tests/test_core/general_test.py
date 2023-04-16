@@ -4,7 +4,7 @@ from getpass import getpass
 from hostadmin.core.v_scanner_interface import GmpVScannerInterface
 from hostadmin.core.ipam_api_interface import ProteusIPAMInterface
 from hostadmin.core.risk_assessor import assess_host_risk
-from hostadmin.util import periodic_mail_body
+from hostadmin.util import periodic_mail_body, extract_report_data
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -24,7 +24,7 @@ if __name__ == "__main__":
             test_report_uuid = "a7b68dd7-9ce1-43a2-a1cb-906b477a6d3b"
 
             report_xml = scanner.get_report_xml(test_report_uuid)
-            _, _, results = scanner.extract_report_data(report_xml)
+            _, _, results = extract_report_data(report_xml)
 
             for host_ipv4, vulnerabilities in results.items():
                 host = ipam.get_host_info_from_ip(host_ipv4)
