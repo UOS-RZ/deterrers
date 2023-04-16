@@ -213,7 +213,7 @@ def set_host_online(host_ipv4 : str) -> bool:
 
 
 
-def extract_report_data(self, report) -> tuple[str, str, dict]:
+def extract_report_data(report) -> tuple[str, str, dict]:
     """
     Extract relevant result data from a report.
 
