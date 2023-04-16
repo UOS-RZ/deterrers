@@ -68,10 +68,15 @@ Get host with IP address 131.121.123.1:
                 application/json:
                     schema: {
                         'ipv4_addr' : <ip>,
-                        'admin_ids' : [<RZ-ID or department name>,]
+                        'admin_ids' : [<RZ-ID or department name>,],
+                        'service_profile' : <'HTTP'|'SSH'|'HTTP+SSH'|'Multipurpose'|''>,
+                        'fw' : <'UFW'|'FirewallD'|'nftables'|''>
                     }
             responses:
                 '200':
+
+The fields `service_profile` and `fw` are optional.
+
 Example:
 
 Add host 0.0.0.0 for department 'testDepartment':
