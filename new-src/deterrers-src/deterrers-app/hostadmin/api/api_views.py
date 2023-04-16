@@ -65,7 +65,7 @@ def __add_host(request):
         if not ipam.enter_ok:
             raise Http500()
         
-        # get ipv4 address and amin_ids (i.e. tag names) by deserializing
+        # get ipv4 address and admin_ids (i.e. tag names) by deserializing
         host_serializer = MyHostSerializer(data=request.data)
         if not host_serializer.is_valid():
             return Response(status=400)
@@ -81,6 +81,22 @@ def __add_host(request):
                 code = ipam.add_tag_to_host(tag_name, host_ipv4)
                 if code not in range(200,  205, 1):
                     return Response(status=code)
+
+        update_ipam = False
+
+        # update firewall profile
+        if host_update_data.get('service_profile', None):
+            host.service_profile = host_update_data['service_profile']
+            update_ipam = True
+
+        # update host firewall
+        if host_update_data.get('fw', None):
+            host.fw = host_update_data['fw']
+            update_ipam = True
+
+        if update_ipam:
+            if not ipam.update_host_info(host):
+                raise Http500()
 
     return Response()
 
