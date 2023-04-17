@@ -42,7 +42,9 @@ def __get_host(request):
             raise Http404(f"{hostadmin.username} is not admin")
 
         # get host from IPAM
-        ipv4 = request.GET['ipv4_addr']
+        ipv4 = request.GET.get('ipv4_addr')
+        if not ipv4:
+            raise Http400("No IP provided")
         host = ipam.get_host_info_from_ip(ipv4)
         if not host:
             raise Http404("Host not found")
@@ -59,9 +61,15 @@ def __get_host(request):
 
 def __add_host(request):
     # TODO: docu
+    hostadmin = get_object_or_404(MyUser, username=request.user.username)
+
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
         if not ipam.enter_ok:
             raise Http500("No connection to IPAM")
+        
+        # check if user has IPAM permission and an admin tag for them exists
+        if not ipam.is_admin(hostadmin.username):
+            raise Http404(f"{hostadmin.username} is not admin")
         
         # get ipv4 address and admin_ids (i.e. tag names) by deserializing
         host_serializer = MyHostSerializer(data=request.data)
@@ -159,7 +167,7 @@ def __update_host_logic(ipam : ProteusIPAMInterface, host : MyHost, host_update_
 
     # if nothing changes return immediatly
     if not service_profile_change and not fw_change:
-        return Response()
+        return
     elif service_profile_change:
         # if host is already online, update the perimeter FW
         if host.status == HostStatusContract.ONLINE:
@@ -264,7 +272,7 @@ def hosts(request):
 def host(request):
     """
     API method for interaction with a host.
-    Supports GET, POST, PATCH.
+    Supports GET, POST, PATCH, DELETE.
 
     Args:
         request (_type_): Request object.
