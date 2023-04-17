@@ -73,11 +73,11 @@ class ProteusIPAMInterface():
         
         try:
             host_id = entity['id']
-        except KeyError:
+        except (KeyError, TypeError):
             host_id = None
         try:
             name = entity['name']
-        except KeyError:
+        except (KeyError, TypeError):
             name = ''
         # parse the properties string
         try:
@@ -107,7 +107,7 @@ class ProteusIPAMInterface():
                 rules = [HostBasedPolicy.from_string(p_str) for p_str in json.loads(props['deterrers_rules'])]
             except KeyError:
                 rules = []
-        except (KeyError, AttributeError):
+        except (KeyError, AttributeError, TypeError):
             ip = ''
             mac = ''
             status = None
