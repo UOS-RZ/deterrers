@@ -57,6 +57,12 @@ class PaloAltoInterface():
         except (requests.ConnectionError, requests.ConnectTimeout):
             logger.exception("Connection to %s failed!", self.fw_url)
             self.enter_ok = False
+        except (etree.XMLSyntaxError):
+            logger.exception("Unexpected response!")
+            self.enter_ok = False
+        except:
+            logger.exception("Unknown error source!")
+            self.enter_ok = False
             
         return self
 
