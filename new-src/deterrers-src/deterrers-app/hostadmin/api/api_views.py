@@ -14,22 +14,20 @@ from myuser.models import MyUser
 from hostadmin.util import available_actions, set_host_bulk_offline, set_host_online, set_host_offline
 from hostadmin.core.ipam_api_interface import ProteusIPAMInterface
 from hostadmin.core.v_scanner_interface import GmpVScannerInterface
+from hostadmin.core.host import MyHost
 from hostadmin.core.contracts import HostStatusContract, HostServiceContract, HostBasedRuleSubnetContract, HostBasedRuleProtocolContract, HostFWContract
 from .serializers import MyHostSerializer, HostActionSerializer
 
 logger = logging.getLogger(__name__)
 
 class Http400(Exception):
-    # Bad Request
-    pass
+    """ Bad Request """
 
 class Http409(Exception):
-    # Conflict
-    pass
+    """ Conflict """
 
 class Http500(Exception):
-    # Internal Error
-    pass
+    """ Internal Error """
 
 
 def __get_host(request):
@@ -37,23 +35,23 @@ def __get_host(request):
 
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
         if not ipam.enter_ok:
-            raise Http500()
+            raise Http500("No connection to IPAM")
 
         # check if user has IPAM permission and an admin tag for them exists
         if not ipam.is_admin(hostadmin.username):
-            raise Http404()
+            raise Http404(f"{hostadmin.username} is not admin")
 
         # get host from IPAM
         ipv4 = request.GET['ipv4_addr']
         host = ipam.get_host_info_from_ip(ipv4)
         if not host:
-            raise Http404()
+            raise Http404("Host not found")
         if not host.is_valid():
-            raise Http409()
+            raise Http409("Host not valid")
 
         # check if user is admin of this host
         if not hostadmin.username in host.admin_ids:
-            raise Http404()
+            raise Http404("Host not found")
 
         host_serializer = MyHostSerializer(host)
         return Response(data=host_serializer.data)
@@ -63,18 +61,18 @@ def __add_host(request):
     # TODO: docu
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
         if not ipam.enter_ok:
-            raise Http500()
+            raise Http500("No connection to IPAM")
         
         # get ipv4 address and admin_ids (i.e. tag names) by deserializing
         host_serializer = MyHostSerializer(data=request.data)
         if not host_serializer.is_valid():
-            return Response(status=400)
+            raise Http400("Invalid data given")
         host_update_data = host_serializer.validated_data
         host_ipv4 = host_update_data['ipv4_addr']
         try:
             tag_names = set(host_update_data['admin_ids'])
         except KeyError:
-            raise Http400()
+            raise Http400("No admin IDs provided")
         # check if tag names are either department or admin tag and add them to host
         for tag_name in tag_names:
             if tag_name in ipam.get_department_tag_names() or ipam.is_admin(tag_name):
@@ -82,21 +80,14 @@ def __add_host(request):
                 if code not in range(200,  205, 1):
                     return Response(status=code)
 
-        update_ipam = False
-
-        # update firewall profile
-        if host_update_data.get('service_profile', None):
-            host.service_profile = host_update_data['service_profile']
-            update_ipam = True
-
-        # update host firewall
-        if host_update_data.get('fw', None):
-            host.fw = host_update_data['fw']
-            update_ipam = True
-
-        if update_ipam:
-            if not ipam.update_host_info(host):
-                raise Http500()
+        # update host if there are changes
+        if host_update_data.get('service_profile', None) or host_update_data.get('fw', None):
+            host = ipam.get_host_info_from_ip(host_ipv4)
+            if not host:
+                raise Http404("Host not found")
+            if not host.is_valid():
+                raise Http409("Host not valid")
+            __update_host_logic(ipam, host, host_update_data)
 
     return Response()
 
@@ -106,32 +97,32 @@ def __remove_host(request):
 
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
         if not ipam.enter_ok:
-            raise Http500()
+            raise Http500("No connection to IPAM")
          # check if user has IPAM permission or an admin tag for them exists
         if not ipam.is_admin(hostadmin.username):
-            raise Http404()
+            raise Http404(f"{hostadmin.username} is not admin")
         
         # get host by deserializing and then querying IPAM
         host_serializer = MyHostSerializer(data=request.data)
         if not host_serializer.is_valid():
-            raise Http400()
+            raise Http400("Invalid data provided")
         host_update_data = host_serializer.validated_data
         host = ipam.get_host_info_from_ip(host_update_data['ipv4_addr'])
         if not host:
-            raise Http404()
+            raise Http404("Host not found")
 
         # check if user is admin of this host
         if not hostadmin.username in host.admin_ids:
-            raise Http404()
+            raise Http404("Host not found")
 
         # check if this host can be removed at the moment or whether there are processes running for it
         if not available_actions(host).get('can_remove'):
-            raise Http409()
+            raise Http409("Removing host currently not available")
 
         # block
         if host.status == HostStatusContract.ONLINE:
             if not set_host_offline(str(host.ipv4_addr)):
-                raise Http500()
+                raise Http500("Host could not be set offline")
         
         # set all DETERRERS fields to blank
         host.status = HostStatusContract.UNREGISTERED
@@ -146,84 +137,88 @@ def __remove_host(request):
         # check that no admins are left for this host
         if len(ipam.get_admins_of_host(host.entity_id)) > 0:
             logger.error("Couldn't remove all tags from host '%s'", str(host.ipv4_addr))
-            raise Http500()
+            raise Http500("Not all admins could be removed from host")
     
     return Response()
 
 
+def __update_host_logic(ipam : ProteusIPAMInterface, host : MyHost, host_update_data : dict):
+    # check if this host can be changed at the moment or whether there are already processes running for it
+    if not available_actions(host).get('can_update'):
+        raise Http400("Updating host currently not available")
+
+    # update the actual host instance
+    service_profile_change = host.service_profile != host_update_data.get('service_profile', host.service_profile)
+    if host_update_data.get('service_profile', None):
+        host.service_profile = host_update_data['service_profile']
+    fw_change = host.fw != host_update_data.get('fw', host.fw)
+    if host_update_data.get('fw', None):
+        host.fw = host_update_data['fw']
+    if not ipam.update_host_info(host):
+        raise Http500("Host information could not be updated in IPAM")
+
+    # if nothing changes return immediatly
+    if not service_profile_change and not fw_change:
+        return Response()
+    elif service_profile_change:
+        # if host is already online, update the perimeter FW
+        if host.status == HostStatusContract.ONLINE:
+            if host.service_profile == HostServiceContract.EMPTY:
+                if not set_host_offline(str(host.ipv4_addr)):
+                    raise Http500("Could not set host offline")
+            else:
+                if not set_host_online(str(host.ipv4_addr)):
+                    raise Http500("Could not set new service profile for host")
+
+        # auto-add some host-based policies
+        match host.service_profile:
+            case HostServiceContract.EMPTY:
+                pass
+            case (HostServiceContract.SSH | HostServiceContract.HTTP | HostServiceContract.HTTP_SSH) as s_p:
+                # allow SSH standard port 22 over TCP if a service profile is specified
+                host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['22'], HostBasedRuleProtocolContract.TCP.value)
+                match s_p:
+                    case HostServiceContract.SSH:
+                        # since SSH rules have already been added do nothing else
+                        pass
+                    case (HostServiceContract.HTTP | HostServiceContract.HTTP_SSH):
+                        # allow HTTP and HTTPS standard ports 80 and 443 over TCP
+                        host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['80'], HostBasedRuleProtocolContract.TCP.value)
+                        host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['443'], HostBasedRuleProtocolContract.TCP.value)
+            case HostServiceContract.MULTIPURPOSE:
+                # allow nothing else; users are expected to configure their own rules
+                pass
+            case _:
+                logger.error("Service profile '%s' is not supported.", host.service_profile)
+        if not ipam.update_host_info(host):
+            raise Http500("Host information could not be updated in IPAM")
 
 def __update_host(request):
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
         if not ipam.enter_ok:
-            raise Http500()
+            raise Http500("No connection to IPAM")
         
         # check if user has IPAM permission or an admin tag for them exists
         if not ipam.is_admin(hostadmin.username):
-            raise Http404()
+            raise Http404(f"{hostadmin.username} is not admin")
         # get host by deserializing and then querying IPAM
         host_serializer = MyHostSerializer(data=request.data)
         if not host_serializer.is_valid():
-            raise Http400()
+            raise Http400("Provided data is invalid")
         host_update_data = host_serializer.validated_data
         host = ipam.get_host_info_from_ip(host_update_data['ipv4_addr'])
         if not host:
-            raise Http404()
+            raise Http404("Host not found")
         if not host.is_valid():
-            raise Http409()
+            raise Http409("Host not valid")
 
         # check if user is admin of this host
         if not hostadmin.username in host.admin_ids:
-            raise Http404()
+            raise Http404("Host not found")
 
-        # check if this host can be changed at the moment or whether there are already processes running for it
-        if not available_actions(host).get('can_update'):
-            raise Http400()
-
-        # update the actual host instance
-        service_profile_change = host.service_profile != host_update_data.get('service_profile', host.service_profile)
-        if host_update_data.get('service_profile', None):
-            host.service_profile = host_update_data['service_profile']
-        fw_change = host.fw != host_update_data.get('fw', host.fw)
-        if host_update_data.get('fw', None):
-            host.fw = host_update_data['fw']
-        if not ipam.update_host_info(host):
-            raise Http500()
-
-        # if nothing changes return immediatly
-        if not service_profile_change and not fw_change:
-            return Response()
-        elif service_profile_change:
-            # if host is already online, update the perimeter FW
-            if host.status == HostStatusContract.ONLINE:
-                if host.service_profile == HostServiceContract.EMPTY:
-                    raise Http409()
-                if not set_host_online(str(host.ipv4_addr)):
-                    raise Http500()
-
-            # auto-add some host-based policies
-            match host.service_profile:
-                case HostServiceContract.EMPTY:
-                    pass
-                case (HostServiceContract.SSH | HostServiceContract.HTTP | HostServiceContract.HTTP_SSH) as s_p:
-                    # allow SSH standard port 22 over TCP if a service profile is specified
-                    host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['22'], HostBasedRuleProtocolContract.TCP.value)
-                    match s_p:
-                        case HostServiceContract.SSH:
-                            # since SSH rules have already been added do nothing else
-                            pass
-                        case (HostServiceContract.HTTP | HostServiceContract.HTTP_SSH):
-                            # allow HTTP and HTTPS standard ports 80 and 443 over TCP
-                            host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['80'], HostBasedRuleProtocolContract.TCP.value)
-                            host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['443'], HostBasedRuleProtocolContract.TCP.value)
-                case HostServiceContract.MULTIPURPOSE:
-                    # allow nothing else; users are expected to configure their own rules
-                    pass
-                case _:
-                    logger.error("Service profile '%s' is not supported.", host.service_profile)
-            if not ipam.update_host_info(host):
-                raise Http500()
+        __update_host_logic(ipam, host, host_update_data)
             
     return Response()
 
