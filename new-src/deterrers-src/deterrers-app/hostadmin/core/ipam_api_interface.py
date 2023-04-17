@@ -206,9 +206,18 @@ class ProteusIPAMInterface():
                 
         return dns_names
     
-    def get_id_of_addr(self, ip : str) -> int:
+    def get_id_of_addr(self, ipv4 : str) -> int:
+        """
+        TODO: docu
+
+        Args:
+            ipv4 (str): _description_
+
+        Returns:
+            int: _description_
+        """
         try:
-            id = int(self.__get_IP4Address(ip)['id'])
+            id = int(self.__get_IP4Address(ipv4)['id'])
             return id
         except:
             return None
