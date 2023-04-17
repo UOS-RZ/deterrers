@@ -98,18 +98,22 @@ class GmpVScannerInterface():
             GreenboneVScannerInterface: Returns self.
         """
         logger.debug("Start session with vulnerability scanner.")
-        self.gmp = self.gmp.__enter__()
         try:
-            # further initialization need to be enclosed here
-            response = self.gmp.authenticate(self.username, self.__password)
-            if int(response.xpath('@status')[0]) != 200:
-                logger.error("Authentication with Scanner failed! Status: %s", response.xpath('@status')[0])
+            self.gmp = self.gmp.__enter__()
+            try:
+                # further initialization need to be enclosed here
+                response = self.gmp.authenticate(self.username, self.__password)
+                if int(response.xpath('@status')[0]) != 200:
+                    logger.error("Authentication with Scanner failed! Status: %s", response.xpath('@status')[0])
+                    self.enter_ok = False
+            except:
+                logger.exception("Authentication failed!")
+                self.gmp.__exit__(None, None, None)
                 self.enter_ok = False
-        except:
-            logger.exception("Authentication failed!")
-            self.gmp.__exit__(None, None, None)
+                # raise err
+        except GvmError:
+            logger.exception("Connection failed!")
             self.enter_ok = False
-            # raise err
             
         return self
 
