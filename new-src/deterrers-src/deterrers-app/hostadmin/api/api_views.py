@@ -239,6 +239,7 @@ def hosts(request):
     Returns:
         Response: Response object.
     """
+    logger.info("API Request: Get all hosts for user %s", request.user.username) 
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
         if not ipam.enter_ok:
@@ -274,12 +275,16 @@ def host(request):
     try:
         match request.method:
             case 'GET':
+                logger.info("API Request: Get host for user %s", request.user.username)
                 return __get_host(request)
             case 'POST':
+                logger.info("API Request: Add host for user %s", request.user.username)
                 return __add_host(request)
             case 'PATCH':
+                logger.info("API Request: Update host for user %s", request.user.username)
                 return __update_host(request)
             case 'DELETE':
+                logger.info("API Request: Remove host for user %s", request.user.username)
                 return __remove_host(request)
             case _:
                 logger.error('Unsupported host action!')
@@ -391,6 +396,7 @@ def action(request):
     Returns:
         Response: Response object.
     """
+    logger.info("API Request: Action by user %s", request.user.username)
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     bulk_action = HostActionSerializer(data=request.data)
     if not bulk_action.is_valid():
