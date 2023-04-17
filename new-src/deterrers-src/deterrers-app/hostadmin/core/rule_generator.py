@@ -21,7 +21,7 @@ class HostBasedPolicy():
         else:
             self.id = id
         self.allow_srcs = allow_srcs
-        self.allow_ports = set(allow_ports)
+        self.allow_ports = set([allow_port.strip() for allow_port in allow_ports])
         self.allow_proto = allow_proto
 
     @classmethod
