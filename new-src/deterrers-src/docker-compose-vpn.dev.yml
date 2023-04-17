@@ -2,13 +2,32 @@ version: "3"
 
 services:
 
+  dev-vpn:
+    image: avpnusr/docker-openvpn
+    cap_add:
+      - net_admin
+    networks:
+      - vpn_bridge
+    restart: unless-stopped
+    security_opt:
+      - label:disable
+    ports:
+      - 89:89
+    volumes:
+      - /dev/net/tun:/dev/net/tun
+      - ./vpn:/vpn
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+    entrypoint: ["/sbin/tini", "--", "/usr/bin/openvpn.sh", "-d"]
+
   dev-web:
+    depends_on:
+      - dev-vpn
+    network_mode: "service:dev-vpn"
     build: 
       context: ./deterrers-app
       dockerfile: Dockerfile
     command: python manage.py runserver 0.0.0.0:89
-    ports:
-      - 89:89
     env_file:
       - ./.env.prod
     image: deterrers-application
@@ -19,9 +38,10 @@ services:
       - ./dev-logs:/home/app/microservice/logs
     restart: "on-failure"
 
-  dev-supercronic:
+  supercronic:
     depends_on:
-      - dev-web
+      - vpn
+    network_mode: "service:vpn"
     build: 
       context: ./deterrers-app
       dockerfile: Dockerfile-supercronic
@@ -30,7 +50,12 @@ services:
     volumes:
       - .:/microservice:rw # map data and files from parent directory in host to microservice directory in docker containe
       - ./logs:/home/app/microservice/logs
+    # expose:
+    #   - 8000
     restart: "on-failure"
 
 volumes:
  static_volume:
+
+networks:
+  vpn_bridge:
