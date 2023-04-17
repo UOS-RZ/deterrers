@@ -56,7 +56,7 @@ class GmpVScannerInterface():
     Interface to the Greenbone Vulnerability Scanner via Greenbone Management Protocol (GMP) v22.4.
     Communication uses the python-gvm API package.
     """
-    TIMEOUT = 60*300
+    TIMEOUT = 60*15
 
     PERIODIC_TASK_NAME = "DETERRERS - Periodic task for registered hosts"
     PERIODIC_CVE_TASK_NAME = "DETERRERS - Periodic task for registered hosts (CVE Scan only)"
