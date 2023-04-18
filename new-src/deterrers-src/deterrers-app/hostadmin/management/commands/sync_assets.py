@@ -38,6 +38,7 @@ class Command(BaseCommand):
                             with PaloAltoInterface(fw_username, fw_password, fw_url) as fw:
                                 if not fw.enter_ok:
                                     continue
+
                                 # get all hosts in IPAM
                                 print("Get assets from IPAM!")
                                 ipam_hosts_total = {}
@@ -92,6 +93,7 @@ class Command(BaseCommand):
                                         try:
                                             ip = ipaddress.ip_address(addr_obj.replace('-', '.'))
                                         except:
+                                            print(f"Could not parse {addr_obj}")
                                             continue
                                         if isinstance(ip, ipaddress.IPv4Address):
                                             fw_ipv4s.add(str(ip))
@@ -114,20 +116,21 @@ class Command(BaseCommand):
 
 
                                 print('---------------------------------------------------------------------')
-                                print(f"IPAM IPs online: {len(ipam_ipv4s_online.union(ipam_ipv6s_online))}")
+                                print(f"IPAM Hosts total: {len(ipam_hosts_total.keys()}")
                                 print(f"IPAM Hosts under review: {len(ipam_hosts_under_review)} ({ipam_hosts_under_review})")
+                                print(f"IPAM IPs online: {len(ipam_ipv4s_online.union(ipam_ipv6s_online))}")
                                 print(f"Scanner hosts online: {len(v_scanner_hosts)}")
                                 print(f"FW IPs online: {len(fw_ipv4s.union(fw_ipv6s))}")
                                 print()
                                 print('Diff:')
-                                print(f"IPAM - Scanner: {ipam_ipv4s_online.difference(v_scanner_hosts)}")
-                                print(f"Scanner - IPAM: {v_scanner_hosts.difference(ipam_ipv4s_online)}")
+                                print(f"IPAM IPv4s - Scanner: {ipam_ipv4s_online.difference(v_scanner_hosts)}")
+                                print(f"Scanner - IPAM IPv4s: {v_scanner_hosts.difference(ipam_ipv4s_online)}")
                                 print()
                                 print(f"IPAM - FW: {ipam_ipv4s_online.union(ipam_ipv6s_online).difference(fw_ipv4s.union(fw_ipv6s))}")
                                 print(f"FW - IPAM: {fw_ipv4s.union(fw_ipv6s).difference(ipam_ipv4s_online.union(ipam_ipv6s_online))}")
                                 print()
-                                print(f"Scanner - FW: {v_scanner_hosts.difference(fw_ipv4s)}")
-                                print(f"FW - Scanner: {fw_ipv4s.difference(v_scanner_hosts)}")
+                                print(f"Scanner - FW IPv4s: {v_scanner_hosts.difference(fw_ipv4s)}")
+                                print(f"FW IPv4s - Scanner: {fw_ipv4s.difference(v_scanner_hosts)}")
                                 print()
 
                                 # check if Service Profile is consistent in IPAM and FW
