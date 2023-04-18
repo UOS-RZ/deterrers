@@ -489,7 +489,7 @@ class ProteusIPAMInterface():
             return ipv6_addrs
 
         except Exception:
-            logger.exception("Couldn't get IPv6 address for IP4Address with ID %d!", ipv4_id)
+            logger.exception("Couldn't get IPv6 address for IP4Address with ID %s!", str(ipv4_id))
             return set()
 
     def get_department_tags(self) -> list[dict]:
