@@ -3,6 +3,7 @@ import os
 import getpass
 import ipaddress
 
+from django.conf import settings
 
 from hostadmin.core.ipam_api_interface import ProteusIPAMInterface
 from hostadmin.core.v_scanner_interface import GmpVScannerInterface
@@ -18,26 +19,37 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         while True:
-            ipam_username = os.environ.get('IPAM_USERNAME', input('IPAM username: '))
-            ipam_password = os.environ.get('IPAM_SECRET_KEY', getpass.getpass('IPAM password: '))
-            ipam_url = os.environ.get('IPAM_URL', input('IPAM URL: '))
+            ipam_username = os.environ.get('IPAM_USERNAME')
+            ipam_password = os.environ.get('IPAM_SECRET_KEY',)
+            ipam_url = os.environ.get('IPAM_URL')
+            # ipam_username = settings.IPAM_USERNAME
+            # ipam_password = settings.IPAM_SECRET_KEY
+            # ipam_url = settings.IPAM_URL
             with ProteusIPAMInterface(ipam_username, ipam_password, ipam_url) as ipam:
                 if not ipam.enter_ok:
                     continue
                 while True:
-                    v_scanner_username = os.environ.get('V_SCANNER_USERNAME', input('V-Scanner username: '))
-                    v_scanner_password = os.environ.get('V_SCANNER_SECRET_KEY', getpass.getpass('V-Scanner password: '))
-                    v_scanner_url = os.environ.get('V_SCANNER_URL', input('V-Scanner URL: '))
+                    v_scanner_username = os.environ.get('V_SCANNER_USERNAME')
+                    v_scanner_password = os.environ.get('V_SCANNER_SECRET_KEY')
+                    v_scanner_url = os.environ.get('V_SCANNER_URL')
+                    # v_scanner_username = settings.V_SCANNER_USERNAME
+                    # v_scanner_password = settings.V_SCANNER_SECRET_KEY
+                    # v_scanner_url = settings.V_SCANNER_URL
                     with GmpVScannerInterface(v_scanner_username, v_scanner_password, v_scanner_url) as scanner:
                         if not scanner.enter_ok:
                             continue
                         while True:
-                            fw_username = os.environ.get('FIREWALL_USERNAME', input('FW username: '))
-                            fw_password = os.environ.get('FIREWALL_SECRET_KEY', getpass.getpass('FW password: '))
-                            fw_url = os.environ.get('FIREWALL_URL', input('FW URL: '))
+                            fw_username = os.environ.get('FIREWALL_USERNAME')
+                            fw_password = os.environ.get('FIREWALL_SECRET_KEY')
+                            fw_url = os.environ.get('FIREWALL_URL')
+                            # fw_username = settings.FIREWALL_USERNAME
+                            # fw_password = settings.FIREWALL_SECRET_KEY
+                            # fw_url = settings.FIREWALL_URL
                             with PaloAltoInterface(fw_username, fw_password, fw_url) as fw:
                                 if not fw.enter_ok:
                                     continue
+
+                                #### GET DATA ####
 
                                 # get all hosts in IPAM
                                 print("Get assets from IPAM!")
@@ -77,7 +89,7 @@ class Command(BaseCommand):
                                 except IndexError as err:
                                     print(f"{err}")
 
-                                # get all hosts that online in FW
+                                # get all hosts that are online in FW
                                 print('Get assets unblocked by FW!')
                                 fw_ipv4s = set()
                                 fw_web_ipv4s = set()
@@ -90,33 +102,37 @@ class Command(BaseCommand):
                                 for ag in PaloAltoAddressGroup:
                                     addr_objs = fw.get_addr_objs_in_addr_grp(ag)
                                     for addr_obj in addr_objs:
+                                        # check if IPv4
                                         try:
-                                            ip = ipaddress.ip_address(addr_obj.replace('-', '.'))
+                                            ipv4 = ipaddress.IPv4Address(addr_obj.replace('-', '.'))
+                                            fw_ipv4s.add(str(ipv4))
+                                            match ag:
+                                                case PaloAltoAddressGroup.HTTP:
+                                                    fw_web_ipv4s.add(str(ipv4))
+                                                case PaloAltoAddressGroup.SSH:
+                                                    fw_ssh_ipv4s.add(str(ipv4))
+                                                case PaloAltoAddressGroup.OPEN:
+                                                    fw_open_ipv4s.add(str(ipv4))
+                                            continue
+                                        except:
+                                            pass
+                                        # check if IPv6
+                                        try:
+                                            ipv6 = ipaddress.IPv6Address(addr_obj.replace('-', ':'))
+                                            fw_ipv6s.add(str(ipv6))
+                                            match ag:
+                                                case PaloAltoAddressGroup.HTTP:
+                                                    fw_web_ipv6s.add(str(ipv6))
+                                                case PaloAltoAddressGroup.SSH:
+                                                    fw_ssh_ipv6s.add(str(ipv6))
+                                                case PaloAltoAddressGroup.OPEN:
+                                                    fw_open_ipv6s.add(str(ipv6))
                                         except:
                                             print(f"Could not parse {addr_obj}")
-                                            continue
-                                        if isinstance(ip, ipaddress.IPv4Address):
-                                            fw_ipv4s.add(str(ip))
-                                            match ag:
-                                                case PaloAltoAddressGroup.HTTP:
-                                                    fw_web_ipv4s.add(str(ip))
-                                                case PaloAltoAddressGroup.SSH:
-                                                    fw_ssh_ipv4s.add(str(ip))
-                                                case PaloAltoAddressGroup.OPEN:
-                                                    fw_open_ipv4s.add(str(ip))
-                                        elif isinstance(ip, ipaddress.IPv6Address):
-                                            fw_ipv6s.add(str(ip))
-                                            match ag:
-                                                case PaloAltoAddressGroup.HTTP:
-                                                    fw_web_ipv6s.add(str(ip))
-                                                case PaloAltoAddressGroup.SSH:
-                                                    fw_ssh_ipv6s.add(str(ip))
-                                                case PaloAltoAddressGroup.OPEN:
-                                                    fw_open_ipv6s.add(str(ip))
 
 
                                 print('---------------------------------------------------------------------')
-                                print(f"IPAM Hosts total: {len(ipam_hosts_total.keys()}")
+                                print(f"IPAM Hosts total: {len(ipam_hosts_total.keys())}")
                                 print(f"IPAM Hosts under review: {len(ipam_hosts_under_review)} ({ipam_hosts_under_review})")
                                 print(f"IPAM IPs online: {len(ipam_ipv4s_online.union(ipam_ipv6s_online))}")
                                 print(f"Scanner hosts online: {len(v_scanner_hosts)}")
@@ -133,75 +149,98 @@ class Command(BaseCommand):
                                 print(f"FW IPv4s - Scanner: {fw_ipv4s.difference(v_scanner_hosts)}")
                                 print()
 
-                                # check if Service Profile is consistent in IPAM and FW
-                                for ipv4 in ipam_ipv4s_online:
-                                    host = ipam_hosts_total[ipv4]
-                                    if host.status != HostStatusContract.ONLINE:
-                                        continue
-                                    inconsistent = False
-                                    # check consistency of IPv4
-                                    match host.service_profile:
-                                        case HostServiceContract.HTTP:
-                                            if ipv4 not in fw_web_ipv4s or \
-                                                ipv4 in fw_ssh_ipv4s or \
-                                                    ipv4 in fw_open_ipv4s:
-                                                print(f"{ipv4} is in wrong fw profile")
-                                                inconsistent = True
-                                        case HostServiceContract.SSH:
-                                            if ipv4 not in fw_ssh_ipv4s or \
-                                                ipv4 in fw_web_ipv4s or \
-                                                    ipv4 in fw_open_ipv4s:
-                                                print(f"{ipv4} is in wrong fw profile")
-                                                inconsistent = True
-                                        case HostServiceContract.HTTP_SSH:
-                                            if ipv4 not in fw_web_ipv4s or \
-                                                ipv4 not in fw_ssh_ipv4s or \
-                                                    ipv4 in fw_open_ipv4s:
-                                                print(f"{ipv4} is in wrong fw profile")
-                                                inconsistent = True
-                                        case HostServiceContract.MULTIPURPOSE:
-                                            if ipv4 not in fw_open_ipv4s or \
-                                                ipv4 in fw_web_ipv4s or \
-                                                    ipv4 in fw_ssh_ipv4s:
-                                                print(f"{ipv4} is in wrong fw profile")
-                                                inconsistent = True
-                                        case _:
-                                            print(f"Invlaid service profile: {host.service_profile}")
-                                    # check consistency of IPv6
+                                return
+
+                                #### RESTORE CONSISTENCY ####
+
+                                for ipv4, host in ipam_hosts_total.items():
                                     ipv6s = ipam.get_IP6Addresses(ipam.get_id_of_addr(ipv4))
                                     if len(ipv6s) > 1:
-                                        print("Length " + str(len(ipv6s)))
-                                    for ipv6 in ipv6s:
+                                        print(f"---> {ipv4} is linked to {ipv6s}")
+
+                                    # RESTORE CONSISTENCY FOR HOSTS THAT ARE ONLINE IN IPAM
+                                    if host.status == HostStatusContract.ONLINE:
+                                        # consistency IPAM <-> FW
                                         match host.service_profile:
                                             case HostServiceContract.HTTP:
-                                                if ipv6 not in fw_web_ipv6s or \
-                                                    ipv6 in fw_ssh_ipv6s or \
-                                                        ipv6 in fw_open_ipv6s:
-                                                    print(f"{ipv6} is in wrong fw profile")
-                                                    inconsistent = True
+                                                if ipv4 not in fw_web_ipv4s:
+                                                    fw.add_addr_objs_to_addr_grps([ipv4,], {PaloAltoAddressGroup.HTTP,})
+                                                if ipv4 in fw_ssh_ipv4s:
+                                                    fw.remove_addr_objs_from_addr_grps([ipv4,], {PaloAltoAddressGroup.SSH,})
+                                                if ipv4 in fw_open_ipv4s:
+                                                    fw.remove_addr_objs_from_addr_grps([ipv4,], {PaloAltoAddressGroup.OPEN,})
+                                                for ipv6 in ipv6s:
+                                                    if ipv6 not in fw_web_ipv6s:
+                                                        fw.add_addr_objs_to_addr_grps([ipv6,], {PaloAltoAddressGroup.HTTP,})
+                                                    if ipv6 in fw_ssh_ipv6s:
+                                                        fw.remove_addr_objs_from_addr_grps([ipv6,], {PaloAltoAddressGroup.SSH,})
+                                                    if ipv6 in fw_open_ipv6s:
+                                                        fw.remove_addr_objs_from_addr_grps([ipv6,], {PaloAltoAddressGroup.OPEN,})
+
                                             case HostServiceContract.SSH:
-                                                if ipv6 not in fw_ssh_ipv6s or \
-                                                    ipv6 in fw_web_ipv6s or \
-                                                        ipv6 in fw_open_ipv6s:
-                                                    print(f"{ipv6} is in wrong fw profile")
-                                                    inconsistent = True
+                                                if ipv4 in fw_web_ipv4s:
+                                                    fw.remove_addr_objs_from_addr_grps([ipv4,], {PaloAltoAddressGroup.HTTP,})
+                                                if ipv4 not in fw_ssh_ipv4s:
+                                                    fw.add_addr_objs_to_addr_grps([ipv4,], {PaloAltoAddressGroup.SSH,})
+                                                if ipv4 in fw_open_ipv4s:
+                                                    fw.remove_addr_objs_from_addr_grps([ipv4,], {PaloAltoAddressGroup.OPEN,})
+                                                for ipv6 in ipv6s:
+                                                    if ipv6 in fw_web_ipv6s:
+                                                        fw.remove_addr_objs_from_addr_grps([ipv6,], {PaloAltoAddressGroup.HTTP,})
+                                                    if ipv6 not in fw_ssh_ipv6s:
+                                                        fw.add_addr_objs_to_addr_grps([ipv6,], {PaloAltoAddressGroup.SSH,})
+                                                    if ipv6 in fw_open_ipv6s:
+                                                        fw.remove_addr_objs_from_addr_grps([ipv6,], {PaloAltoAddressGroup.OPEN,})
                                             case HostServiceContract.HTTP_SSH:
-                                                if ipv6 not in fw_web_ipv6s or \
-                                                    ipv6 not in fw_ssh_ipv6s or \
-                                                        ipv6 in fw_open_ipv6s:
-                                                    print(f"{ipv6} is in wrong fw profile")
-                                                    inconsistent = True
+                                                if ipv4 not in fw_web_ipv4s:
+                                                    fw.add_addr_objs_to_addr_grps([ipv4,], {PaloAltoAddressGroup.HTTP,})
+                                                if ipv4 not in fw_ssh_ipv4s:
+                                                    fw.add_addr_objs_to_addr_grps([ipv4,], {PaloAltoAddressGroup.SSH,})
+                                                if ipv4 in fw_open_ipv4s:
+                                                    fw.remove_addr_objs_from_addr_grps([ipv4,], {PaloAltoAddressGroup.OPEN,})
+                                                for ipv6 in ipv6s:
+                                                    if ipv6 not in fw_web_ipv6s:
+                                                        fw.add_addr_objs_to_addr_grps([ipv6,], {PaloAltoAddressGroup.HTTP,})
+                                                    if ipv6 not in fw_ssh_ipv6s:
+                                                        fw.add_addr_objs_to_addr_grps([ipv6,], {PaloAltoAddressGroup.SSH,})
+                                                    if ipv6 in fw_open_ipv6s:
+                                                        fw.remove_addr_objs_from_addr_grps([ipv6,], {PaloAltoAddressGroup.OPEN,})
                                             case HostServiceContract.MULTIPURPOSE:
-                                                if ipv6 not in fw_open_ipv6s or \
-                                                    ipv6 in fw_web_ipv6s or \
-                                                        ipv6 in fw_ssh_ipv6s:
-                                                    print(f"{ipv6} is in wrong fw profile")
-                                                    inconsistent = True
+                                                if ipv4 in fw_web_ipv4s:
+                                                    fw.remove_addr_objs_from_addr_grps([ipv4,], {PaloAltoAddressGroup.HTTP,})
+                                                if ipv4 in fw_ssh_ipv4s:
+                                                    fw.remove_addr_objs_from_addr_grps([ipv4,], {PaloAltoAddressGroup.SSH,})
+                                                if ipv4 not in fw_open_ipv4s:
+                                                    fw.add_addr_objs_to_addr_grps([ipv4,], {PaloAltoAddressGroup.OPEN,})
+                                                for ipv6 in ipv6s:
+                                                    if ipv6 in fw_web_ipv6s:
+                                                        fw.remove_addr_objs_from_addr_grps([ipv6,], {PaloAltoAddressGroup.HTTP,})
+                                                    if ipv6 in fw_ssh_ipv6s:
+                                                        fw.remove_addr_objs_from_addr_grps([ipv6,], {PaloAltoAddressGroup.SSH,})
+                                                    if ipv6 not in fw_open_ipv6s:
+                                                        fw.add_addr_objs_to_addr_grps([ipv6,], {PaloAltoAddressGroup.OPEN,})
                                             case _:
                                                 print(f"Invlaid service profile: {host.service_profile}")
+                                                continue
 
-                                    if inconsistent and __name__ != "__main__":
-                                        set_host_online(ipv4)
+                                        
+                                        # consistency IPAM <-> Scanner
+                                        if ipv4 not in v_scanner_hosts:
+                                            scanner.add_host_to_periodic_scans(ipv4, '')
+
+                                    # RESTORE CONSISTENCY FOR HOSTS THAT ARE NOT ONLINE IN IPAM
+                                    else:
+                                        # consistency IPAM <-> FW
+                                        if ipv4 in fw_ipv4s:
+                                            fw.remove_addr_objs_from_addr_grps([ipv4,], {ag for ag in PaloAltoAddressGroup})
+                                        for ipv6 in ipv6s:
+                                            if ipv6 in fw_ipv6s:
+                                                fw.remove_addr_objs_from_addr_grps([ipv6,], {ag for ag in PaloAltoAddressGroup})
+
+                                        # consistency IPAM <-> Scanner
+                                        if ipv4 in v_scanner_hosts:
+                                            scanner.remove_host_from_periodic_scans(ipv4)
+
 
                                 return
 
