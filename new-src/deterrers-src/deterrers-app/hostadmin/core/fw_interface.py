@@ -305,7 +305,6 @@ from firewall! Status code: {response.status_code}. Status: {data.get('@status')
 
         Returns:
             bool: Returns True on success and False if something went wrong.
-            Not completely trustworthy because commit is not checked for time reasons.
         """
         try:
             addr_obj_names = []
@@ -355,7 +354,6 @@ Status code: {response.status_code}. Status: {data.get('@status')}")
 
         Returns:
             bool: Returns True on success and False if something went wrong.
-            Not completely trustworthy because commit is not checked for time reasons.
         """
         try:
             addr_obj_names = []

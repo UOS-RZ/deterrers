@@ -152,7 +152,7 @@ class Command(BaseCommand):
                                 logger.info(f"FW IPv4s - Scanner: {fw_ipv4s.difference(v_scanner_hosts)}")
                                 logger.info('')
 
-                                return
+                                
 
                                 #### RESTORE CONSISTENCY ####
 
@@ -229,20 +229,37 @@ class Command(BaseCommand):
                                         
                                         # consistency IPAM <-> Scanner
                                         if ipv4 not in v_scanner_hosts:
-                                            scanner.add_host_to_periodic_scans(ipv4, '')
+                                            if not scanner.add_host_to_periodic_scans(ipv4, ''):
+                                                logger.warning("Could not add %s to Scanner", str(ipv4))
 
                                     # RESTORE CONSISTENCY FOR HOSTS THAT ARE NOT ONLINE IN IPAM
                                     else:
                                         # consistency IPAM <-> FW
                                         if ipv4 in fw_ipv4s:
-                                            fw.remove_addr_objs_from_addr_grps([ipv4,], {ag for ag in PaloAltoAddressGroup})
+                                            if not fw.remove_addr_objs_from_addr_grps([ipv4,], {ag for ag in PaloAltoAddressGroup}):
+                                                logger.warning("Could not remove %s from FW", str(ipv4))
                                         for ipv6 in ipv6s:
                                             if ipv6 in fw_ipv6s:
-                                                fw.remove_addr_objs_from_addr_grps([ipv6,], {ag for ag in PaloAltoAddressGroup})
+                                                if not fw.remove_addr_objs_from_addr_grps([ipv6,], {ag for ag in PaloAltoAddressGroup}):
+                                                    logger.warning("Could not remove %s from FW", str(ipv6))
 
                                         # consistency IPAM <-> Scanner
                                         if ipv4 in v_scanner_hosts:
-                                            scanner.remove_host_from_periodic_scans(ipv4)
+                                            if not scanner.remove_host_from_periodic_scans(ipv4):
+                                                logger.warning("Coudld not remove %s from Scanner", str(ipv4))
+
+                                # RESTORE COSISTENCY FOR HOSTS THAT ARE NOT EVEN IPAM
+                                # IPAM <-> Scanner
+                                for ipv4 in v_scanner_hosts:
+                                    if ipv4 not in ipam_hosts_total.keys():
+                                        if not scanner.remove_host_from_periodic_scans(ipv4):
+                                            logger.warning("Could not remove %s from scanner", str(ipv4))
+
+                                # IPAM <-> FW
+                                for ip in fw_ipv4s.union(fw_ipv6s):
+                                    if ip not in ipam_ipv4s_online.union(ipam_ipv6s_online):
+                                        if not fw.remove_addr_objs_from_addr_grps([ip,], {ag for ag in PaloAltoAddressGroup}):
+                                            logger.warning("Could not remove %s from FW", str(ip))
 
 
                                 return
