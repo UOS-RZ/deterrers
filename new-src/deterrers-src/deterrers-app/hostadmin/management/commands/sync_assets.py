@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand, CommandError
 import os
 import getpass
 import ipaddress
+import logging
 
 from django.conf import settings
 
@@ -10,6 +11,8 @@ from hostadmin.core.v_scanner_interface import GmpVScannerInterface
 from hostadmin.core.fw_interface import PaloAltoInterface, PaloAltoAddressGroup
 from hostadmin.core.contracts import HostStatusContract, HostServiceContract
 from hostadmin.util import set_host_online
+
+logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     help = 'Compares data in IPAM with data in V-Scanner and perimeter FW.'
@@ -52,7 +55,7 @@ class Command(BaseCommand):
                                 #### GET DATA ####
 
                                 # get all hosts in IPAM
-                                print("Get assets from IPAM!")
+                                logger.info("Get assets from IPAM!")
                                 ipam_hosts_total = {}
                                 ipam_ipv4s_online = set()
                                 ipam_ipv6s_online = set()
@@ -69,15 +72,15 @@ class Command(BaseCommand):
                                             ipam_hosts_under_review.add(str(host.ipv4_addr))
                                 
                                 # get all hosts in periodic scan
-                                print('Get assets in periodic scan!')
-                                v_scanner_hosts = set()
-                                # get periodic task info, get target info, get hosts
-                                filter_str = f'"{scanner.PERIODIC_TASK_NAME}" rows=-1 first=1'
-                                response = scanner.gmp.get_tasks(filter_string=filter_str)
-                                response_status = int(response.xpath('@status')[0])
-                                if response_status != 200:
-                                    raise RuntimeError(f"Couldn't get tasks! Status: {response_status}")
+                                logger.info('Get assets in periodic scan!')
                                 try:
+                                    v_scanner_hosts = set()
+                                    # get periodic task info, get target info, get hosts
+                                    filter_str = f'"{scanner.PERIODIC_TASK_NAME}" rows=-1 first=1'
+                                    response = scanner.gmp.get_tasks(filter_string=filter_str)
+                                    response_status = int(response.xpath('@status')[0])
+                                    if response_status != 200:
+                                        raise RuntimeError(f"Couldn't get tasks! Status: {response_status}")
                                     # get task uuid and uuid of the existing target
                                     target_uuid = response.xpath('//target/@id')[0]
                                     response = scanner.gmp.get_target(target_uuid)
@@ -86,11 +89,11 @@ class Command(BaseCommand):
                                         raise RuntimeError(f"Couldn't get target! Status: {response_status}")
                                     hosts_str = response.xpath('//hosts')[0].text
                                     v_scanner_hosts = {h.strip() for h in hosts_str.split(',')}
-                                except IndexError as err:
-                                    print(f"{err}")
+                                except:
+                                    logger.exception("")
 
                                 # get all hosts that are online in FW
-                                print('Get assets unblocked by FW!')
+                                logger.info('Get assets unblocked by FW!')
                                 fw_ipv4s = set()
                                 fw_web_ipv4s = set()
                                 fw_ssh_ipv4s = set()
@@ -128,26 +131,26 @@ class Command(BaseCommand):
                                                 case PaloAltoAddressGroup.OPEN:
                                                     fw_open_ipv6s.add(str(ipv6))
                                         except:
-                                            print(f"Could not parse {addr_obj}")
+                                            logger.exception(f"Could not parse {addr_obj}")
 
 
-                                print('---------------------------------------------------------------------')
-                                print(f"IPAM Hosts total: {len(ipam_hosts_total.keys())}")
-                                print(f"IPAM Hosts under review: {len(ipam_hosts_under_review)} ({ipam_hosts_under_review})")
-                                print(f"IPAM IPs online: {len(ipam_ipv4s_online.union(ipam_ipv6s_online))}")
-                                print(f"Scanner hosts online: {len(v_scanner_hosts)}")
-                                print(f"FW IPs online: {len(fw_ipv4s.union(fw_ipv6s))}")
-                                print()
-                                print('Diff:')
-                                print(f"IPAM IPv4s - Scanner: {ipam_ipv4s_online.difference(v_scanner_hosts)}")
-                                print(f"Scanner - IPAM IPv4s: {v_scanner_hosts.difference(ipam_ipv4s_online)}")
-                                print()
-                                print(f"IPAM - FW: {ipam_ipv4s_online.union(ipam_ipv6s_online).difference(fw_ipv4s.union(fw_ipv6s))}")
-                                print(f"FW - IPAM: {fw_ipv4s.union(fw_ipv6s).difference(ipam_ipv4s_online.union(ipam_ipv6s_online))}")
-                                print()
-                                print(f"Scanner - FW IPv4s: {v_scanner_hosts.difference(fw_ipv4s)}")
-                                print(f"FW IPv4s - Scanner: {fw_ipv4s.difference(v_scanner_hosts)}")
-                                print()
+                                logger.info('---------------------------------------------------------------------')
+                                logger.info(f"IPAM Hosts total: {len(ipam_hosts_total.keys())}")
+                                logger.info(f"IPAM Hosts under review: {len(ipam_hosts_under_review)} ({ipam_hosts_under_review})")
+                                logger.info(f"IPAM IPs online: {len(ipam_ipv4s_online.union(ipam_ipv6s_online))}")
+                                logger.info(f"Scanner hosts online: {len(v_scanner_hosts)}")
+                                logger.info(f"FW IPs online: {len(fw_ipv4s.union(fw_ipv6s))}")
+                                logger.info('')
+                                logger.info('Diff:')
+                                logger.info(f"IPAM IPv4s - Scanner: {ipam_ipv4s_online.difference(v_scanner_hosts)}")
+                                logger.info(f"Scanner - IPAM IPv4s: {v_scanner_hosts.difference(ipam_ipv4s_online)}")
+                                logger.info('')
+                                logger.info(f"IPAM - FW: {ipam_ipv4s_online.union(ipam_ipv6s_online).difference(fw_ipv4s.union(fw_ipv6s))}")
+                                logger.info(f"FW - IPAM: {fw_ipv4s.union(fw_ipv6s).difference(ipam_ipv4s_online.union(ipam_ipv6s_online))}")
+                                logger.info('')
+                                logger.info(f"Scanner - FW IPv4s: {v_scanner_hosts.difference(fw_ipv4s)}")
+                                logger.info(f"FW IPv4s - Scanner: {fw_ipv4s.difference(v_scanner_hosts)}")
+                                logger.info('')
 
                                 return
 
@@ -156,7 +159,7 @@ class Command(BaseCommand):
                                 for ipv4, host in ipam_hosts_total.items():
                                     ipv6s = ipam.get_IP6Addresses(ipam.get_id_of_addr(ipv4))
                                     if len(ipv6s) > 1:
-                                        print(f"---> {ipv4} is linked to {ipv6s}")
+                                        logger.info(f"---> {ipv4} is linked to {ipv6s}")
 
                                     # RESTORE CONSISTENCY FOR HOSTS THAT ARE ONLINE IN IPAM
                                     if host.status == HostStatusContract.ONLINE:
@@ -220,7 +223,7 @@ class Command(BaseCommand):
                                                     if ipv6 not in fw_open_ipv6s:
                                                         fw.add_addr_objs_to_addr_grps([ipv6,], {PaloAltoAddressGroup.OPEN,})
                                             case _:
-                                                print(f"Invlaid service profile: {host.service_profile}")
+                                                logger.warning(f"Invlaid service profile: {host.service_profile}")
                                                 continue
 
                                         
@@ -246,4 +249,11 @@ class Command(BaseCommand):
 
 
 if __name__ == "__main__":
+    # set logger for manual executions
+    logger.setLevel(logging.DEBUG)
+    # create console handler and set level to debug
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+    logger.addHandler(ch)
+
     Command().handle()

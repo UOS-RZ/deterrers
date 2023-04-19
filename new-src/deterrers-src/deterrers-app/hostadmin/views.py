@@ -740,7 +740,7 @@ def v_scanner_registration_alert(request):
         """
         try:
             host_ipv4 = request.GET['host_ip']
-            report_uuid = request.GET['report_uuid']
+            report_uuid = request.GET['report_uuid'] # TODO: if task was manually restarted in Greenbone, this id will be outdated; better query it with help of task_uuid
             task_uuid = request.GET['task_uuid']
             target_uuid = request.GET['target_uuid']
             alert_uuid = request.GET['alert_uuid']
