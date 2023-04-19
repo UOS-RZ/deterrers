@@ -404,13 +404,13 @@ def action(request):
     Returns:
         Response: Response object.
     """
-    logger.info("API Request: Action by user %s", request.user.username)
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
     bulk_action = HostActionSerializer(data=request.data)
     if not bulk_action.is_valid():
         return Response(status=400)
     action = bulk_action.validated_data['action']
     ipv4_addrs = set(bulk_action.validated_data.get('ipv4_addrs', []))
+    logger.info("API Request: Action %s by user %s on hosts %s", str(action), request.user.username, str(ipv4_addrs))
 
     try:
         match action:
