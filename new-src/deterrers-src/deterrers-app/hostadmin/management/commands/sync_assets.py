@@ -121,7 +121,7 @@ class Command(BaseCommand):
                                             pass
                                         # check if IPv6
                                         try:
-                                            ipv6 = ipaddress.IPv6Address(addr_obj.replace('-', ':'))
+                                            ipv6 = ipaddress.IPv6Address(addr_obj.replace('-', ':')).exploded
                                             fw_ipv6s.add(str(ipv6))
                                             match ag:
                                                 case PaloAltoAddressGroup.HTTP:
