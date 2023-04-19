@@ -65,16 +65,18 @@ def __cvss_score_without_availability_impact(vul : VulnerabilityScanResult) -> f
     return vul.cvss_base_score
 
 def __block_worthy(risk_flags : RiskFlag) -> bool:
+    # only condition triggers if QoD is higher than threshold, if remotely exploitable, if port and protocol matches service profile and if adapted CVSS is high
     block_flags = (RiskFlag.HIGH_QOD | RiskFlag.REMOTE | RiskFlag.PORT_MATCH | RiskFlag.PROTO_MATCH | RiskFlag.HIGH_CVSS_NO_AVAILABILITY)
     if block_flags in risk_flags:
         return True
     return False
 
 def __notify_worthy(risk_falgs : RiskFlag) -> bool:
-    # 1st condition is same as block-condition but CVSS score is not context-aware (still considers availability impact)
+    # 1st condition is same as block-condition except that it already triggers for medium adapted CVSS scores
     notify_flags = (RiskFlag.HIGH_QOD | RiskFlag.REMOTE | RiskFlag.PORT_MATCH | RiskFlag.PROTO_MATCH | RiskFlag.MEDIUM_CVSS_NO_AVAILABILITY)
     if notify_flags in risk_falgs:
         return True
+    # 2nd condition triggeres for all high CVSS scores with sufficient QoD
     notify_flags = (RiskFlag.HIGH_QOD | RiskFlag.HIGH_CVSS)
     if notify_flags in risk_falgs:
         return True
@@ -117,9 +119,6 @@ def assess_vulnerability_risk(
             risk = risk | RiskFlag.REMOTE
 
         # vulnerability can be ignored if it affects port and protocol are outside of internet service profile
-        # NOTE: reducing service profiles to default ports may be inaccurate since hosts might be 
-        # configured differently and perimeter FW probably ist NGFW and does not block based on 
-        # ports but based on deep packet inspection
         match host.service_profile:
             case HostServiceContract.HTTP:
                 relevant_ports = ['general', '80', '443']

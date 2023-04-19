@@ -481,8 +481,9 @@ class ProteusIPAMInterface():
             ipv6_addrs = set()
             for ip in addrs:
                 try: 
-                    if not ipaddress.IPv6Address(ip).is_private:
-                        ipv6_addrs.add(ip)
+                    ipv6 = ipaddress.IPv6Address(ip)
+                    if not ipv6.is_private:
+                        ipv6_addrs.add(ipv6.exploded) # NOTE: use exploded string repr of IPv6Address object to have coherent representations
                 except ipaddress.AddressValueError:
                     continue
 
