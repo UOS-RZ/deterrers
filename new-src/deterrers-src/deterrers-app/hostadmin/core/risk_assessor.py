@@ -47,7 +47,7 @@ def __is_remote_exploitable(version : int, cvss_vector : str) -> bool:
         return True
     return False
 
-def __cvss_score_without_availability_impact(vul : VulnerabilityScanResult) -> float:
+def adapt_cvss_score(vul : VulnerabilityScanResult) -> float:
     # set the Availability Impact metric to None because reaction to this risk is blocking (i.e. making it unavailable)
     # NOTE: using Availability Requirement metric from environmental metrics is not fitting because
     # possible values are 'Low' and 'High' which both won't cancle out Availability Impact completely
@@ -156,9 +156,9 @@ def assess_vulnerability_risk(
             risk = risk | RiskFlag.HIGH_CVSS
         
         # set flags for customized CVSS base score severity
-        if __cvss_score_without_availability_impact(vul) >= medium_cvss_threshold:
+        if adapt_cvss_score(vul) >= medium_cvss_threshold:
             risk = risk | RiskFlag.MEDIUM_CVSS_NO_AVAILABILITY
-        if __cvss_score_without_availability_impact(vul) >= high_cvss_threshold:
+        if adapt_cvss_score(vul) >= high_cvss_threshold:
             risk = risk | RiskFlag.HIGH_CVSS_NO_AVAILABILITY
     except:
         pass
