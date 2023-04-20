@@ -300,7 +300,7 @@ def extract_report_data(report) -> tuple[str, str, dict]:
 
 def registration_mail_body(host : MyHost, passed : bool, scan_ts : str, block_reasons : list[VulnerabilityScanResult]) -> str:
     email_body = f"""
-The registration was {'passed' if passed else 'NOT passed'}.
+The registration was {'successful' if passed else 'NOT successful'}.
 
 
 *************** System Information ***************
