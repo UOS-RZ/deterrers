@@ -216,7 +216,8 @@ def __update_host(request):
         if not host_serializer.is_valid():
             raise Http400("Provided data is invalid")
         host_update_data = host_serializer.validated_data
-        host = ipam.get_host_info_from_ip(host_update_data['ipv4_addr'])
+        ipv4_addr = host_update_data['ipv4_addr']
+        host = ipam.get_host_info_from_ip(ipv4_addr)
         if not host:
             raise Http404("Host not found")
         if not host.is_valid():
@@ -226,8 +227,29 @@ def __update_host(request):
         if not hostadmin.username in host.admin_ids:
             raise Http404("Host not found")
 
+        # Update list of admins if requested
+        new_admins = host_update_data.get('admin_ids')
+        if new_admins is not None:
+            new_admins = set(new_admins)
+            if not new_admins:
+                raise Http400("Cannot remove all admins")
+            admins_to_delete = set(host.admin_ids) - new_admins
+            admins_to_add = new_admins - set(host.admin_ids)
+
+            # add new admins
+            for admin in admins_to_add:
+                if admin in ipam.get_department_tag_names() or ipam.is_admin(admin):
+                    code = ipam.add_tag_to_host(tag_name, ipv4_addr)
+                    if code not in range(200,  205, 1):
+                        return Response(status=code)
+
+            # remove old admins
+            for admin in admins_to_delete:
+                ipam.remove_tag_from_host(admin, ipv4_addr)
+
+        # Update host properties
         __update_host_logic(ipam, host, host_update_data)
-            
+
     return Response()
 
 
