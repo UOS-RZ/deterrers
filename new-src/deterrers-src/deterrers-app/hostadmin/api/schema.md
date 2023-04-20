@@ -117,11 +117,15 @@ Remove host 0.0.0.0:
                 application/json:
                     schema: {
                         'ipv4_addr' : <ip>,
+                        'admin_ids' : [<RZ-ID or department name>,],
                         'service_profile' : <'HTTP'|'SSH'|'HTTP+SSH'|'Multipurpose'|''>,
                         'fw' : <'UFW'|'FirewallD'|'nftables'|''>
                     }
             responses:
                 '200':
+
+The field `admin_ids`, `service_profile` and `fw` are optional.
+Not sending the field will cause the current data to be kept.
 
 Example:
 
