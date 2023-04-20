@@ -788,9 +788,13 @@ def v_scanner_registration_alert(request):
                         departments = ipam.get_department_tag_names()
                         # deduce admin email addr and filter out departments
                         admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments]
+                        if passed:
+                            email_subject = f"DETERRERS - {str(host.ipv4_addr)} - Vulnerability scan finished"
+                        else:
+                            email_subject = f"DETERRERS - {str(host.ipv4_addr)} - Vulnerability detected. Host BLOCKED."
                         __send_report_email(
                             report_html,
-                            f"DETERRERS - {str(host.ipv4_addr)} - Vulnerability scan finished",
+                            email_subject,
                             registration_mail_body(host, passed, scan_end, block_reasons),
                             list(set(admin_addresses)),
                         )
