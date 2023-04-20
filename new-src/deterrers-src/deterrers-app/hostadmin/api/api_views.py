@@ -231,21 +231,21 @@ def __update_host(request):
         new_admins = host_update_data.get('admin_ids')
         if new_admins is not None:
             new_admins = set(new_admins)
-            if not new_admins:
+            if not new_admins or len(new_admins) == 0:
                 raise Http400("Cannot remove all admins")
             admins_to_delete = set(host.admin_ids) - new_admins
             admins_to_add = new_admins - set(host.admin_ids)
 
             # add new admins
-            for admin in admins_to_add:
-                if admin in ipam.get_department_tag_names() or ipam.is_admin(admin):
-                    code = ipam.add_tag_to_host(tag_name, ipv4_addr)
+            for admin_tag_name in admins_to_add:
+                if admin_tag_name in ipam.get_department_tag_names() or ipam.is_admin(admin_tag_name):
+                    code = ipam.add_tag_to_host(admin_tag_name, ipv4_addr)
                     if code not in range(200,  205, 1):
                         return Response(status=code)
 
             # remove old admins
-            for admin in admins_to_delete:
-                ipam.remove_tag_from_host(admin, ipv4_addr)
+            for admin_tag_name in admins_to_delete:
+                ipam.remove_tag_from_host(admin_tag_name, ipv4_addr)
 
         # Update host properties
         __update_host_logic(ipam, host, host_update_data)
