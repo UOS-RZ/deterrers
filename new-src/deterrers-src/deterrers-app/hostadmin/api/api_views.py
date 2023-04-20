@@ -231,7 +231,7 @@ def __update_host(request):
         new_admins = host_update_data.get('admin_ids')
         if new_admins is not None:
             new_admins = set(new_admins)
-            if not new_admins or len(new_admins) == 0:
+            if not new_admins:
                 raise Http400("Cannot remove all admins")
             admins_to_delete = set(host.admin_ids) - new_admins
             admins_to_add = new_admins - set(host.admin_ids)
