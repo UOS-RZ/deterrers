@@ -792,7 +792,7 @@ class GmpVScannerInterface():
                             None,
                             None,
                             None,
-                            PortList.ALL_TCP_NMAP_1000_UDP_UUID
+                            PortList.ALL_TCP_NMAP_1000_UDP_UUID.value
                         )
                     else:
                         # target does exist so add ip to it
@@ -867,7 +867,7 @@ class GmpVScannerInterface():
                                 None,
                                 None,
                                 None,
-                                PortList.ALL_TCP_NMAP_1000_UDP_UUID
+                                PortList.ALL_TCP_NMAP_1000_UDP_UUID.value
                             )
                     else:
                         # target does exist so remove ip from it
