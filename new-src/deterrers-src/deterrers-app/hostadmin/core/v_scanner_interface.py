@@ -120,7 +120,10 @@ class GmpVScannerInterface():
 
     def __exit__(self, exc_type, exc_value, traceback):
         logger.debug("End session with vulnerability scanner.")
-        self.gmp.__exit__(exc_type, exc_value, traceback)
+        try:
+            self.gmp.__exit__(exc_type, exc_value, traceback)
+        except:
+            logger.exception("Error on exiting the scanner!")
 
 
     def __start_task(self, task_uuid : str, task_name : str) -> str:
