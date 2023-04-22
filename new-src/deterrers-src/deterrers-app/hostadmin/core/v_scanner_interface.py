@@ -759,7 +759,7 @@ class GmpVScannerInterface():
                 cve_task_status = task_xml.xpath('//task/status')[0].text
 
                 # if tasks are done
-                if task_status == "Done" and cve_task_status == "Done":
+                if task_status in ("Done", "New", "Stopped") and cve_task_status in ("Done", "New", "Stopped"):
                     # 1. clone target
                     response = self.gmp.clone_target(old_target_uuid)
                     response_status = int(response.xpath('@status')[0])
@@ -826,7 +826,7 @@ class GmpVScannerInterface():
                 cve_task_status = task_xml.xpath('//task/status')[0].text
 
                 # if tasks are done
-                if task_status == "Done" and cve_task_status == "Done":
+                if task_status in ("Done", "New", "Stopped") and cve_task_status in ("Done", "New", "Stopped"):
                     # 1. clone target
                     response = self.gmp.clone_target(old_target_uuid)
                     response_status = int(response.xpath('@status')[0])
