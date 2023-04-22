@@ -228,9 +228,9 @@ class Command(BaseCommand):
 
                                         
                                         # consistency IPAM <-> Scanner
-                                        if ipv4 not in v_scanner_hosts:
-                                            if not scanner.add_host_to_periodic_scans(ipv4, ''):
-                                                logger.warning("Could not add %s to Scanner", str(ipv4))
+                                        # if ipv4 not in v_scanner_hosts:
+                                        #     if not scanner.add_host_to_periodic_scans(ipv4, ''):
+                                        #         logger.warning("Could not add %s to Scanner", str(ipv4))
 
                                     # RESTORE CONSISTENCY FOR HOSTS THAT ARE NOT ONLINE IN IPAM
                                     else:
@@ -244,16 +244,16 @@ class Command(BaseCommand):
                                                     logger.warning("Could not remove %s from FW", str(ipv6))
 
                                         # consistency IPAM <-> Scanner
-                                        if ipv4 in v_scanner_hosts:
-                                            if not scanner.remove_host_from_periodic_scans(ipv4):
-                                                logger.warning("Coudld not remove %s from Scanner", str(ipv4))
+                                        # if ipv4 in v_scanner_hosts:
+                                        #     if not scanner.remove_host_from_periodic_scans(ipv4):
+                                        #         logger.warning("Coudld not remove %s from Scanner", str(ipv4))
 
                                 # RESTORE COSISTENCY FOR HOSTS THAT ARE NOT EVEN IPAM
                                 # IPAM <-> Scanner
-                                for ipv4 in v_scanner_hosts:
-                                    if ipv4 not in ipam_hosts_total.keys():
-                                        if not scanner.remove_host_from_periodic_scans(ipv4):
-                                            logger.warning("Could not remove %s from scanner", str(ipv4))
+                                # for ipv4 in v_scanner_hosts:
+                                #     if ipv4 not in ipam_hosts_total.keys():
+                                #         if not scanner.remove_host_from_periodic_scans(ipv4):
+                                #             logger.warning("Could not remove %s from scanner", str(ipv4))
 
                                 # IPAM <-> FW
                                 for ip in fw_ipv4s.union(fw_ipv6s):
