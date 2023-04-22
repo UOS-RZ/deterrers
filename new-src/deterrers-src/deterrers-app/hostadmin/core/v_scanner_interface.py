@@ -275,9 +275,9 @@ class GmpVScannerInterface():
         target_uuid = response.xpath('@id')[0]
         return target_uuid
 
-    def __modify_target_hosts(self, target_uuid : str, target_name : str|None, hosts : set):
+    def __modify_target(self, target_uuid : str, target_name : str|None, hosts : set|None):
         """
-        Set new target hosts for a target.
+        Modify target name and/or hosts.
 
         Args:
             target_uuid (str): Target UUID
@@ -769,7 +769,7 @@ class GmpVScannerInterface():
                     # 2. modify new target with new host added to old host-list
                     hosts = self.__get_target_hosts(new_target_uuid)
                     hosts.add(host_ip)
-                    self.__modify_target_hosts(new_target_uuid, f"Target for task periodic tasks | {datetime.now()}", hosts)
+                    self.__modify_target(new_target_uuid, f"Target for task periodic tasks | {datetime.now()}", hosts)
                     # 3. modify tasks so that they use new target
                     self.__set_new_target(task_uuid, new_target_uuid)
                     self.__set_new_target(cve_task_uuid, new_target_uuid)
@@ -798,7 +798,7 @@ class GmpVScannerInterface():
                         # target does exist so add ip to it
                         hosts = self.__get_target_hosts(stash_target_uuid)
                         hosts.add(host_ip)
-                        self.__modify_target_hosts(stash_target_uuid, self.PERIODIC_TASK_STASH_TARGET_NAME, hosts)
+                        self.__modify_target(stash_target_uuid, self.PERIODIC_TASK_STASH_TARGET_NAME, hosts)
 
         except GmpAPIError:
             logger.exception("Couldn't add host to periodic scan task.")
@@ -840,7 +840,7 @@ class GmpVScannerInterface():
                     except ValueError:
                         pass
                     else:
-                        self.__modify_target_hosts(new_target_uuid, f"Target for task '{self.PERIODIC_TASK_NAME}' | {datetime.now()}", hosts)
+                        self.__modify_target(new_target_uuid, f"Target for task '{self.PERIODIC_TASK_NAME}' | {datetime.now()}", hosts)
                     # 3. modify task so that it uses new target
                     self.__set_new_target(task_uuid, new_target_uuid)
                     self.__set_new_target(cve_task_uuid, new_target_uuid)
@@ -877,15 +877,34 @@ class GmpVScannerInterface():
                         except ValueError:
                             pass
                         else:
-                            self.__modify_target_hosts(stash_target_uuid, self.PERIODIC_TASK_STASH_TARGET_NAME, hosts)
+                            self.__modify_target(stash_target_uuid, self.PERIODIC_TASK_STASH_TARGET_NAME, hosts)
         except GmpAPIError:
             logger.exception("Couldn't remove host from periodic scan task.")
             return False
         return True
 
-    def update_periodic_scan_target(self):
-        # TODO
-        pass
+    def update_periodic_scan_target(self) -> bool:
+        try:
+            # get task uuids
+            _, task_uuid, old_target_uuid = self.__get_task_info(self.PERIODIC_TASK_NAME)
+            _, cve_task_uuid, _ = self.__get_task_info(self.PERIODIC_CVE_TASK_NAME)
+
+            # rename stash target which will be the new target for periodic tasks
+            new_target_uuid = self.__get_target_id(self.PERIODIC_TASK_STASH_TARGET_NAME)
+            self.__modify_target(new_target_uuid, f"Target for task '{self.PERIODIC_TASK_NAME}' | {datetime.now()}", None)
+
+            # set stash target as new target of periodic tasks
+            self.__set_new_target(task_uuid, new_target_uuid)
+            self.__set_new_target(cve_task_uuid, new_target_uuid)
+
+            # remove old target
+            self.clean_up_scan_objects(old_target_uuid, None, None, None)
+
+            return True
+        except:
+            logger.exception("Couldn't update periodic scan target")
+
+        return False
 
     def clean_up_scan_objects(self, target_uuid : str, task_uuid : str, report_uuid : str, alert_uuid : str|list[str]):
         """
@@ -900,10 +919,13 @@ class GmpVScannerInterface():
         logger.debug("Start clean up of scan!")
         if task_uuid:
             try:
-                self.gmp.stop_task(task_id=task_uuid)
+                task_xml = self.gmp.get_task(task_uuid)
+                task_status = task_xml.xpath('//task/status')[0].text
+                if task_status == "Running":
+                    self.gmp.stop_task(task_id=task_uuid)
             except GvmError as err:
                 logger.warning("Couldn't stop task! Error: %s", str(err))
-                self.gmp.authenticate(self.username, self.__password) # TODO: instead of reauthentication, we could check beforehand if the task is running
+                self.gmp.authenticate(self.username, self.__password)
         if report_uuid:
             try:
                 self.gmp.delete_report(report_uuid)
