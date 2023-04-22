@@ -29,8 +29,8 @@
 				<th>Status</th>
 			</tr>
 		</thead>
-		{% for host in hosts_list %}
 		<tbody>
+			{% for host in hosts_list %}
 			<tr>
 				<td><a href="{{ host.get_absolute_url }}">{{host.ipv4_addr}}</a></td>
 				<td>{{host.get_dns_rcs_display}}</td>
@@ -38,8 +38,8 @@
 				<td>{{host.get_service_profile_display}}</td>
 				<td>{{host.get_status_display}}</td>
 			</tr>
+			{% endfor %}
 		</tbody>
-		{% endfor %}
 	</table>
 	{% else %}
 		<p>There are no hosts for this administrator.</p>
