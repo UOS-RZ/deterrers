@@ -173,7 +173,6 @@ class PaloAltoInterface():
     def __get_addr_grp_properties(self, addr_grp : PaloAltoAddressGroup) -> dict:
         """
         Query the properties of an AddressGroup.
-        TODO: try-catch for .json()-method/everything (threw error previously on 2023-02-23, probably connection failure)
 
         Args:
             addr_grp (AddressGroup): Enum instance of the AddressGroup to query.
@@ -290,7 +289,7 @@ from firewall! Status code: {response.status_code}. Status: {data.get('@status')
             addr_grp_obj = self.__get_addr_grp_properties(addr_grp)
             addr_obj_names = addr_grp_obj['static']['member']
             return set(addr_obj_names)
-        except PaloAltoAPIError:
+        except (PaloAltoAPIError, requests.exceptions.JSONDecodeError):
             logger.exception("Couldn't get AddressObjects of AddressGroup %s", addr_grp.value)
             return set()
 
@@ -337,7 +336,7 @@ from firewall! Status code: {response.status_code}. Status: {data.get('@status')
                     raise PaloAltoAPIError(f"Could not update Address Group {addr_grp_name.value}. \
 Status code: {response.status_code}. Status: {data.get('@status')}")
 
-        except PaloAltoAPIError:
+        except (PaloAltoAPIError, requests.exceptions.JSONDecodeError):
             logger.exception("Couldn't add AddressObjects to AddressGroups!")
             return False
 
@@ -379,8 +378,12 @@ Status code: {response.status_code}. Status: {data.get('@status')}")
                 response = requests.put(
                     put_addr_grp_url, json=put_addr_grp_payload, headers=self.header, timeout=self.TIMEOUT
                 )
+                data = response.json()
+                if response.status_code != 200 or data.get('@status') != 'success':
+                    raise PaloAltoAPIError(f"Could not update Address Group {addr_grp_name.value}. \
+Status code: {response.status_code}. Status: {data.get('@status')}")
 
-        except PaloAltoAPIError:
+        except (PaloAltoAPIError, requests.exceptions.JSONDecodeError):
             logger.exception("Couldn't remove AddressObjects from AddressGroups!")
             return False
         
@@ -411,6 +414,6 @@ Status code: {response.status_code}. Status: {data.get('@status')}")
             # if addr_obj is not member of any addr_grp than it is offline
             return HostStatusContract.BLOCKED
 
-        except PaloAltoAPIError:
+        except (PaloAltoAPIError, requests.exceptions.JSONDecodeError):
             logger.exception("Couldn't remove AddressObject from AddressGroups!")
             return None
