@@ -797,7 +797,7 @@ class GmpVScannerInterface():
                     else:
                         # target does exist so add ip to it
                         hosts = self.__get_target_hosts(stash_target_uuid)
-                        hosts = hosts.add(host_ip)
+                        hosts.add(host_ip)
                         self.__modify_target_hosts(stash_target_uuid, self.PERIODIC_TASK_STASH_TARGET_NAME, hosts)
 
         except GmpAPIError:
