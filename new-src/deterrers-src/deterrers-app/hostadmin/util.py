@@ -167,6 +167,8 @@ def set_host_online(host_ipv4 : str) -> bool:
             with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
                 if not fw.enter_ok:
                     return False
+
+                logger.info("Entered all interfaces.")
                 
                 host = ipam.get_host_info_from_ip(host_ipv4)
                 if not host.is_valid() or host.service_profile is HostServiceContract.EMPTY:
@@ -178,13 +180,18 @@ def set_host_online(host_ipv4 : str) -> bool:
                 if not scanner.add_host_to_periodic_scans(host_ip=host_ipv4, deterrers_url=response_url):
                     logger.error("Couldn't add host %s to periodic scan!", host_ipv4)
                     return False
+
+                logger.info("Added IP to periodic scan")
         
                 # get IPv6 address to all IPv4 address
                 ips_to_update = ipam.get_IP6Addresses(host.entity_id)
                 ips_to_update.add(str(host.ipv4_addr))
 
+                logger.info("Got IPv6 addresses.")
+
                 # first make sure ip is not already in any AddressGroups
                 suc = fw.remove_addr_objs_from_addr_grps(ips_to_update, {ag for ag in PaloAltoAddressGroup})
+                logger.info("Removed IPs from AddressGroups")
                 if not suc:
                     logger.error("Couldn't update firewall configuration!")
                     return False
@@ -203,12 +210,16 @@ def set_host_online(host_ipv4 : str) -> bool:
                 if not suc:
                     logger.error("Couldn't update firewall configuration!")
                     return False
+                
+                logger.info("Added IPS to AddressGroup")
             
                 # update host info in IPAM
                 host.status = HostStatusContract.ONLINE
                 if not ipam.update_host_info(host):
                     logger.error("Couldn't update host information!")
                     return False
+                
+                logging.info("Updated IPAM data")
     return True
 
 
