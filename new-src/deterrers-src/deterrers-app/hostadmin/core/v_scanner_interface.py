@@ -789,9 +789,9 @@ class GmpVScannerInterface():
                         stash_target_uuid = self.__create_target(
                             hosts,
                             self.PERIODIC_TASK_STASH_TARGET_NAME,
-                            None,
-                            None,
-                            None,
+                            Credentials.HULK_SSH_CRED_UUID.value,
+                            22,
+                            Credentials.HULK_SMB_CRED_UUID.value,
                             PortList.ALL_TCP_NMAP_1000_UDP_UUID.value
                         )
                     else:
@@ -864,9 +864,9 @@ class GmpVScannerInterface():
                             stash_target_uuid = self.__create_target(
                                 hosts,
                                 self.PERIODIC_TASK_STASH_TARGET_NAME,
-                                None,
-                                None,
-                                None,
+                                Credentials.HULK_SSH_CRED_UUID.value,
+                                22,
+                                Credentials.HULK_SMB_CRED_UUID.value,
                                 PortList.ALL_TCP_NMAP_1000_UDP_UUID.value
                             )
                     else:
