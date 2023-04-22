@@ -152,6 +152,7 @@ class Command(BaseCommand):
                                 logger.info(f"FW IPv4s - Scanner: {fw_ipv4s.difference(v_scanner_hosts)}")
                                 logger.info('')
 
+                                exit()
                                 
 
                                 #### RESTORE CONSISTENCY ####
