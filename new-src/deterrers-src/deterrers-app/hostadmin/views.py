@@ -906,6 +906,11 @@ def v_scanner_periodic_alert(request):
                 with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
                     if not ipam.enter_ok:
                         return
+
+                    # update periodic scan target because might have been changes since it started
+                    if not scanner.update_periodic_scan_target():
+                        logger.warning("Couldn't update target of periodic scan")
+                        return
                 
                     admin_mail_copy = ""
                     report_uuid = scanner.get_latest_report_uuid(task_uuid)
