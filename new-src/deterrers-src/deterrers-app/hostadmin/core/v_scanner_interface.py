@@ -837,7 +837,7 @@ class GmpVScannerInterface():
                     hosts = self.__get_target_hosts(new_target_uuid)
                     try:
                         hosts.remove(host_ip)
-                    except ValueError:
+                    except KeyError:
                         pass
                     else:
                         self.__modify_target(new_target_uuid, f"Target for task '{self.PERIODIC_TASK_NAME}' | {datetime.now()}", hosts)
@@ -858,7 +858,7 @@ class GmpVScannerInterface():
                         hosts = self.__get_target_hosts(target_uuid)
                         try:
                             hosts.remove(host_ip)
-                        except ValueError:
+                        except KeyError:
                             pass
                         else:
                             stash_target_uuid = self.__create_target(
@@ -874,7 +874,7 @@ class GmpVScannerInterface():
                         hosts = self.__get_target_hosts(stash_target_uuid)
                         try:
                             hosts.remove(host_ip)
-                        except ValueError:
+                        except KeyError:
                             pass
                         else:
                             self.__modify_target(stash_target_uuid, self.PERIODIC_TASK_STASH_TARGET_NAME, hosts)
