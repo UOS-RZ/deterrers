@@ -759,7 +759,7 @@ class GmpVScannerInterface():
                 cve_task_status = task_xml.xpath('//task/status')[0].text
 
                 # if tasks are done
-                if task_status in ("Done", "New", "Stopped") and cve_task_status in ("Done", "New", "Stopped"):
+                if task_status in ("Done", "New") and cve_task_status in ("Done", "New"):
                     # 1. clone target
                     response = self.gmp.clone_target(old_target_uuid)
                     response_status = int(response.xpath('@status')[0])
@@ -1044,7 +1044,7 @@ class GmpVScannerInterface():
         Returns:
             _type_: XML etree object of the report.
         """
-        rep_filter = f"status=Done apply_overrides=0 rows=-1 min_qod={min_qod} first=1 sort-reverse=severity"
+        rep_filter = f"status=Done apply_overrides=1 rows=-1 min_qod={min_qod} first=1 sort-reverse=severity"
         try:
             response = self.gmp.get_report(report_uuid, filter_string=rep_filter, report_format_id=report_format_id, ignore_pagination=True, details=True)
             response_status = int(response.xpath('@status')[0])
@@ -1068,7 +1068,7 @@ class GmpVScannerInterface():
         Returns:
             _type_: HTML string of the report.
         """
-        rep_filter = f"status=Done apply_overrides=0 rows=-1 min_qod={min_qod} first=1 sort-reverse=severity"
+        rep_filter = f"status=Done apply_overrides=1 rows=-1 min_qod={min_qod} first=1 sort-reverse=severity"
         try:
             response = self.gmp.get_report(report_uuid, filter_string=rep_filter, report_format_id=ReportFormat.HTML_UUID.value, details=True, ignore_pagination=True)
             response = response.find("report")

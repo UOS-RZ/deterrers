@@ -762,6 +762,8 @@ def v_scanner_registration_alert(request):
                         if not host or not host.is_valid():
                             logger.error("Invalid host during risk assessment: %s", str(host))
                             continue
+                        if len(host.admin_ids) == 0:
+                            continue
                         block_reasons, notify_reasons = assess_host_risk(
                             host,
                             vulnerabilities,
@@ -923,6 +925,8 @@ def v_scanner_periodic_alert(request):
                         host = ipam.get_host_info_from_ip(host_ipv4)
                         if not host or not host.is_valid():
                             logger.error("Invalid host during risk assessment: %s", str(host))
+                            continue
+                        if len(host.admin_ids) == 0:
                             continue
                         block_reasons, notify_reasons = assess_host_risk(
                             host,
