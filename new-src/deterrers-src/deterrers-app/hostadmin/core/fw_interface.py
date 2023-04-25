@@ -3,6 +3,8 @@ import requests
 from lxml import etree
 import time
 from threading import Thread
+import os
+import getpass
 
 from .contracts import HostStatusContract, PaloAltoAddressGroup
 
@@ -23,7 +25,7 @@ class PaloAltoInterface():
 
     TIMEOUT = 60*5
     VERSION = "v10.1"
-    LOCATION = 'vsys&vsys=vsys4' # TODO: change location in production
+    LOCATION = 'vsys&vsys=vsys1' # TODO: change location in production
 
     def __init__(self, username : str, password : str, fw_url : str):
         self.username = username
@@ -235,25 +237,6 @@ from firewall! Status code: {response.status_code}. Status: {data.get('@status')
             
             logger.info("Requested commit successfully!")
 
-            # job_id = response_xml.xpath("//result/job")[0].text
-            # if not job_id:
-            #     return False
-            # # wait until commit has been submitted
-            # get_job_status_params = f"type=op&cmd=<show><jobs><id>{job_id}</id></jobs></show>"
-            # get_job_status_url = self.xml_url + "?" + get_job_status_params
-            # start = time.time()
-            # while True:
-            #     if time.time() - start > self.TIMEOUT:
-            #         logger.error("Commit took to long!")
-            #         self.__cancle_commit()
-            #         return False
-            #     response = requests.get(get_job_status_url, headers=self.header, timeout=self.TIMEOUT)
-            #     response_xml =  etree.XML(response.content)
-            #     job_status = response_xml.xpath("//job/status")[0].text
-            #     if job_status == "FIN":
-            #         logger.debug("Commit finished!")
-            #         break
-            #     time.sleep(2)
         else:
             logger.info("No changes pending at perimeter FW.")
 

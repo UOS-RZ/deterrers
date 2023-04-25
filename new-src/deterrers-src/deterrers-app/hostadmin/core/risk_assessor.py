@@ -118,34 +118,94 @@ def assess_vulnerability_risk(
         if __is_remote_exploitable(vul.cvss_version, vul.cvss_base_vector):
             risk = risk | RiskFlag.REMOTE
 
-        # vulnerability can be ignored if it affects port and protocol are outside of internet service profile
+        # vulnerability can be ignored if it affects port and protocol outside of internet service profile
         match host.service_profile:
             case HostServiceContract.HTTP:
-                relevant_ports = ['general', '80', '443']
-                relevant_protocols = ['ip', 'tcp']
+                unblocked_locations = [
+                    ('general', 'ip'),
+                    ('general', 'tcp'),
+                    ('80',      'tcp'),
+                    ('443',     'tcp'),
+                ]
+                if (vul.port, vul.proto.lower()) in unblocked_locations:
+                    risk = risk | RiskFlag.PORT_MATCH | RiskFlag.PROTO_MATCH
 
-                if vul.port in relevant_ports:
-                    risk = risk | RiskFlag.PORT_MATCH
-                if vul.proto.lower() in relevant_protocols:
-                    risk = risk | RiskFlag.PROTO_MATCH
             case HostServiceContract.SSH:
-                relevant_ports = ['general', '22']
-                relevant_protocols = ['ip', 'tcp']
-                
-                if vul.port in relevant_ports:
-                    risk = risk | RiskFlag.PORT_MATCH
-                if vul.proto.lower() in relevant_protocols:
-                    risk = risk | RiskFlag.PROTO_MATCH
+                unblocked_locations = [
+                    ('general', 'ip'),
+                    ('general', 'tcp'),
+                    ('22',      'tcp'),
+                ]
+                if (vul.port, vul.proto.lower()) in unblocked_locations:
+                    risk = risk | RiskFlag.PORT_MATCH | RiskFlag.PROTO_MATCH
+
             case HostServiceContract.HTTP_SSH:
-                relevant_ports = ['general', '80', '443', '22']
-                relevant_protocols = ['ip', 'tcp']
-                
-                if vul.port in relevant_ports:
-                    risk = risk | RiskFlag.PORT_MATCH
-                if vul.proto.lower() in relevant_protocols:
-                    risk = risk | RiskFlag.PROTO_MATCH
+                unblocked_locations = [
+                    ('general', 'ip'),
+                    ('general', 'tcp'),
+                    ('80',      'tcp'),
+                    ('443',     'tcp'),
+                    ('22',      'tcp'),
+                ]
+                if (vul.port, vul.proto.lower()) in unblocked_locations:
+                    risk = risk | RiskFlag.PORT_MATCH | RiskFlag.PROTO_MATCH
+
             case HostServiceContract.MULTIPURPOSE:
-                risk = risk | RiskFlag.PORT_MATCH | RiskFlag.PROTO_MATCH
+                # these services are always blocked at perimeter FW, so if vulnerability matches service there is no risk of exposure
+                # NOTE: depends on FW configuration
+                blocked_locations = [
+                    # Services in 'in-deny-srv-grp'
+                    ('270217', 'tcp'), # 27017-tcp
+                    ('67', 'tcp'), # bootps-tcp
+                    ('67', 'udp'), # bootps-udp
+                    ('19', 'tcp'), # chargen-tcp
+                    ('19', 'udp'), # chargen-udp
+                    ('53', 'tcp'), # domain-tcp
+                    ('53', 'udp'), # domain-udp
+                    ('23', 'tcp'), # port-23-tcp
+                    ('111', 'tcp'), # port-111-tcp
+                    ('111', 'udp'), # port-111-udp
+                    ('139', 'tcp'), # port-139-tcp
+                    ('139', 'udp'), # port-139-udp
+                    ('389', 'tcp'), # port-389-tcp-ldap
+                    ('445', 'tcp'), # port-445-tcp
+                    ('445', 'udp'), # port-445-udp
+                    ('515', 'tcp'), # port-515-tcp
+                    ('631', 'tcp'), # port-631-tcp
+                    ('636', 'tcp'), # port-636-tcp-ldap
+                    ('1801', 'tcp'), # port-1801-tcp-msmq
+                    ('9100', 'tcp'), # printer-pdl-data-stream-tcp
+                    ('9101', 'tcp'),
+                    ('9102', 'tcp'),
+                    ('9103', 'tcp'),
+                    ('9104', 'tcp'),
+                    ('9105', 'tcp'),
+                    ('9106', 'tcp'),
+                    ('9107', 'tcp'),
+                    ('9108', 'tcp'),
+                    ('9109', 'tcp'),
+                    ('9100', 'udp'), # printer-pdl-data-stream-udp
+                    ('9101', 'udp'),
+                    ('9102', 'udp'),
+                    ('9103', 'udp'),
+                    ('9104', 'udp'),
+                    ('9105', 'udp'),
+                    ('9106', 'udp'),
+                    ('9107', 'udp'),
+                    ('9108', 'udp'),
+                    ('9109', 'udp'),
+                    ('25', 'tcp'), # smtp-tcp
+                    ('25', 'udp'), # smtp-udp
+                    ('135', 'tcp'), # tcp-135
+                    ('3389', 'tcp'), # tcp-3389
+                    ('3389', 'udp'), # udp-3389
+                    ('5000', 'tcp'), # upnp-tcp
+                    ('5000', 'udp'), # upnp-udp
+                ]
+
+                if (vul.port, vul.proto.lower()) not in blocked_locations:
+                    risk = risk | RiskFlag.PORT_MATCH | RiskFlag.PROTO_MATCH
+
             case _:
                 logger.error("Invalid service profile: %s", host.service_profile.value)
         
