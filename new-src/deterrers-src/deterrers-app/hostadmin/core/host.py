@@ -43,7 +43,7 @@ class MyHost():
 
 
     def __str__(self) -> str:
-        return f"IPv4: {str(self.ipv4_addr)} ({self.get_dns_rcs_display()}) Status: {self.get_status_display()} Service Profile: {self.get_service_profile_display()} FW: {self.get_fw_display()}"
+        return f"IPv4: {str(self.ipv4_addr)} Status: {self.get_status_display()} Service Profile: {self.get_service_profile_display()} FW: {self.get_fw_display()}"
     
     def __eq__(self, other):
         return ipaddress.IPv4Address(self.ipv4_addr) == ipaddress.IPv4Address(other.ipv4_addr)
