@@ -118,7 +118,7 @@ MIDDLEWARE = [
 
 # e-mail configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend' # 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = f'no-reply@{DOMAIN_NAME}'
+DEFAULT_FROM_EMAIL = f'no-reply+deterrers@rz.uni-osnabrueck.de'
 EMAIL_HOST = os.environ.get('SMTP_URL', 'localhost')
 EMAIL_PORT = os.environ.get('SMTP_PORT', 25)
 EMAIL_HOST_USER = os.environ.get('SMTP_USERNAME', '')
