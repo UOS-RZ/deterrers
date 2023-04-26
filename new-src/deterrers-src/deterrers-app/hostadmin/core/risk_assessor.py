@@ -201,6 +201,41 @@ def assess_vulnerability_risk(
                     ('3389', 'udp'), # udp-3389
                     ('5000', 'tcp'), # upnp-tcp
                     ('5000', 'udp'), # upnp-udp
+                    # Applications in 'in-deny-app-grp'
+                    ('138', 'udp'), # netbios-dg
+                    ('137', 'udp'), # netbios-ns
+                    ('137', 'tcp'),
+                    ('139', 'tcp'), # netbios-ss
+                    ('19', 'tcp'), # chargen
+                    ('19', 'udp'),
+                    ('67', 'tcp'), # dhcp
+                    ('67', 'udp'),
+                    ('68', 'tcp'),
+                    ('68', 'udp'),
+                    ('53', 'udp'), # dns
+                    ('53', 'tcp'),
+                    ('631', 'tcp'), # ipp
+                    ('515', 'tcp'), # lpd
+                    ('1433', 'tcp'), # mssql-db
+                    ('1433', 'udp'),
+                    ('1434', 'udp'), # mssql-mon
+                    ('123', 'udp'), # ntp
+                    ('25', 'tcp'), # smtp
+                    ('161', 'udp'), # snmp
+                    ('162', 'udp'), # snmp-trap
+                    ('9100', 'tcp'), # hp-jetdirect
+                    ('1900', 'udp'), # ssdp
+                    ('9200', 'tcp'), # elastic-search
+                    ('6379', 'tcp'), # redis
+                    ('27017', 'tcp'), # mongodb
+                    ('445', 'tcp'), # ms-ds-smb
+                    ('139', 'tcp'),
+                    ('23', 'tcp'), # telnet
+                    ('3389', 'tcp'), # ms-rdp
+                    ('3389', 'udp'),
+                    ('1503', 'tcp'), # t.120
+                    ('389', 'tcp'), # ldap
+                    ('636', 'tcp'),
                 ]
 
                 if (vul.port, vul.proto.lower()) not in blocked_locations:
