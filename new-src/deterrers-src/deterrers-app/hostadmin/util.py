@@ -234,20 +234,23 @@ def extract_report_data(report) -> tuple[str, str, dict]:
         results = {}
 
         for result_xml in results_xml:
-            result_uuid = result_xml.attrib['id']
-            host_ip = result_xml.xpath('host')[0].text
-            port_proto = result_xml.xpath('port')[0].text
-            if port_proto and len(port_proto.split('/')) == 2:
-                port = port_proto.split('/')[0]
-                proto = port_proto.split('/')[1]
-            else:
-                port = ''
-                proto = ''
-            hostname = result_xml.xpath('host/hostname')[0].text
-            nvt_name = result_xml.xpath('nvt/name')[0].text
-            nvt_oid = result_xml.xpath('nvt')[0].attrib['oid']
-            qod = result_xml.xpath('qod/value')[0].text
-            severities = result_xml.xpath('nvt/severities/severity')
+            try:
+                result_uuid = result_xml.attrib['id']
+                host_ip = result_xml.xpath('host')[0].text
+                port_proto = result_xml.xpath('port')[0].text
+                if port_proto and len(port_proto.split('/')) == 2:
+                    port = port_proto.split('/')[0]
+                    proto = port_proto.split('/')[1]
+                else:
+                    port = str(port_proto)
+                    proto = ''
+                hostname = result_xml.xpath('host/hostname')[0].text
+                nvt_name = result_xml.xpath('nvt/name')[0].text
+                nvt_oid = result_xml.xpath('nvt')[0].attrib['oid']
+                qod = result_xml.xpath('qod/value')[0].text
+                severities = result_xml.xpath('nvt/severities/severity')
+            except:
+                continue
             cvss_severities = []
             for severity in severities:
                 cvss_severities.append(
