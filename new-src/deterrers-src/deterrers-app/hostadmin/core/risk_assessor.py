@@ -236,6 +236,8 @@ def assess_vulnerability_risk(
                     ('1503', 'tcp'), # t.120
                     ('389', 'tcp'), # ldap
                     ('636', 'tcp'),
+                    # exclude other locations
+                    ('package', ''),
                 ]
 
                 if (vul.port, vul.proto.lower()) not in blocked_locations:
