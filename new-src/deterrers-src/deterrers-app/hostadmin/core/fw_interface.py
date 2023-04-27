@@ -25,7 +25,7 @@ class PaloAltoInterface():
 
     TIMEOUT = 60*5
     VERSION = "v10.1"
-    LOCATION = 'vsys&vsys=vsys1' # TODO: change location in production
+    LOCATION = 'vsys&vsys=vsys4' # TODO: change location in production
 
     def __init__(self, username : str, password : str, fw_url : str):
         self.username = username
