@@ -981,7 +981,7 @@ def v_scanner_periodic_alert(request):
 
                 # send complete report to DETERRERS admin
                 # get HTML report and send via e-mail to admin
-                report_html = scanner.get_report_html(report_uuid)
+                report_html = None# scanner.get_report_html(report_uuid)
                 admin_addresses = [settings.DJANGO_SUPERUSER_USERNAME+"@uos.de"]
                 __send_report_email(
                     report_html,
