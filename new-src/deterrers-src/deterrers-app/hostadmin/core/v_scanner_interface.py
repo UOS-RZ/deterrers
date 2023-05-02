@@ -884,13 +884,26 @@ class GmpVScannerInterface():
         return True
 
     def update_periodic_scan_target(self) -> bool:
+        """
+        Set the target which is used to stash changes to the periodic scan target while the scan
+        runs as the new periodic scan target and delete the old target.
+        If no stash target exists no new target must be set.
+
+        Returns:
+            bool: Returns True on success or if no stash target exists. False otherwise
+        """
         try:
             # get task uuids
             _, task_uuid, old_target_uuid = self.__get_task_info(self.PERIODIC_TASK_NAME)
             _, cve_task_uuid, _ = self.__get_task_info(self.PERIODIC_CVE_TASK_NAME)
+            
+            # get stash target id
+            new_target_uuid = self.__get_target_id(self.PERIODIC_TASK_STASH_TARGET_NAME)
+            if not new_target_uuid:
+                # return True if no stash target exists
+                return True
 
             # rename stash target which will be the new target for periodic tasks
-            new_target_uuid = self.__get_target_id(self.PERIODIC_TASK_STASH_TARGET_NAME)
             self.__modify_target(new_target_uuid, f"Target for task '{self.PERIODIC_TASK_NAME}' | {datetime.now()}", None)
 
             # set stash target as new target of periodic tasks
