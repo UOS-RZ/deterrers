@@ -96,14 +96,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',              # needed
     'django.contrib.messages',              # needed
     'django.contrib.staticfiles',           # needed
-    # Custom applications
-    'hostadmin.apps.HostadminConfig',
-    'myuser.apps.MyuserConfig',
     # Third-party applications
     'django_python3_ldap',
     'django_bootstrap5',
     'rest_framework',
     'rest_framework.authtoken',
+    'maintenance_mode',
+    # Custom applications
+    'hostadmin.apps.HostadminConfig',
+    'myuser.apps.MyuserConfig',
 ]
 
 MIDDLEWARE = [
@@ -114,6 +115,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'maintenance_mode.middleware.MaintenanceModeMiddleware'
 ]
 
 # e-mail configuration
@@ -261,3 +263,12 @@ FIREWALL_USERNAME = os.environ.get('FIREWALL_USERNAME')
 FIREWALL_SECRET_KEY = os.environ.get('FIREWALL_SECRET_KEY')
 
 DJANGO_SUPERUSER_USERNAME = os.environ.get('DJANGO_SUPERUSER_USERNAME', '')
+
+MAINTENANCE_MODE = os.environ.get('MAINTENANCE_MODE', False)
+# if True admin site will not be affected by the maintenance-mode page
+MAINTENANCE_MODE_IGNORE_ADMIN_SITE = True
+# if True the superuser will not see the maintenance-mode page
+MAINTENANCE_MODE_IGNORE_SUPERUSER = True
+# list of urls that will not be affected by the maintenance-mode
+# urls will be used to compile regular expressions objects
+MAINTENANCE_MODE_IGNORE_URLS = ()
