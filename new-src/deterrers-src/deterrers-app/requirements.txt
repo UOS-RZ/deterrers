@@ -12,3 +12,4 @@ pyyaml
 uritemplate
 cvss
 markdown
+django-maintenance-mode
