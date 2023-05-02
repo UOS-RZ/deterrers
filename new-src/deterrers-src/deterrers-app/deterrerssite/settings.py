@@ -264,7 +264,7 @@ FIREWALL_SECRET_KEY = os.environ.get('FIREWALL_SECRET_KEY')
 
 DJANGO_SUPERUSER_USERNAME = os.environ.get('DJANGO_SUPERUSER_USERNAME', '')
 
-MAINTENANCE_MODE = os.environ.get('MAINTENANCE_MODE', False)
+MAINTENANCE_MODE = os.environ.get('MAINTENANCE_MODE', '') == 'True'
 # if True admin site will not be affected by the maintenance-mode page
 MAINTENANCE_MODE_IGNORE_ADMIN_SITE = True
 # if True the superuser will not see the maintenance-mode page
