@@ -25,7 +25,7 @@ from .core.v_scanner_interface import GmpVScannerInterface
 from .core.fw_interface import PaloAltoInterface
 from .core.risk_assessor import assess_host_risk
 from .core.rule_generator import generate_fw_config
-from .core.contracts import HostBasedRuleSubnetContract, HostBasedRuleProtocolContract, HostStatusContract, HostServiceContract, HostFWContract, PaloAltoAddressGroup
+from .core.contracts import HostBasedPolicySrcContract, HostBasedPolicyProtocolContract, HostStatusContract, HostServiceContract, HostFWContract, PaloAltoAddressGroup
 
 
 from myuser.models import MyUser
@@ -64,6 +64,15 @@ def __send_report_email(report_html : str|None, subject : str, str_body : str, t
 
 @require_http_methods(['GET',])
 def about_view(request):
+    """
+    Function-based view serving the landing page.
+
+    Args:
+        request (): Request object
+
+    Returns:
+        HTTPResponse: Rendered HTML page.
+    """
     context = {
         'changelog' : add_changelog()
     }
@@ -71,6 +80,15 @@ def about_view(request):
 
 @require_http_methods(['GET',])
 def api_schema(request):
+    """
+    Function-based view serving the API schema.
+
+    Args:
+        request (): Request object
+
+    Returns:
+        HTTPResponse: Rendered HTML page.
+    """
     with open(pathlib.Path(settings.BASE_DIR / 'hostadmin').joinpath('api/schema.md'), 'r', encoding='utf-8') as f:
         context = {
             'schema_html' : markdown.markdown(f.read()),
@@ -118,7 +136,7 @@ def host_detail_view(request, ipv4 : str):
         if request.method == 'POST':
             form = AddHostRulesForm(request.POST)
             if form.is_valid():
-                subnet = HostBasedRuleSubnetContract[form.cleaned_data['subnet']].value
+                subnet = HostBasedPolicySrcContract[form.cleaned_data['subnet']].value
                 ports = form.cleaned_data['ports']
                 proto = form.cleaned_data['protocol']
                 # update the actual model instance
@@ -137,7 +155,7 @@ def host_detail_view(request, ipv4 : str):
         'hostadmin' : hostadmin,
         'host_detail' : host,
         'host_rules' : [
-                {'allow_src': HostBasedRuleSubnetContract(p.allow_srcs).display(),
+                {'allow_src': HostBasedPolicySrcContract(p.allow_srcs).display(),
                 'allow_ports' : p.allow_ports,
                 'allow_proto' : p.allow_proto,
                 'id' : p.id}
@@ -320,11 +338,11 @@ def update_host_detail(request, ipv4 : str):
                 if not ipam.update_host_info(host):
                     form.add_error(None, "Host information could not be updated! Try again later...")
                     # redirect to a new URL:
-                    return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ip_escaped()}))
+                    return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ipv4_escaped()}))
 
                 if not service_profile_change and not fw_change:
                     # return immediatly if nothing was changed
-                    return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ip_escaped()}))
+                    return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ipv4_escaped()}))
                 elif service_profile_change:
                     # if host is already online, update the perimeter FW
                     if host.status == HostStatusContract.ONLINE:
@@ -349,15 +367,15 @@ def update_host_detail(request, ipv4 : str):
                             pass
                         case (HostServiceContract.SSH | HostServiceContract.HTTP | HostServiceContract.HTTP_SSH) as s_p:
                             # allow SSH standard port 22 over TCP if a service profile is specified
-                            host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['22'], HostBasedRuleProtocolContract.TCP.value)
+                            host.add_host_based_policy(HostBasedPolicySrcContract.ANY.value, ['22'], HostBasedPolicyProtocolContract.TCP.value)
                             match s_p:
                                 case HostServiceContract.SSH:
                                     # since SSH rules have already been added do nothing else
                                     pass
                                 case (HostServiceContract.HTTP | HostServiceContract.HTTP_SSH):
                                     # allow HTTP and HTTPS standard ports 80 and 443 over TCP
-                                    host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['80'], HostBasedRuleProtocolContract.TCP.value)
-                                    host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['443'], HostBasedRuleProtocolContract.TCP.value)
+                                    host.add_host_based_policy(HostBasedPolicySrcContract.ANY.value, ['80'], HostBasedPolicyProtocolContract.TCP.value)
+                                    host.add_host_based_policy(HostBasedPolicySrcContract.ANY.value, ['443'], HostBasedPolicyProtocolContract.TCP.value)
                         case HostServiceContract.MULTIPURPOSE:
                             # allow nothing else; users are expected to configure their own rules
                             messages.warning(request, f"Please make sure to configure custom rules for your desired services when choosing the {HostServiceContract.MULTIPURPOSE.value} profile!")
@@ -367,7 +385,7 @@ def update_host_detail(request, ipv4 : str):
                 
                 
                 # redirect to a new URL:
-                return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ip_escaped()}))
+                return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ipv4_escaped()}))
                 
         else:
             form = ChangeHostDetailForm(
@@ -443,7 +461,7 @@ def register_host(request, ipv4 : str):
                     messages.error(request, "Not possible to start registration at the moment! Try again later...")
 
     # redirect to a new URL:
-    return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ip_escaped()}))
+    return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ipv4_escaped()}))
 
 
 @login_required
@@ -502,7 +520,7 @@ def scan_host(request, ipv4 : str):
                     messages.error(request, "Not possible to start scan at the moment! Try again later...")
 
     # redirect to a new URL:
-    return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ip_escaped()}))
+    return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ipv4_escaped()}))
 
 @login_required
 @require_http_methods(['POST', ])
@@ -545,7 +563,7 @@ def block_host(request, ipv4 : str):
         messages.error(request, "Couldn't block host!")
 
     # redirect to a new URL:
-    return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ip_escaped()}))
+    return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ipv4_escaped()}))
 
 
 @login_required
@@ -592,7 +610,7 @@ def delete_host_rule(request, ipv4 : str, rule_id : uuid.UUID):
         if not ipam.update_host_info(host):
             messages.error(request, "Host could not be updated! Try again later...")
 
-    return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ip_escaped()}))
+    return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ipv4_escaped()}))
 
 
 @login_required
@@ -631,7 +649,7 @@ def get_fw_config(request, ipv4 : str):
         if not host.is_valid():
             logger.warning("Host '%s' is not valid!", str(host))
             messages.error(request, "Host is not valid!")
-            return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ip_escaped()}))
+            return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ipv4_escaped()}))
 
 
     script = generate_fw_config(host.fw, host.host_based_policies)
@@ -648,20 +666,15 @@ def get_fw_config(request, ipv4 : str):
 @require_http_methods(['POST',])
 def remove_host(request, ipv4 : str):
     """
-    TODO: docu
+    Remove a host from DETERRERS.
+    Sets all fields to blank, removes all admins, blocks at perimeter, removes IP from periodic scan.
 
     Args:
-        request (_type_): _description_
-        ipv4 (str): _description_
-
-    Raises:
-        RuntimeError: _description_
-        RuntimeError: _description_
-        RuntimeError: _description_
-        RuntimeError: _description_
+        request (_type_): Rquest object.
+        ipv4 (str): IPv4 address of host to remove
 
     Returns:
-        _type_: _description_
+        _type_: Returns a redirect to host-list page on success.
     """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
@@ -888,7 +901,17 @@ def v_scanner_scan_alert(request):
 
 @require_http_methods(['GET',])
 def v_scanner_periodic_alert(request):
-    # TODO
+    """
+    Processes the alert send by the v-scanner when an periodic scan has completed.
+    The scan report will be assessed and admins notified.
+
+    Args:
+        request (_type_): Request object.
+
+    Returns:
+        HTTPResponse: Always returns response with status 200 because processing of the alert
+            happens independently in daemon thread.
+    """
     logger.info("Received notification from v-scanner that a periodic scan completed.")
 
     # TODO: check request origin to be scanner

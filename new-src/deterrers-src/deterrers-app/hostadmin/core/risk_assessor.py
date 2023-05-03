@@ -8,7 +8,9 @@ from hostadmin.core.contracts import HostServiceContract
 logger = logging.getLogger(__name__)
 
 class VulnerabilityScanResult():
-
+    """
+    Representation of a scan result with all important features.
+    """
     def __init__(self, uuid : str, host_ip : str, port : str, proto : str, hostname : str, nvt_name : str, nvt_oid : str, qod : int, cvss_version : int, cvss_base_score : float, cvss_base_vector : str, refs : list[str]) -> None:
         self.uuid = str(uuid)
         self.host_ip = str(host_ip)
@@ -24,6 +26,9 @@ class VulnerabilityScanResult():
         self.refs = list(refs)
 
 class RiskFlag(Flag):
+    """
+    Flagging system which enables risk assessment decisions by comparing flags.
+    """
     NONE = 0
     HIGH_QOD = auto()
     REMOTE = auto()
@@ -36,6 +41,16 @@ class RiskFlag(Flag):
 
 
 def __is_remote_exploitable(version : int, cvss_vector : str) -> bool:
+    """
+    Check if a given CVSS vector has the Attack Vector metric set to 'Network'.
+
+    Args:
+        version (int): CVSS verison of the vector.
+        cvss_vector (str): CVSS vector.
+
+    Returns:
+        bool: Returns True if CVSS vector has 'AV'-metric set to 'Network'.
+    """
     if version == 2:
         score = CVSS2(cvss_vector)
     elif version == 3:
@@ -48,9 +63,19 @@ def __is_remote_exploitable(version : int, cvss_vector : str) -> bool:
     return False
 
 def adapt_cvss_score(vul : VulnerabilityScanResult) -> float:
-    # set the Availability Impact metric to None because reaction to this risk is blocking (i.e. making it unavailable)
-    # NOTE: using Availability Requirement metric from environmental metrics is not fitting because
-    # possible values are 'Low' and 'High' which both won't cancle out Availability Impact completely
+    """
+    Adapts the CVSS base score of a given scan result to the context of DETERRERS.
+    Sets the Availability Impact metric to None because reaction to high risks is blocking (i.e. making it unavailable)
+    NOTE: using Availability Requirement metric from environmental metrics is not fitting because
+    possible values are 'Low' and 'High' which both won't cancle out Availability Impact completely
+
+    Args:
+        vul (VulnerabilityScanResult): Vulnerability scan result which holds a CVSS base score.
+
+    Returns:
+        float: Returns the adapted CVSS base score.
+    """
+
     if vul.cvss_version == 2:
         score = CVSS2(vul.cvss_base_vector)
         score.metrics['A'] = 'N'
@@ -65,6 +90,15 @@ def adapt_cvss_score(vul : VulnerabilityScanResult) -> float:
     return vul.cvss_base_score
 
 def __block_worthy(risk_flags : RiskFlag) -> bool:
+    """
+    Decide if risk flags trigger blocking.
+
+    Args:
+        risk_flags (RiskFlag): Risk flags of a vulnerability.
+
+    Returns:
+        bool: Returns True if relevant flags are set.
+    """
     # only condition triggers if QoD is higher than threshold, if remotely exploitable, if port and protocol matches service profile and if adapted CVSS is high
     block_flags = (RiskFlag.HIGH_QOD | RiskFlag.REMOTE | RiskFlag.PORT_MATCH | RiskFlag.PROTO_MATCH | RiskFlag.HIGH_CVSS_NO_AVAILABILITY)
     if block_flags in risk_flags:
@@ -72,6 +106,15 @@ def __block_worthy(risk_flags : RiskFlag) -> bool:
     return False
 
 def __notify_worthy(risk_falgs : RiskFlag) -> bool:
+    """
+    Decide if risk flags trigger notification.
+
+    Args:
+        risk_falgs (RiskFlag): Risk flags of a vulnerability.
+
+    Returns:
+        bool: Returns True if relevant flags are set.
+    """
     # 1st condition is same as block-condition except that it already triggers for medium adapted CVSS scores
     notify_flags = (RiskFlag.HIGH_QOD | RiskFlag.REMOTE | RiskFlag.PORT_MATCH | RiskFlag.PROTO_MATCH | RiskFlag.MEDIUM_CVSS_NO_AVAILABILITY)
     if notify_flags in risk_falgs:
@@ -270,17 +313,17 @@ def assess_host_risk(
         high_cvss_threshold : float = 7.0
     ) -> tuple[list[VulnerabilityScanResult], list[VulnerabilityScanResult]]:
     """
-    TODO: docu
+    Assess the risk for a host on basis of given list of vulnerability scan results.
 
     Args:
-        host (MyHost): _description_
-        vuls (list[VulnerabilityScanResult]): _description_
-        qod_threshold (int, optional): _description_. Defaults to 70.
-        medium_cvss_threshold (float, optional): _description_. Defaults to 4.0.
-        high_cvss_threshold (float, optional): _description_. Defaults to 7.0.
+        host (MyHost): Host instance.
+        vuls (list[VulnerabilityScanResult]): List of vulnerability scan results.
+        qod_threshold (int, optional): Quality of Detection threshold used to reduce false positives. Defaults to 70.
+        medium_cvss_threshold (float, optional): Threshold at which CVSS scores are interpreted as medium severe. Defaults to 4.0.
+        high_cvss_threshold (float, optional): Threshold at which CVSS scores are interpreted as highly severe. Defaults to 7.0.
 
     Returns:
-        tuple[list[VulnerabilityScanResult], list[VulnerabilityScanResult]]: _description_
+        tuple[list[VulnerabilityScanResult], list[VulnerabilityScanResult]]: Returns one list with vulnerabilities that triggered a blocking and one list with vulnerabilities that triggered a notification.
     """
     block_reasons = []
     notify_reasons = []

@@ -1,7 +1,10 @@
 from enum import Enum
 
 
-class HostBasedRuleSubnetContract(Enum):
+class HostBasedPolicySrcContract(Enum):
+    """
+    Enumeration for grouping network segments into allow-sources in host-based FW policies.
+    """
     ANY = {
         'name' : 'Any',
         'range' : ['0.0.0.0/0']
@@ -45,7 +48,10 @@ class HostBasedRuleSubnetContract(Enum):
     def display(self):
         return f"{self.value['name']}"
 
-class HostBasedRuleProtocolContract(Enum):
+class HostBasedPolicyProtocolContract(Enum):
+    """
+    Enumeration for supported protocols in host-based FW policies.
+    """
     TCP = "tcp"
     UDP = "udp"
     # ANY = "any" # cannot be modelled with firewalld and nftables, so we do not support it in the meantime
@@ -54,12 +60,18 @@ class HostBasedRuleProtocolContract(Enum):
 
 
 class HostStatusContract(Enum):
+    """
+    Definition of possible states of hosts.
+    """
     UNREGISTERED =  'Unregistered'
     UNDER_REVIEW =  'Under Review'
     BLOCKED =       'Blocked'
     ONLINE =        'Online'
 
 class HostServiceContract(Enum):
+    """
+    Definition of possible service profiles of hosts.
+    """
     HTTP =          'HTTP'
     SSH =           'SSH'
     HTTP_SSH =      'HTTP+SSH'
@@ -67,6 +79,9 @@ class HostServiceContract(Enum):
     EMPTY =         ''
 
 class HostFWContract(Enum):
+    """
+    Definition of possible host-based FW tools of hosts.
+    """
     UFW =       'UFW'
     FIREWALLD = 'FirewallD'
     NFTABLES =  'nftables'

@@ -143,8 +143,17 @@ fi
 """
 
 
-def __generate_ufw__script(custom_rules : list[HostBasedPolicy]) -> str|None:
-    rule_config = ""
+def __generate_ufw__script(custom_policies : list[HostBasedPolicy]) -> str:
+    """
+    Generates a configuration script for ufw.
+
+    Args:
+        custom_policies (list[HostBasedPolicy]): List of allow-policies.
+
+    Returns:
+        str: Configuration script as string.
+    """
+    policy_config = ""
     # the preamble is the same for every service profile
     PREAMBLE = \
 f"""#!/bin/bash
@@ -168,15 +177,15 @@ ufw default allow outgoing
 """
 
     ## construct custom rules
-    for n, c_rule in enumerate(custom_rules):
-        allow_srcs = c_rule.allow_srcs
-        allow_ports = c_rule.allow_ports
-        allow_proto = c_rule.allow_proto
-        rule_config += \
+    for n, c_policy in enumerate(custom_policies):
+        allow_srcs = c_policy.allow_srcs
+        allow_ports = c_policy.allow_ports
+        allow_proto = c_policy.allow_proto
+        policy_config += \
 f"""
 # set custom rule no. {n}"""
         for src in allow_srcs['range']:
-            rule_config += \
+            policy_config += \
 f"""
 ufw allow proto {allow_proto} from {src} to any port {','.join(allow_ports)} comment 'Custom DETERRERS rule no. {n}' """
 
@@ -187,12 +196,21 @@ ufw allow proto {allow_proto} from {src} to any port {','.join(allow_ports)} com
 # finally enable the host-based firewall again
 ufw enable
 """
-    return PREAMBLE + rule_config + POSTAMBLE
+    return PREAMBLE + policy_config + POSTAMBLE
 
 
 
-def __generate_firewalld__script(custom_rules : list[HostBasedPolicy]) -> str|None:
-    rule_config = ""
+def __generate_firewalld__script(custom_policies : list[HostBasedPolicy]) -> str:
+    """
+    Generates a configuration script for firewalld.
+
+    Args:
+        custom_policies (list[HostBasedPolicy]): List of allow-policies.
+
+    Returns:
+        str: Configuration script as string.
+    """
+    policy_config = ""
     CUSTOM_ZONE = "deterrers-zone"
     PREAMBLE = \
 f"""#!/bin/bash
@@ -209,7 +227,7 @@ su - root -c "rm -rf /etc/firewalld/zones/*"
 firewall-cmd --complete-reload"""
 
     # create new zone and make it default
-    rule_config += \
+    policy_config += \
 f"""
 # create custom zone
 firewall-cmd --permanent --new-zone={CUSTOM_ZONE}
@@ -220,11 +238,11 @@ firewall-cmd --reload
 """
 
     ## construct custom rules as rich rules because abstraction to zone does not work as long as sources cannot overlap
-    for n, c_rule in enumerate(custom_rules):
-        allow_srcs = c_rule.allow_srcs['range']
-        allow_ports = c_rule.allow_ports
-        allow_proto = c_rule.allow_proto
-        rule_config += \
+    for n, c_policy in enumerate(custom_policies):
+        allow_srcs = c_policy.allow_srcs['range']
+        allow_ports = c_policy.allow_ports
+        allow_proto = c_policy.allow_proto
+        policy_config += \
 f"""
 # set custom rule no. {n}"""
         for src in allow_srcs:
@@ -237,7 +255,7 @@ f"""
                 continue
             for port in allow_ports:
                 port = port.replace(':', '-') # firewalld uses 'x-y'-notation for port ranges
-                rule_config += \
+                policy_config += \
 f"""
 firewall-cmd --zone={CUSTOM_ZONE} --add-rich-rule='rule family={allow_family} source address={src} port port={port} protocol={allow_proto}  accept' """
 
@@ -255,12 +273,21 @@ firewall-cmd --runtime-to-permanent
 
 firewall-cmd --reload
 """
-    return PREAMBLE + rule_config + POSTAMBLE
+    return PREAMBLE + policy_config + POSTAMBLE
 
 
 
-def __generate_nftables__script(custom_rules : list[HostBasedPolicy]) -> str|None:
-    rule_config = ""
+def __generate_nftables__script(custom_policy : list[HostBasedPolicy]) -> str:
+    """
+    Generates a configuration script for nftables.
+
+    Args:
+        custom_policies (list[HostBasedPolicy]): List of allow-policies.
+
+    Returns:
+        str: Configuration script as string.
+    """
+    policy_config = ""
     PREAMBLE = \
 f"""#!/bin/bash
 # This script should be run with sudo permissions!
@@ -307,22 +334,22 @@ table inet filter {{
 """
     
     ## construct the custom rules
-    for n, c_rule in enumerate(custom_rules):
-        allow_srcs = c_rule.allow_srcs['range']
-        allow_ports = c_rule.allow_ports
-        allow_proto = c_rule.allow_proto
-        rule_config += \
+    for n, c_policy in enumerate(custom_policy):
+        allow_srcs = c_policy.allow_srcs['range']
+        allow_ports = c_policy.allow_ports
+        allow_proto = c_policy.allow_proto
+        policy_config += \
 f"""
         # set custom rule no. {n}"""
         allow_ports = [p.replace(':', '-') for p in allow_ports] # nftables uses 'x-y'-notation for port ranges
         allow_srcs_ipv4 = [src for src in allow_srcs if isinstance(ipaddress.ip_network(src), ipaddress.IPv4Network)]
         if len(allow_srcs_ipv4) > 0:
-            rule_config += \
+            policy_config += \
 f"""
         ip saddr {{ {','.join(allow_srcs_ipv4)} }} {allow_proto} dport {{ {','.join(allow_ports)} }} accept"""
         allow_srcs_ipv6 = [src for src in allow_srcs if isinstance(ipaddress.ip_network(src), ipaddress.IPv6Network)]
         if len(allow_srcs_ipv6) > 0:
-            rule_config += \
+            policy_config += \
 f"""
         ip6 saddr {{ {','.join(allow_srcs_ipv6)} }} {allow_proto} dport {{ {','.join(allow_ports)} }} accept"""
 
@@ -336,10 +363,10 @@ f"""
 systemctl enable nftables.service
 systemctl restart nftables
 """
-    return PREAMBLE + rule_config + POST_AMBLE
+    return PREAMBLE + policy_config + POST_AMBLE
 
 
-def generate_fw_config(fw : HostFWContract, custom_rules : list[HostBasedPolicy]) -> str|None:
+def generate_fw_config(fw : HostFWContract, custom_policies : list[HostBasedPolicy]) -> str|None:
     """
     Generate/Suggest a firewall configuration script for some combination of fw program and service profile.
     Additionally consider custom rules that might be specified.
@@ -347,14 +374,17 @@ def generate_fw_config(fw : HostFWContract, custom_rules : list[HostBasedPolicy]
     Args:
         fw (HostFWContract): Firewall program.
         custom_rules (list[dict]): List of host-based firewall policies.
+
+    Returns:
+        str|None: Configuration script as string. None on error.
     """
     match fw:
         case HostFWContract.UFW:
-            script = __generate_ufw__script(custom_rules)
+            script = __generate_ufw__script(custom_policies)
         case HostFWContract.FIREWALLD:
-            script = __generate_firewalld__script(custom_rules)
+            script = __generate_firewalld__script(custom_policies)
         case HostFWContract.NFTABLES:
-            script = __generate_nftables__script(custom_rules)
+            script = __generate_nftables__script(custom_policies)
         case _:
             logger.error(f"Firewall '{fw}' is not supported by rule generator!")
             return None
