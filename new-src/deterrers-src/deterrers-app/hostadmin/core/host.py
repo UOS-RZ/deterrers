@@ -51,14 +51,14 @@ class MyHost():
     def __lt__(self, other):
         return ipaddress.IPv4Address(self.ipv4_addr) < ipaddress.IPv4Address(other.ipv4_addr)
 
-    def get_ip_escaped(self) -> str:
+    def get_ipv4_escaped(self) -> str:
         return str(self.ipv4_addr).replace('.', '_')
 
     def get_absolute_url(self):
         """
         Returns the url of this host by using reverse()-function.
         """
-        return reverse('host_detail', kwargs={'ipv4' : self.get_ip_escaped()})
+        return reverse('host_detail', kwargs={'ipv4' : self.get_ipv4_escaped()})
 
     def get_service_profile_display(self) -> str:
         return self.service_profile.value
@@ -73,6 +73,17 @@ class MyHost():
         return ", ".join(self.dns_rcs)
 
     def add_host_based_policy(self, subnets : dict, ports : list[str], proto : str) -> bool:
+        """
+        Adds a host-based FW policy to a host.
+
+        Args:
+            subnets (dict): A dict with fields 'name' and 'range' that specify the allow-src.
+            ports (list[str]): List of port definitions that are to be allowed.
+            proto (str): Protocol to allow.
+
+        Returns:
+            bool: Returns True if policy was added and False if policy is redundant by existing policies.
+        """
         new_policy = HostBasedPolicy(subnets, ports, proto)
         for policy in self.host_based_policies:
             if new_policy.is_subset_of(policy):

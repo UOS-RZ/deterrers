@@ -176,6 +176,8 @@ class GmpVScannerInterface():
             alterable (bool, optional): Whether to create the task as alterable. Defaults to False.
             schedule_uuid (str|None, optional): UUID of the schedule. Defaults to None.
             hosts_ordering (HostsOrdering): Enum instance for configuring the ordering of target hosts. Defaults to random.
+            max_conc_nvts (int, optional): Max. concurrently executed NVTs. Defaults to 64.
+            max_conc_hosts (int, optional): Max. concurrently scanned hosts. Defaults to 20.
 
         Raises:
             GmpAPIError: If vulnerability scanner could not create the task.
@@ -317,7 +319,7 @@ class GmpVScannerInterface():
         return set(hosts)
 
 
-    def __create_http_alert(self, alert_name : str):
+    def __create_http_alert(self, alert_name : str) -> str:
         """
         Creates an alert that issues a HTTP GET request to the DETERRERS server with all relevant0
         UUIDs as query parameters.
@@ -478,6 +480,16 @@ class GmpVScannerInterface():
         return schedule_uuid
 
     def __create_cal(self, start_delta : timedelta, freq : str = 'weekly') -> icalendar.Calendar:
+        """
+        Create a ICalender instance with scheduled events with given frequency.
+
+        Args:
+            start_delta (timedelta): Delta when first event is scheduled.
+            freq (str, optional): Frequency of event. Defaults to 'weekly'.
+
+        Returns:
+            icalendar.Calendar: iCalender instance.
+        """
         now = datetime.utcnow()
         cal = icalendar.Calendar()
         # Some properties are required to be compliant
@@ -491,7 +503,19 @@ class GmpVScannerInterface():
         cal.add_component(event)
         return cal
 
-    def __get_task_info(self, task_name : str):
+    def __get_task_info(self, task_name : str) -> tuple:
+        """
+        Get info of a scan task.
+
+        Args:
+            task_name (str): Name of the task.
+
+        Raises:
+            GmpAPIError: Raised if task could not be queried.
+
+        Returns:
+            tuple: Returns XML of response, task UUID and target UUID.
+        """
         filter_str = f'"{task_name}" rows=-1 first=1'
         response = self.gmp.get_tasks(filter_string=filter_str)
         response_status = int(response.xpath('@status')[0])
@@ -540,7 +564,17 @@ class GmpVScannerInterface():
     #     if response_status not in (200, 201, 202, 203, 204):
     #         raise GmpAPIError(f"Couldn't modify schedule. Status: {response_status}")
 
-    def __set_new_target(self, task_uuid, new_target_uuid):
+    def __set_new_target(self, task_uuid : str, new_target_uuid : str):
+        """
+        Set new target on a task.
+
+        Args:
+            task_uuid (str): Task UUID.
+            new_target_uuid (str): UUID of new target.
+
+        Raises:
+            GmpAPIError: Raised if task could not be modified.
+        """
         response = self.gmp.modify_task(task_uuid, target_id=new_target_uuid)
         response_status = int(response.xpath('@status')[0])
         if response_status != 200:
@@ -729,6 +763,7 @@ class GmpVScannerInterface():
         Add a host to the periodic scan task which scans all hosts that are online once a week.
         Add also to the periodic CVE task.
         If the periodic scan task does not exist yet, it will be created.
+        If periodic scan is running changes are stashed in a new target.
 
         Args:
             host_ip (str): IP address to add to the periodic scan task.
@@ -809,6 +844,7 @@ class GmpVScannerInterface():
     def remove_host_from_periodic_scans(self, host_ip : str) -> bool:
         """
         Remove a host from the periodic scan tasks.
+        If periodic scan is running changes are stashed in a new target.
 
         Args:
             host_ip (str): IP address of the host that is to be removed.

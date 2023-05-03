@@ -18,8 +18,7 @@ class PaloAltoAPIError(Exception):
 class PaloAltoInterface():
     """
     Interface to the Palo Alto Firewall's PAN-OS v10.1.
-    Uses the REST API for object manipulation and XML API for configuration
-    and commiting the changes.
+    Uses the REST API for object manipulation and XML API for configuration and commiting changes.
     """
 
     TIMEOUT = 60*5
@@ -77,7 +76,7 @@ class PaloAltoInterface():
 
     def __acquire_config_lock(self):
         """
-        Acquire lock for this session.
+        Acquire configuration lock for this session.
         """
         while True:
             acquire_config_lock_url = self.xml_url + \
@@ -93,7 +92,7 @@ class PaloAltoInterface():
 
     def __release_config_lock(self):
         """
-        Release the lock for this session.
+        Release the configuration lock for this session.
         """
         # https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-panorama-api/pan-os-xml-api-request-types/run-operational-mode-commands-api
         while True:
@@ -218,7 +217,7 @@ from firewall! Status code: {response.status_code}. Status: {data.get('@status')
 
     def commit_changes(self):
         """
-        Commit changes of DETERRERS user.
+        Commit changes of current user.
 
         Returns:
             bool: Returns True on success and False on error.
@@ -258,7 +257,7 @@ from firewall! Status code: {response.status_code}. Status: {data.get('@status')
     
     def get_addr_objs_in_addr_grp(self, addr_grp : PaloAltoAddressGroup) -> set:
         """
-        Queries all the names of AddressObjects in the given AddressGroup.
+        Queries all the names of AddressObjects in a given AddressGroup.
 
         Args:
             addr_grp (PaloAltoAddressGroup): AddressGroup to get the IP addresses of.
@@ -373,7 +372,7 @@ Status code: {response.status_code}. Status: {data.get('@status')}")
 
     def get_host_status(self, ip_addr : str) -> HostStatusContract:
         """
-        Query the status of an host at the perimeter firewall.
+        Query the status of a host at the perimeter firewall.
 
         Args:
             ip_addr (str): IP address of the host.

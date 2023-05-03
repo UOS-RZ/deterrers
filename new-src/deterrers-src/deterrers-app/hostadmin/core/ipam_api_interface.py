@@ -69,8 +69,16 @@ class ProteusIPAMInterface():
         except requests.exceptions.ConnectionError:
             logger.exception('Could not estaplish connection to "%s"!', logout_url)
     
-    def __parse_ipam_host_entity(self, entity):
-        
+    def __parse_ipam_host_entity(self, entity) -> tuple:
+        """
+        Parses the (user-defined) fields of a IP4Address object in the IPAM.
+
+        Args:
+            entity (_type_): Dict with the relevant fields as returned by the IPAM.
+
+        Returns:
+            tuple: Returns parsed fields as tuple.
+        """
         try:
             host_id = entity['id']
         except (KeyError, TypeError):
@@ -155,7 +163,6 @@ class ProteusIPAMInterface():
                 if a_tag.get('name') == tag_name:
                     return a_tag['id']
 
-
     def __get_child_tags(self, parent_id : str) -> list[dict]:
         get_entities_parameters = f"count=1000&parentId={parent_id}&start=0&type=Tag"
         get_entities_url = self.main_url + "getEntities?" + get_entities_parameters
@@ -192,7 +199,6 @@ class ProteusIPAMInterface():
         return data
     
     def __get_linked_dns_records(self, host_ip : str) -> set[str]:
-
         dns_names = set()
         try:
             host_info = socket.gethostbyaddr(host_ip)
@@ -206,15 +212,15 @@ class ProteusIPAMInterface():
                 
         return dns_names
     
-    def get_id_of_addr(self, ipv4 : str) -> int:
+    def get_id_of_addr(self, ipv4 : str) -> int|None:
         """
-        TODO: docu
+        Get the entity ID of the IP4Address object in IPAM to a given IPv4 address.
 
         Args:
-            ipv4 (str): _description_
+            ipv4 (str): IPv4 address.
 
         Returns:
-            int: _description_
+            int|None: Entity ID of IP4Address object in IPAM. None on error.
         """
         try:
             id = int(self.__get_IP4Address(ipv4)['id'])
@@ -223,37 +229,37 @@ class ProteusIPAMInterface():
             return None
 
 
-    def get_host_info_from_ip(self, ip : str):
+    def get_host_info_from_ip(self, ipv4 : str) -> MyHost|None:
         """
         Queries the Proteus IPAM API for an entity with the given IP and returns an instance of MyHost.
 
         Args:
-            ii (str): IP address of the host entity in the Proteus IPAM system.
+            ipv4 (str): IPv4 address of the host entity in the Proteus IPAM system.
 
         Returns:
             MyHost: Returns an instance of MyHost populated with the fields from the IPAM system 
             and None on error.
         """
         # escape user input
-        ip = self.__escape_user_input(ip)
+        ipv4 = self.__escape_user_input(ipv4)
 
         # check if ip string has valid syntax
         try:
-            ipaddress.ip_address(ip)
+            ipaddress.ip_address(ipv4)
         except ValueError:
-            logger.error('IPAM API Interface received invalid IP: %s', ip)
+            logger.error('IPAM API Interface received invalid IP: %s', ipv4)
             return None
 
         try:
-            data = self.__get_IP4Address(ip)
-            host_id, name, ip, mac, status, service, fw, rules = self.__parse_ipam_host_entity(data)
+            data = self.__get_IP4Address(ipv4)
+            host_id, name, ipv4, mac, status, service, fw, rules = self.__parse_ipam_host_entity(data)
             # get all tagged admins
             tagged_admins = self.get_admins_of_host(host_id)
             # get dns records
-            dns_rcs = self.__get_linked_dns_records(ip)
+            dns_rcs = self.__get_linked_dns_records(ipv4)
 
             my_host = MyHost(
-                ipv4_addr=ip,
+                ipv4_addr=ipv4,
                 mac_addr=mac,
                 admin_ids=tagged_admins,
                 status=status,
@@ -277,7 +283,7 @@ class ProteusIPAMInterface():
         
         return None
 
-    def get_host_info_from_id(self, id : int):
+    def get_host_info_from_id(self, id : int) -> MyHost|None:
         """
         Queries the Proteus IPAM API for an entity with the given id and returns an instance of MyHost.
 
@@ -285,7 +291,7 @@ class ProteusIPAMInterface():
             id (int): Indentifier for the entity in the Proteus IPAM system.
 
         Returns:
-            MyHost: Returns an instance of MyHost populated with the fields from the IPAM system and
+            MyHost|None: Returns an instance of MyHost populated with the fields from the IPAM system and
             None on error.
         """
         try:
@@ -495,10 +501,10 @@ class ProteusIPAMInterface():
 
     def get_department_tags(self) -> list[dict]:
         """
-        TODO: docu
+        Get all department tag entities.
 
         Returns:
-            list[dict]: _description_
+            list[dict]: Returns a list of dicts holding the properties of the departmetn tag entities.
         """
         try:
             # simple caching of department tag names

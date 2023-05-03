@@ -15,7 +15,7 @@ from hostadmin.util import available_actions, set_host_bulk_offline, set_host_on
 from hostadmin.core.ipam_api_interface import ProteusIPAMInterface
 from hostadmin.core.v_scanner_interface import GmpVScannerInterface
 from hostadmin.core.host import MyHost
-from hostadmin.core.contracts import HostStatusContract, HostServiceContract, HostBasedRuleSubnetContract, HostBasedRuleProtocolContract, HostFWContract
+from hostadmin.core.contracts import HostStatusContract, HostServiceContract, HostBasedPolicySrcContract, HostBasedPolicyProtocolContract, HostFWContract
 from .serializers import MyHostSerializer, HostActionSerializer
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,16 @@ class Http500(Exception):
     """ Internal Error """
 
 
-def __get_host(request):
+def __get_host(request) -> Response:
+    """
+    Get information of a host.
+
+    Args:
+        request (_type_): Request object.
+
+    Returns:
+        Response: Returns Response object.
+    """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
@@ -59,8 +68,16 @@ def __get_host(request):
         return Response(data=host_serializer.data)
 
 
-def __add_host(request):
-    # TODO: docu
+def __add_host(request) -> Response:
+    """
+    Add a host to DETERRERS.
+
+    Args:
+        request (_type_): Request object which holds data.
+
+    Returns:
+        Response: Returns Response object.
+    """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
@@ -99,8 +116,17 @@ def __add_host(request):
 
     return Response()
 
-def __remove_host(request):
-    # TODO: docu
+def __remove_host(request) -> Response:
+    """
+    Remove a host from DETERRERS.
+    Sets all custom fields to blank in IPAM, removes all admins, blocks host, removes it from periodic scan.
+
+    Args:
+        request (_type_): Request object.
+
+    Returns:
+        Response: Returns Response object.
+    """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
@@ -151,6 +177,14 @@ def __remove_host(request):
 
 
 def __update_host_logic(ipam : ProteusIPAMInterface, host : MyHost, host_update_data : dict):
+    """
+    Utility function that does the actual update logic.
+
+    Args:
+        ipam (ProteusIPAMInterface): Instanciated IPAMInterface object for communication.
+        host (MyHost): Host to update.
+        host_update_data (dict): Dict holding the update data.
+    """
     # check if this host can be changed at the moment or whether there are already processes running for it
     if not available_actions(host).get('can_update'):
         raise Http400("Updating host currently not available")
@@ -184,15 +218,15 @@ def __update_host_logic(ipam : ProteusIPAMInterface, host : MyHost, host_update_
                 pass
             case (HostServiceContract.SSH | HostServiceContract.HTTP | HostServiceContract.HTTP_SSH) as s_p:
                 # allow SSH standard port 22 over TCP if a service profile is specified
-                host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['22'], HostBasedRuleProtocolContract.TCP.value)
+                host.add_host_based_policy(HostBasedPolicySrcContract.ANY.value, ['22'], HostBasedPolicyProtocolContract.TCP.value)
                 match s_p:
                     case HostServiceContract.SSH:
                         # since SSH rules have already been added do nothing else
                         pass
                     case (HostServiceContract.HTTP | HostServiceContract.HTTP_SSH):
                         # allow HTTP and HTTPS standard ports 80 and 443 over TCP
-                        host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['80'], HostBasedRuleProtocolContract.TCP.value)
-                        host.add_host_based_policy(HostBasedRuleSubnetContract.ANY.value, ['443'], HostBasedRuleProtocolContract.TCP.value)
+                        host.add_host_based_policy(HostBasedPolicySrcContract.ANY.value, ['80'], HostBasedPolicyProtocolContract.TCP.value)
+                        host.add_host_based_policy(HostBasedPolicySrcContract.ANY.value, ['443'], HostBasedPolicyProtocolContract.TCP.value)
             case HostServiceContract.MULTIPURPOSE:
                 # allow nothing else; users are expected to configure their own rules
                 pass
@@ -201,7 +235,16 @@ def __update_host_logic(ipam : ProteusIPAMInterface, host : MyHost, host_update_
         if not ipam.update_host_info(host):
             raise Http500("Host information could not be updated in IPAM")
 
-def __update_host(request):
+def __update_host(request) -> Response:
+    """
+    Modify details of a host. List of admins can also be modified
+
+    Args:
+        request (_type_): Request object which holds new data.
+
+    Returns:
+        Response: Returns Response object.
+    """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
@@ -383,6 +426,13 @@ def register_bulk(hostadmin : MyUser, ipv4_addrs : set[str]):
                     continue
 
 def block_bulk(hostadmin : MyUser, ipv4_addrs : set[str]):
+    """
+    Blocks a bulk of hosts.
+
+    Args:
+        hostadmin (MyUser): Hostadmin that issued bulk-block.
+        ipv4_addrs (set[str]): Set of IPv4 addresses of hosts to block.
+    """
     ipv4_addrs = set(ipv4_addrs)
     
     with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
