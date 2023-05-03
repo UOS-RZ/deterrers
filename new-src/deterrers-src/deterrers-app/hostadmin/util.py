@@ -24,6 +24,7 @@ def add_changelog(history : int = 10) -> list[str]:
         ("2023-03-13", "Security Fix: Firewalld script generation was faulty. If a configuration script was deployed in the past, a new script should be downloaded and deployed!"),
         ("2023-04-04", "New: Risk assessment of vulnerabilities is more informed. Policy will be available soon."),
         ("2023-04-11", "New: Hosts can be removed from DETERRERS via a button on a host detail page."),
+        ("2023-05-03", "We are now in production. Changes in DETERRERS have effect on the perimter firewall configuration now.")
     ]
 
     today = datetime.datetime.today().date()
