@@ -286,6 +286,9 @@ def assess_vulnerability_risk(
                 if (vul.port, vul.proto.lower()) not in blocked_locations:
                     risk = risk | RiskFlag.PORT_MATCH | RiskFlag.PROTO_MATCH
 
+            case HostServiceContract.EMPTY:
+                pass
+
             case _:
                 logger.error("Invalid service profile: %s", host.service_profile.value)
         
