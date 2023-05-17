@@ -955,7 +955,7 @@ def v_scanner_periodic_alert(request):
                             host,
                             vulnerabilities,
                             medium_cvss_threshold=5.0,
-                            high_cvss_threshold=8.5
+                            high_cvss_threshold=10.0
                         )
                         # block if there were reasons found
                         if len(block_reasons) != 0:
