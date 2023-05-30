@@ -1,0 +1,4 @@
+*migrations/
+.coverage
+static-root/
+hostadmin/core/v_scanner_configurations.py

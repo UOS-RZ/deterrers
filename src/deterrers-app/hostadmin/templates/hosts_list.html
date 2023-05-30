@@ -1,0 +1,65 @@
+{% extends "base_generic.html" %}
+
+{% load django_bootstrap5 %}
+
+{% block title %} <title>My Hosts</title> {% endblock %}
+
+{% block content %}
+	<h2>Add new host:</h2>
+	<form method="post" action="{% url 'hosts_list' %}">
+		{% csrf_token %}
+		{% bootstrap_form form %}
+		{% bootstrap_button button_type="submit" content="Add" button_class="btn btn-primary btn-lg" %}
+	</form>
+
+	<br>
+	<hr>
+  
+  
+	<h1>List of my hosts</h1>
+	<p>The following hosts are managed by me:</p>
+	{% if hosts_list %}
+	<table id=hosts style="width:100%">
+		<thead>
+			<tr>
+				<th><a href='#sort:0:asc'>IP Address</a></th>
+				<th><a href='#sort:1:asc'>DNS Names</a></th>
+				<th><a href='#sort:2:asc'>Admin(s)</a></th>
+				<th><a href='#sort:3:asc'>Internet Service Profile</a></th>
+				<th><a href='#sort:4:asc'>Status</a></th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for host in hosts_list %}
+			<tr>
+				<td><a href="{{ host.get_absolute_url }}">{{host.ipv4_addr}}</a></td>
+				<td>{{host.get_dns_rcs_display}}</td>
+				<td>{{host.admin_ids|join:", "}}</td>
+				<td>{{host.get_service_profile_display}}</td>
+				<td>{{host.get_status_display}}</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+	{% else %}
+		<p>There are no hosts for this administrator.</p>
+	{% endif %}
+	{% if is_paginated %}
+		<div class="pagination">
+			<span class="page-links">
+				{% if page_obj.has_previous %}
+					<a href="{{ request.path }}?page={{ page_obj.previous_page_number }}">Previous</a>
+				{% endif %}
+				<span class="page-current">
+					Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+				</span>
+				{% if page_obj.has_next %}
+					<a href="{{ request.path }}?page={{ page_obj.next_page_number }}">Next</a>
+				{% endif %}
+			</span>
+		</div>
+	{% endif %}
+{% endblock %}
+
+{% block pagination %}
+{% endblock %}

@@ -1,0 +1,15 @@
+Django == 4.1
+ldap3 == 2.9.1
+django-python3-ldap == 0.15.3
+requests
+gunicorn
+python-gvm
+icalendar
+paramiko
+django-bootstrap5
+djangorestframework
+pyyaml
+uritemplate
+cvss
+markdown
+django-maintenance-mode
