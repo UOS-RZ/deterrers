@@ -1,0 +1,13 @@
+{% extends "base_generic.html" %}
+
+{% load django_bootstrap5 %}
+
+{% block content %}
+  	<h1>Host: {{ host_instance.ipv4_addr }} ({{host_instance.name}})</h1>
+	<form action="" method="post">
+		{% csrf_token %}
+		{% bootstrap_form form %}
+		{% bootstrap_button button_type="button" content="Back" button_class="btn btn-secondary btn-lg" onclick="history.back()" %}
+		{% bootstrap_button button_type="submit" content="Confirm" button_class="btn btn-primary btn-lg" %}
+	</form>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base_generic.html" %}
+
+{% load django_bootstrap5 %}
+
+{% block title %} <title>Login</title> {% endblock %}
+
+{% block content %}
+
+  {% if form.errors %}
+    <p>Your username and password didn't match. Please try again.</p>
+  {% endif %}
+
+  {% if next %}
+    {% if user.is_authenticated %}
+      <p>Your account doesn't have access to this page. To proceed,
+      please login with an account that has access.</p>
+    {% else %}
+      <p>Please login to see this page.</p>
+    {% endif %}
+  {% endif %}
+
+  <form method="post" action="{% url 'login' %}">
+    {% csrf_token %}
+    {% comment %} <table>
+      <tr>
+        <td>{{ form.username.label_tag }}</td>
+        <td>{{ form.username }}</td>
+      </tr>
+      <tr>
+        <td>{{ form.password.label_tag }}</td>
+        <td>{{ form.password }}</td>
+      </tr>
+    </table>
+    <input type="submit" value="login">
+    <input type="hidden" name="next" value="{{ next }}"> {% endcomment %}
+
+    {% bootstrap_form form %}
+    {% bootstrap_button button_type="submit" content="Login" button_class="btn btn-primary btn-lg" %}
+    <input type="hidden" name="next" value="{{ next }}">
+  </form>
+
+
+{% endblock %}
