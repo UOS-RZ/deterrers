@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 import os
 from pathlib import Path
 
-DOMAIN_NAME = os.environ.get('DOMAIN_NAME', 'deterrers.example.com')
+DOMAIN_NAME = os.environ.get('DOMAIN_NAME', 'localhost')
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -28,25 +28,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'NON_SECRET_DEV_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = True
 DEBUG = os.environ.get('DJANGO_DEBUG', '') != 'False'
 
 # 'DJANGO_ALLOWED_HOSTS' should be a single string of hosts with a space between each.
 # For example: 'DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]'
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost 127.0.0.1 0.0.0.0 [::1]").split(" ")
 
-CSRF_TRUSTED_ORIGINS = [
-    'https://deterrers.rz.uni-osnabrueck.de',
-    'http://deterrers.rz.uni-osnabrueck.de',
-    'https://deterrers.rz.uos.de',
-    'http://deterrers.rz.uos.de',
-    'https://vm305.rz.uos.de',
-    'http://vm305.rz.uos.de',
-    'https://vm305.rz.uni-osnabrueck.de',
-    'http://vm305.rz.uni-osnabrueck.de',
-    'https://*.127.0.0.1',
-    'http://*.127.0.0.1'
-]
+CSRF_TRUSTED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", "https://*.127.0.0.1 http://*.127.0.0.1").split(' ') 
 
 # more extensive logging
 LOGGING = {
@@ -120,7 +108,7 @@ MIDDLEWARE = [
 
 # e-mail configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend' # 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = f'no-reply+deterrers@rz.uni-osnabrueck.de'
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_EMAIL_FROM', 'no-reply@example.de')
 EMAIL_HOST = os.environ.get('SMTP_URL', 'localhost')
 EMAIL_PORT = os.environ.get('SMTP_PORT', 25)
 EMAIL_HOST_USER = os.environ.get('SMTP_USERNAME', '')
@@ -218,14 +206,14 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
 
-LDAP_AUTH_URL = ["ldap://ldap.uni-osnabrueck.de"]
+LDAP_AUTH_URL = os.environ.get("LDAP_AUTH_URL", " ").split(' ')
 
 LDAP_AUTH_USE_TLS = True
 
 import ssl
 LDAP_AUTH_TLS_VERSION = ssl.PROTOCOL_TLSv1_2
 
-LDAP_AUTH_SEARCH_BASE = "ou=people,dc=uni-osnabrueck,dc=de"
+LDAP_AUTH_SEARCH_BASE =  os.environ.get("LDAP_AUTH_SEARCH_BASE", "")
 
 LDAP_AUTH_USER_FIELDS = {
     "username": "uid",
