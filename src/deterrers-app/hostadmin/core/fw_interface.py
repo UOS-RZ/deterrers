@@ -2,9 +2,6 @@ import logging
 import requests
 from lxml import etree
 import time
-from threading import Thread
-import os
-import getpass
 
 from .contracts import HostStatusContract, PaloAltoAddressGroup
 
@@ -83,8 +80,13 @@ class PaloAltoInterface():
                 "?type=op&cmd=<request><config-lock><add><comment>DETERRERS config lock" + \
                     "</comment></add></config-lock></request>"
             response = requests.get(acquire_config_lock_url, headers=self.header, timeout=self.TIMEOUT)
-            response_xml = etree.XML(response.content)
-            status = response_xml.xpath('//response/@status')[0]
+            try:
+                response_xml = etree.XML(response.content)
+                status = response_xml.xpath('//response/@status')[0]
+            except etree.XMLSyntaxError:
+                # some error occured on the other side
+                time.sleep(0.5)
+                continue
             if response.status_code == 200 and status == "success":
                 return
             # try again if this did not work
