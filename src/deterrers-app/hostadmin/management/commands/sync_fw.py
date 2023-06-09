@@ -157,23 +157,27 @@ class Command(BaseCommand):
         self.sync = options['sync']
 
         while True:
-            ipam_username = os.environ.get('IPAM_USERNAME')
-            ipam_password = os.environ.get('IPAM_SECRET_KEY',)
-            ipam_url = os.environ.get('IPAM_URL')
-            # ipam_username = settings.IPAM_USERNAME
-            # ipam_password = settings.IPAM_SECRET_KEY
-            # ipam_url = settings.IPAM_URL
+            try:
+                ipam_username = settings.IPAM_USERNAME
+                ipam_password = settings.IPAM_SECRET_KEY
+                ipam_url = settings.IPAM_URL
+            except:
+                ipam_username = os.environ.get('IPAM_USERNAME')
+                ipam_password = os.environ.get('IPAM_SECRET_KEY',)
+                ipam_url = os.environ.get('IPAM_URL')
             with ProteusIPAMInterface(ipam_username, ipam_password, ipam_url) as ipam:
                 if not ipam.enter_ok:
                     continue
                 
                 while True:
-                    fw_username = os.environ.get('FIREWALL_USERNAME')
-                    fw_password = os.environ.get('FIREWALL_SECRET_KEY')
-                    fw_url = os.environ.get('FIREWALL_URL')
-                    # fw_username = settings.FIREWALL_USERNAME
-                    # fw_password = settings.FIREWALL_SECRET_KEY
-                    # fw_url = settings.FIREWALL_URL
+                    try:
+                        fw_username = settings.FIREWALL_USERNAME
+                        fw_password = settings.FIREWALL_SECRET_KEY
+                        fw_url = settings.FIREWALL_URL
+                    except:
+                        fw_username = os.environ.get('FIREWALL_USERNAME')
+                        fw_password = os.environ.get('FIREWALL_SECRET_KEY')
+                        fw_url = os.environ.get('FIREWALL_URL')
                     with PaloAltoInterface(fw_username, fw_password, fw_url) as fw:
                         if not fw.enter_ok:
                             continue
@@ -231,9 +235,9 @@ class Command(BaseCommand):
                                 except:
                                     logger.exception(f"Could not parse {addr_obj}")
 
+                        #### SYNC DATA ####
 
                         for ipv4, host in ipam_hosts_total.items():
-
                             match host.status:
                                 case HostStatusContract.ONLINE:
                                     self.__sync_host_online(host, ipam, fw, fw_web_ipv4s, fw_ssh_ipv4s, fw_open_ipv4s,fw_web_ipv6s,fw_ssh_ipv6s,fw_open_ipv6s)

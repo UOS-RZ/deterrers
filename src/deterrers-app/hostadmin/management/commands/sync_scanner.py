@@ -65,23 +65,27 @@ class Command(BaseCommand):
         self.sync = options.get('sync', None)
 
         while True:
-            ipam_username = os.environ.get('IPAM_USERNAME')
-            ipam_password = os.environ.get('IPAM_SECRET_KEY',)
-            ipam_url = os.environ.get('IPAM_URL')
-            # ipam_username = settings.IPAM_USERNAME
-            # ipam_password = settings.IPAM_SECRET_KEY
-            # ipam_url = settings.IPAM_URL
+            try:
+                ipam_username = settings.IPAM_USERNAME
+                ipam_password = settings.IPAM_SECRET_KEY
+                ipam_url = settings.IPAM_URL
+            except:
+                ipam_username = os.environ.get('IPAM_USERNAME')
+                ipam_password = os.environ.get('IPAM_SECRET_KEY',)
+                ipam_url = os.environ.get('IPAM_URL')
             with ProteusIPAMInterface(ipam_username, ipam_password, ipam_url) as ipam:
                 if not ipam.enter_ok:
                     continue
                 
                 while True:
-                    v_scanner_username = os.environ.get('V_SCANNER_USERNAME')
-                    v_scanner_password = os.environ.get('V_SCANNER_SECRET_KEY')
-                    v_scanner_url = os.environ.get('V_SCANNER_URL')
-                    # v_scanner_username = settings.V_SCANNER_USERNAME
-                    # v_scanner_password = settings.V_SCANNER_SECRET_KEY
-                    # v_scanner_url = settings.V_SCANNER_URL
+                    try:
+                        v_scanner_username = settings.V_SCANNER_USERNAME
+                        v_scanner_password = settings.V_SCANNER_SECRET_KEY
+                        v_scanner_url = settings.V_SCANNER_URL
+                    except:
+                        v_scanner_username = os.environ.get('V_SCANNER_USERNAME')
+                        v_scanner_password = os.environ.get('V_SCANNER_SECRET_KEY')
+                        v_scanner_url = os.environ.get('V_SCANNER_URL')
                     with GmpVScannerInterface(v_scanner_username, v_scanner_password, v_scanner_url) as scanner:
                         if not scanner.enter_ok:
                             continue
@@ -122,6 +126,7 @@ class Command(BaseCommand):
                         except:
                             logger.exception("")
 
+                        #### SYNC DATA ####
 
                         for ipv4, host in ipam_hosts_total.items():
 
