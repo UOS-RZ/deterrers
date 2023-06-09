@@ -804,9 +804,9 @@ def v_scanner_registration_alert(request):
                         # deduce admin email addr and filter out departments
                         admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments]
                         if passed:
-                            email_subject = f"DETERRERS - {str(host.ipv4_addr)} - Vulnerability scan finished"
+                            email_subject = f"DETERRERS - {str(host.ipv4_addr)} - Registration finished - PASSED"
                         else:
-                            email_subject = f"DETERRERS - {str(host.ipv4_addr)} - Vulnerability detected. Host BLOCKED."
+                            email_subject = f"DETERRERS - {str(host.ipv4_addr)} - Registration finished - BLOCKED"
                         __send_report_email(
                             report_html,
                             email_subject,
@@ -883,7 +883,7 @@ def v_scanner_scan_alert(request):
                 admin_addresses = [admin_id + "@uos.de" for admin_id in host.admin_ids if admin_id not in departments]
                 __send_report_email(
                     report_html,
-                        f"DETERRERS - {str(host.ipv4_addr)} - Vulnerability scan finished",
+                    f"DETERRERS - {str(host.ipv4_addr)} - Scan finished",
                     scan_mail_body(host, scan_end),
                     list(set(admin_addresses)),
                 )
@@ -969,7 +969,7 @@ def v_scanner_periodic_alert(request):
 
                             __send_report_email(
                                 None,
-                                f"DETERRERS - {str(host.ipv4_addr)} - Host blocked after periodic scan!",
+                                f"DETERRERS - {str(host.ipv4_addr)} - Periodic scan - BLOCKED",
                                 email_body,
                                 list(set(admin_addresses)),
                             )
@@ -989,7 +989,7 @@ def v_scanner_periodic_alert(request):
 
                             __send_report_email(
                                 None,
-                                f"DETERRERS - {str(host.ipv4_addr)} - Vulnerabilities found during periodic scan",
+                                f"DETERRERS - {str(host.ipv4_addr)} - Periodic scan - NOT BLOCKED",
                                 email_body,
                                 list(set(admin_addresses)),
                             )

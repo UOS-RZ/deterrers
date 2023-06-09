@@ -361,7 +361,7 @@ Scan report can be found attached to this e-mail."""
 def periodic_mail_body(host : MyHost, block_reasons : list[VulnerabilityScanResult], notify_reasons : list[VulnerabilityScanResult]):
     if len(block_reasons) != 0:
         email_body = f"""
-DETERRERS found a high risk for host {str(host.ipv4_addr)} and will block it at the perimeter firewall.
+DETERRERS found a high risk for host {str(host.ipv4_addr)} during a periodic scan and will block it at the perimeter firewall.
 
 *************** System Information ***************
 
@@ -409,7 +409,7 @@ Please remediate the security risks and re-register the host in DETERRERS!"""
     # no block reasons only notify reasons
     elif len(notify_reasons) != 0:
         email_body = f"""
-DETERRERS found vulnerabilities for host {str(host.ipv4_addr)} but will not be blocked at the perimeter firewall.
+DETERRERS found vulnerabilities for host {str(host.ipv4_addr)} during a periodic scan but will NOT block it at the perimeter firewall.
 
 *************** System Information ***************
 
