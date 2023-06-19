@@ -1,7 +1,7 @@
-from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 
 # Create your models here.
+
 
 class MyUserManager(BaseUserManager):
     """
@@ -14,7 +14,11 @@ class MyUserManager(BaseUserManager):
         """
         if not username:
             raise ValueError(('The Username must be set'))
-        user = self.model(username=username, email=self.normalize_email(email), **extra_fields)
+        user = self.model(
+            username=username,
+            email=self.normalize_email(email),
+            **extra_fields
+        )
         user.set_password(password)
         user.save()
         return user

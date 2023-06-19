@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 
 import os
 from pathlib import Path
+import ssl
 
 DOMAIN_NAME = os.environ.get('DOMAIN_NAME', 'deterrers.example.com')
 
@@ -31,9 +32,13 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'NON_SECRET_DEV_KEY')
 # DEBUG = True
 DEBUG = os.environ.get('DJANGO_DEBUG', '') != 'False'
 
-# 'DJANGO_ALLOWED_HOSTS' should be a single string of hosts with a space between each.
+# 'DJANGO_ALLOWED_HOSTS' should be a single string of hosts with a space
+# between each.
 # For example: 'DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]'
-ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost 127.0.0.1 0.0.0.0 [::1]").split(" ")
+ALLOWED_HOSTS = os.environ.get(
+    "DJANGO_ALLOWED_HOSTS",
+    "localhost 127.0.0.1 0.0.0.0 [::1]"
+).split(" ")
 
 CSRF_TRUSTED_ORIGINS = [
     'https://deterrers.rz.uni-osnabrueck.de',
@@ -65,7 +70,12 @@ LOGGING = {
         },
         "web_app_log_file": {
             "class": "logging.FileHandler",
-            "filename": os.path.join(os.environ.get('MICRO_SERVICE', BASE_DIR), "logs/deterrers-app.log"),
+            "filename": os.path.join(
+                    os.environ.get(
+                        'MICRO_SERVICE',
+                        BASE_DIR
+                    ), "logs/deterrers-app.log"
+                ),
             "formatter": "verbose",
         },
     },
@@ -77,7 +87,7 @@ LOGGING = {
         },
         "django_python3_ldap": {
             "handlers": ["console"],
-            "level": 'WARNING', # os.environ.get('LOG_LEVEL', 'WARNING'),
+            "level": 'WARNING',
         },
     },
     # 'root': {
@@ -92,7 +102,7 @@ LOGGING = {
 INSTALLED_APPS = [
     'django.contrib.admin',                 # useful
     'django.contrib.auth',                  # needed
-    'django.contrib.contenttypes',          
+    'django.contrib.contenttypes',
     'django.contrib.sessions',              # needed
     'django.contrib.messages',              # needed
     'django.contrib.staticfiles',           # needed
@@ -119,8 +129,8 @@ MIDDLEWARE = [
 ]
 
 # e-mail configuration
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend' # 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = f'no-reply+deterrers@rz.uni-osnabrueck.de'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+DEFAULT_FROM_EMAIL = 'no-reply+deterrers@rz.uni-osnabrueck.de'
 EMAIL_HOST = os.environ.get('SMTP_URL', 'localhost')
 EMAIL_PORT = os.environ.get('SMTP_PORT', 25)
 EMAIL_HOST_USER = os.environ.get('SMTP_USERNAME', '')
@@ -134,7 +144,7 @@ ROOT_URLCONF = 'deterrerssite.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates'),],
+        'DIRS': [os.path.join(BASE_DIR, 'templates'), ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -156,7 +166,12 @@ WSGI_APPLICATION = 'deterrerssite.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(os.environ.get('MICRO_SERVICE', BASE_DIR), 'db/db.sqlite3'),
+        'NAME': os.path.join(
+            os.environ.get(
+                'MICRO_SERVICE',
+                BASE_DIR
+            ), 'db/db.sqlite3'
+        ),
     }
 }
 
@@ -222,7 +237,6 @@ LDAP_AUTH_URL = ["ldap://ldap.uni-osnabrueck.de"]
 
 LDAP_AUTH_USE_TLS = True
 
-import ssl
 LDAP_AUTH_TLS_VERSION = ssl.PROTOCOL_TLSv1_2
 
 LDAP_AUTH_SEARCH_BASE = "ou=people,dc=uni-osnabrueck,dc=de"
@@ -236,13 +250,15 @@ LDAP_AUTH_USER_FIELDS = {
 
 LDAP_AUTH_USER_LOOKUP_FIELDS = ("username",)
 
-# The LDAP username and password of a user for querying the LDAP database for user
-# details. If None, then the authenticated user will be used for querying, and
-# the `ldap_sync_users`, `ldap_clean_users` commands will perform an anonymous query.
+# The LDAP username and password of a user for querying the LDAP database for
+# user details. If None, then the authenticated user will be used for
+# querying, and the `ldap_sync_users`, `ldap_clean_users` commands will
+# perform an anonymous query.
 LDAP_AUTH_CONNECTION_USERNAME = None
 LDAP_AUTH_CONNECTION_PASSWORD = None
 
-# Set connection/receive timeouts (in seconds) on the underlying `ldap3` library.
+# Set connection/receive timeouts (in seconds) on the underlying `ldap3`
+# library.
 LDAP_AUTH_CONNECT_TIMEOUT = None
 LDAP_AUTH_RECEIVE_TIMEOUT = None
 

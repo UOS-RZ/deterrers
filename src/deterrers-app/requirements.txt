@@ -13,3 +13,4 @@ uritemplate
 cvss
 markdown
 django-maintenance-mode
+flake8

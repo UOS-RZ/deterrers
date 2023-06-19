@@ -1,9 +1,11 @@
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 import paramiko
 import os
 
+
 class Command(BaseCommand):
-    help = 'Adds the SSH fingerprint of the vulnerability scanner server to known_hosts.'
+    help = ("Adds the SSH fingerprint of the vulnerability scanner server "
+            + "to known_hosts.")
 
     def add_arguments(self, parser):
         pass
@@ -21,6 +23,6 @@ class Command(BaseCommand):
         transport.close()
 
         hostfile = paramiko.HostKeys(filename=known_hosts)
-        hostfile.add(hostname = v_scanner_url, key=key, keytype=key.get_name())
+        hostfile.add(hostname=v_scanner_url, key=key, keytype=key.get_name())
 
         hostfile.save(filename=known_hosts)
