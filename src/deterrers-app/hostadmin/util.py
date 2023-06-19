@@ -6,31 +6,37 @@ from django.conf import settings
 from django.urls import reverse
 
 from hostadmin.core.host import MyHost
-from hostadmin.core.contracts import HostStatusContract, HostServiceContract, HostFWContract
+from hostadmin.core.contracts import (HostStatusContract,
+                                      HostServiceContract,
+                                      HostFWContract)
 from hostadmin.core.ipam_api_interface import ProteusIPAMInterface
 from hostadmin.core.v_scanner_interface import GmpVScannerInterface
-from hostadmin.core.fw_interface import PaloAltoInterface, PaloAltoAddressGroup
+from hostadmin.core.fw_interface import (PaloAltoInterface,
+                                         PaloAltoAddressGroup)
 from hostadmin.core.risk_assessor import VulnerabilityScanResult
 
 
 logger = logging.getLogger(__name__)
 
-def add_changelog(history : int = 10) -> list[str]:
+
+def add_changelog(history: int = 10) -> list[str]:
+    # form: ("<date>", "<description>")
     changes = [
-        ("2023-02-21", "New: Internet service profile 'HTTP+SSH' was added for hosts which should provide both HTTP and SSH to the internet."),
-        ("2023-02-21", "New: DNS names are now displayed per host."),
-        ("2023-03-07", "New: 'My Hosts' page loads faster."),
-        ("2023-03-12", "New: IPv6 will also be de-/blocked at the perimeter firewall in case an IPv6 address is linked to the same host record as the corresponding IPv4 address in Proteus IPAM."),
-        ("2023-03-13", "Security Fix: Firewalld script generation was faulty. If a configuration script was deployed in the past, a new script should be downloaded and deployed!"),
-        ("2023-04-04", "New: Risk assessment of vulnerabilities is more informed. Policy will be available soon."),
-        ("2023-04-11", "New: Hosts can be removed from DETERRERS via a button on a host detail page."),
-        ("2023-05-03", "We are now in production. Changes in DETERRERS have effect on the perimter firewall configuration now.")
+
     ]
 
     today = datetime.datetime.today().date()
-    return [f"{change[0]}: {change[1]}" for change in changes if (today - datetime.date.fromisoformat(change[0])) < datetime.timedelta(days=history)]
+    return [
+        f"{change[0]}: {change[1]}"
+        for change in changes
+        if ((today - datetime.date.fromisoformat(change[0]))
+            < datetime.timedelta(days=history))
+    ]
 
-def is_public_ip(ip : str|ipaddress.IPv4Address|ipaddress.IPv6Address) -> bool:
+
+def is_public_ip(
+    ip: str | ipaddress.IPv4Address | ipaddress.IPv6Address
+) -> bool:
     """
     Check whether ip address is public.
 
@@ -38,53 +44,74 @@ def is_public_ip(ip : str|ipaddress.IPv4Address|ipaddress.IPv6Address) -> bool:
         ip (str): IPv4 or IPv6 address
 
     Returns:
-        bool: Returns True if IP is not private and False if private or string is no IP address at all.
+        bool: Returns True if IP is not private and False if private or
+        string is no IP address at all.
     """
     try:
         return not ipaddress.ip_address(ip).is_private
     except ValueError:
-        logger.exception("Expected string to be ip address. Instead got %s", str(ip))
+        logger.exception("Expected string to be ip address. Instead got %s",
+                         str(ip))
     return False
 
 
-def available_actions(host : MyHost) -> dict:
+def available_actions(host: MyHost) -> dict:
     """
-    Compute which actions can be perfomed on a host.
+    Compute which actions can be performed on a host.
 
     Args:
         host (MyHost): Host instance.
 
     Returns:
-        dict: Returns a dictionary of boolean flags indicating available actions.
+        dict: Returns a dictionary of boolean flags indicating available
+        actions.
     """
     flags = {}
     match host.status:
         case HostStatusContract.UNREGISTERED:
             flags['can_update'] = True
-            flags['can_register'] = host.service_profile != HostServiceContract.EMPTY and is_public_ip(host.ipv4_addr)
+            flags['can_register'] = (
+                host.service_profile != HostServiceContract.EMPTY
+                and is_public_ip(host.ipv4_addr)
+            )
             flags['can_scan'] = True
-            flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
+            flags['can_download_config'] = (
+                host.service_profile != HostServiceContract.EMPTY
+                and host.fw != HostFWContract.EMPTY
+            )
             flags['can_block'] = False
             flags['can_remove'] = True
         case HostStatusContract.UNDER_REVIEW:
             flags['can_update'] = False
             flags['can_register'] = False
             flags['can_scan'] = False
-            flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
+            flags['can_download_config'] = (
+                host.service_profile != HostServiceContract.EMPTY
+                and host.fw != HostFWContract.EMPTY
+            )
             flags['can_block'] = False
             flags['can_remove'] = False
         case HostStatusContract.BLOCKED:
             flags['can_update'] = True
-            flags['can_register'] = host.service_profile != HostServiceContract.EMPTY and is_public_ip(host.ipv4_addr)
+            flags['can_register'] = (
+                host.service_profile != HostServiceContract.EMPTY
+                and is_public_ip(host.ipv4_addr)
+            )
             flags['can_scan'] = True
-            flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
+            flags['can_download_config'] = (
+                host.service_profile != HostServiceContract.EMPTY
+                and host.fw != HostFWContract.EMPTY
+            )
             flags['can_block'] = False
             flags['can_remove'] = True
         case HostStatusContract.ONLINE:
             flags['can_update'] = True
             flags['can_register'] = False
             flags['can_scan'] = True
-            flags['can_download_config'] = host.service_profile != HostServiceContract.EMPTY and host.fw != HostFWContract.EMPTY
+            flags['can_download_config'] = (
+                host.service_profile != HostServiceContract.EMPTY
+                and host.fw != HostFWContract.EMPTY
+            )
             flags['can_block'] = True
             flags['can_remove'] = True
         case _:
@@ -97,8 +124,7 @@ def available_actions(host : MyHost) -> dict:
     return flags
 
 
-
-def set_host_offline(host_ipv4 : str) -> bool:
+def set_host_offline(host_ipv4: str) -> bool:
     """
     Block a host at the perimeter firewall and update the status in the IPAM.
     Removes host also from periodic scan.
@@ -109,34 +135,53 @@ def set_host_offline(host_ipv4 : str) -> bool:
     Returns:
         bool: Returns True on success and False if something went wrong.
     """
-    with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
-        if  not ipam.enter_ok:
+    with ProteusIPAMInterface(
+        settings.IPAM_USERNAME,
+        settings.IPAM_SECRET_KEY,
+        settings.IPAM_URL
+    ) as ipam:
+        if not ipam.enter_ok:
             return False
-        with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
+        with GmpVScannerInterface(
+            settings.V_SCANNER_USERNAME,
+            settings.V_SCANNER_SECRET_KEY,
+            settings.V_SCANNER_URL
+        ) as scanner:
             if not scanner.enter_ok:
                 return False
-            with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
+            with PaloAltoInterface(
+                settings.FIREWALL_USERNAME,
+                settings.FIREWALL_SECRET_KEY,
+                settings.FIREWALL_URL
+            ) as fw:
                 if not fw.enter_ok:
                     return False
-            
+
                 host = ipam.get_host_info_from_ip(host_ipv4)
                 ips_to_block = ipam.get_IP6Addresses(host.entity_id)
                 ips_to_block.add(str(host.ipv4_addr))
-                # change the perimeter firewall configuration so that host is blocked (IPv4 and IPv6 if available)
-                if not fw.remove_addr_objs_from_addr_grps(ips_to_block, {ag for ag in PaloAltoAddressGroup}):
+                # change the perimeter firewall configuration so that host
+                # is blocked (IPv4 and IPv6 if available)
+                if not fw.remove_addr_objs_from_addr_grps(
+                    ips_to_block,
+                    {ag for ag in PaloAltoAddressGroup}
+                ):
                     return False
-            
+
                 # remove from periodic scan
-                if not scanner.remove_host_from_periodic_scans(str(host.ipv4_addr)):
+                if not scanner.remove_host_from_periodic_scans(
+                    str(host.ipv4_addr)
+                ):
                     return False
-        
+
                 # update status in IPAM
                 host.status = HostStatusContract.BLOCKED
                 if not ipam.update_host_info(host):
                     return False
     return True
 
-def set_host_bulk_offline(host_ipv4s : set[str]) -> bool:
+
+def set_host_bulk_offline(host_ipv4s: set[str]) -> bool:
     # TODO: optimize for better performance by querying many ips to FW
     for ipv4 in host_ipv4s:
         set_host_offline(ipv4)
@@ -145,32 +190,46 @@ def set_host_bulk_offline(host_ipv4s : set[str]) -> bool:
     return True
 
 
-def set_host_online(host_ipv4 : str) -> bool:
+def set_host_online(host_ipv4: str) -> bool:
     """
-    Change the perimeter firewall configuration so that only host's service profile is allowed.
+    Change the perimeter firewall configuration so that only host's
+    service profile is allowed.
     Update the status in the IPAM.
     Add host to the periodic scan.
 
     Args:
         host_ipv4 (str): IPv4 address of the host.
-    
+
     Returns:
         bool: Returns True on success and False if something goes wrong.
     """
     logger.info("Set host %s online.", host_ipv4)
 
-    with ProteusIPAMInterface(settings.IPAM_USERNAME, settings.IPAM_SECRET_KEY, settings.IPAM_URL) as ipam:
+    with ProteusIPAMInterface(
+        settings.IPAM_USERNAME,
+        settings.IPAM_SECRET_KEY,
+        settings.IPAM_URL
+    ) as ipam:
         if not ipam.enter_ok:
             return False
-        with GmpVScannerInterface(settings.V_SCANNER_USERNAME, settings.V_SCANNER_SECRET_KEY, settings.V_SCANNER_URL) as scanner:
+        with GmpVScannerInterface(
+            settings.V_SCANNER_USERNAME,
+            settings.V_SCANNER_SECRET_KEY,
+            settings.V_SCANNER_URL
+        ) as scanner:
             if not scanner.enter_ok:
                 return False
-            with PaloAltoInterface(settings.FIREWALL_USERNAME, settings.FIREWALL_SECRET_KEY, settings.FIREWALL_URL) as fw:
+            with PaloAltoInterface(
+                settings.FIREWALL_USERNAME,
+                settings.FIREWALL_SECRET_KEY,
+                settings.FIREWALL_URL
+            ) as fw:
                 if not fw.enter_ok:
                     return False
-                
+
                 host = ipam.get_host_info_from_ip(host_ipv4)
-                if not host.is_valid() or host.service_profile is HostServiceContract.EMPTY:
+                if (not host.is_valid()
+                    or host.service_profile is HostServiceContract.EMPTY):
                     logger.error("Can not set host '%s' online.", str(host))
                     return False
 
@@ -179,7 +238,7 @@ def set_host_online(host_ipv4 : str) -> bool:
                 if not scanner.add_host_to_periodic_scans(host_ip=host_ipv4, deterrers_url=response_url):
                     logger.error("Couldn't add host %s to periodic scan!", host_ipv4)
                     return False
-        
+
                 # get IPv6 address to all IPv4 address
                 ips_to_update = ipam.get_IP6Addresses(host.entity_id)
                 ips_to_update.add(str(host.ipv4_addr))
@@ -204,7 +263,7 @@ def set_host_online(host_ipv4 : str) -> bool:
                 if not suc:
                     logger.error("Couldn't update firewall configuration!")
                     return False
-            
+
                 # update host info in IPAM
                 host.status = HostStatusContract.ONLINE
                 if not ipam.update_host_info(host):
@@ -219,17 +278,20 @@ def extract_report_data(report) -> tuple[str, str, dict]:
     Extract relevant result data from a report.
 
     Args:
-        report (_type_): XML etree report objcet.
+        report (_type_): XML etree report object.
 
     Returns:
-        tuple[str, str, dict]: Tuple consisting of the scan start and end time, and a dictionary
-            of vulnerabilities per IPv4 address. On error, (None, None, None) is returned.
+        tuple[str, str, dict]: Tuple consisting of the scan start and
+        end time, and a dictionary of vulnerabilities per IPv4 address.
+        On error, (None, None, None) is returned.
     """
     try:
         scan_start = report.xpath('//scan_start')[0].text
         scan_end = report.xpath('report/report/scan_end')[0].text
 
-        highest_severity_filtered = report.xpath('report/report/severity/filtered')[0].text
+        highest_severity_filtered = report.xpath(
+            'report/report/severity/filtered'
+        )[0].text
 
         results_xml = report.xpath('report/report/results/result')
         results = {}
@@ -250,18 +312,19 @@ def extract_report_data(report) -> tuple[str, str, dict]:
                 nvt_oid = result_xml.xpath('nvt')[0].attrib['oid']
                 qod = result_xml.xpath('qod/value')[0].text
                 severities = result_xml.xpath('nvt/severities/severity')
-            except:
+            except Exception:
                 continue
             cvss_severities = []
             for severity in severities:
                 cvss_severities.append(
                     {
-                        'type' : severity.attrib['type'],
-                        'base_score' : float(severity.xpath('score')[0].text),
-                        'base_vector' : severity.xpath('value')[0].text,
+                        'type': severity.attrib['type'],
+                        'base_score': float(severity.xpath('score')[0].text),
+                        'base_vector': severity.xpath('value')[0].text,
                     }
                 )
-            refs = [ref.attrib['id'] for ref in result_xml.xpath('nvt/refs/ref')]
+            refs = [ref.attrib['id']
+                    for ref in result_xml.xpath('nvt/refs/ref')]
 
             # get newest CVSS version
             cvss_version, cvss_base_score, cvss_base_vector = -1, -1, ''
@@ -290,19 +353,21 @@ def extract_report_data(report) -> tuple[str, str, dict]:
             if results.get(host_ip):
                 results[host_ip].append(res)
             else:
-                results[host_ip] = [res,]
+                results[host_ip] = [res, ]
 
         return scan_start, scan_end, results
     except Exception:
         logger.exception("Couldn't extract data from report!")
-    
+
     return None, None, None
 
 
-
-
-
-def registration_mail_body(host : MyHost, passed : bool, scan_ts : str, block_reasons : list[VulnerabilityScanResult]) -> str:
+def registration_mail_body(
+    host: MyHost,
+    passed: bool,
+    scan_ts: str,
+    block_reasons: list[VulnerabilityScanResult]
+) -> str:
     email_body = f"""
 The registration was {'successful' if passed else 'NOT successful'}.
 
@@ -341,7 +406,7 @@ Following vulnerabilities resulted in the blocking:
     return email_body
 
 
-def scan_mail_body(host : MyHost, scan_ts):
+def scan_mail_body(host: MyHost, scan_ts):
     return f"""
 *************** System Information ***************
 
@@ -358,7 +423,11 @@ Scan completed: {scan_ts}
 Scan report can be found attached to this e-mail."""
 
 
-def periodic_mail_body(host : MyHost, block_reasons : list[VulnerabilityScanResult], notify_reasons : list[VulnerabilityScanResult]):
+def periodic_mail_body(
+    host: MyHost,
+    block_reasons: list[VulnerabilityScanResult],
+    notify_reasons: list[VulnerabilityScanResult]
+):
     if len(block_reasons) != 0:
         email_body = f"""
 DETERRERS found a high risk for host {str(host.ipv4_addr)} during a periodic scan and will block it at the perimeter firewall.
@@ -441,5 +510,5 @@ Remediation of these vulnerabilities will still increase the security level of t
     # if no block reasons and no notify reasons
     else:
         email_body = ""
-    
+
     return email_body
