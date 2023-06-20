@@ -1,19 +1,16 @@
-from django.core.management.base import BaseCommand, CommandError
-import os
-import getpass
+from django.core.management.base import BaseCommand
 import logging
-import datetime
 
 
-from django.core.mail import EmailMessage
 from django.conf import settings
 
 from hostadmin.core.fw_interface import PaloAltoInterface
 
 logger = logging.getLogger(__name__)
 
+
 class Command(BaseCommand):
-    help = 'Commits changes to perimter FW if there are any.'
+    help = 'Commits changes to perimeter FW if there are any.'
 
     def add_arguments(self, parser):
         pass
@@ -24,8 +21,8 @@ class Command(BaseCommand):
         fw_url = settings.FIREWALL_URL
         with PaloAltoInterface(fw_username, fw_password, fw_url) as fw:
             if not fw.enter_ok:
-                logger.error("Couldn't start session with perimter FW!")
+                logger.error("Couldn't start session with perimeter FW!")
                 return
-                    
+
             if not fw.commit_changes():
                 logger.error("Couldn't commit changes to perimeter FW!")

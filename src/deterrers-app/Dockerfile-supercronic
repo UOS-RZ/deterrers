@@ -48,5 +48,10 @@ USER ${APP_USER}:${APP_USER}
 
 # schedule commit task every 15 minutes
 RUN echo '*/15 * * * * python ${MICRO_SERVICE}/manage.py commit_to_perimeter_fw' > ./my_crontab
+# schedule Palo Alto FW synchronisation twice a day
+RUN echo '* 6,18 * * * python ${MICRO_SERVICE}/manage.py sync_fw --sync' >> ./my_crontab
+# schedule vulnerability scanner synchronisation once per day
+RUN echo '* 3 * * * python ${MICRO_SERVICE}/manage.py sync_scanner --sync' >> ./my_crontab
+
 
 CMD supercronic ./my_crontab
