@@ -1,12 +1,20 @@
 from django import forms
 
-from .core.contracts import HostBasedPolicySrcContract, HostBasedPolicyProtocolContract, HostServiceContract, HostFWContract
+from .core.contracts import (HostBasedPolicySrcContract,
+                             HostBasedPolicyProtocolContract,
+                             HostServiceContract,
+                             HostFWContract)
+
 
 class HostadminForm(forms.Form):
     def __init__(self, *args, **kwargs):
         choices = kwargs.pop('choices')
         super(HostadminForm, self).__init__(*args, **kwargs)
-        self.fields["department"] = forms.ChoiceField(choices=[(c, c) for c in choices], required=True, label='Departments:')
+        self.fields["department"] = forms.ChoiceField(
+            choices=[(c, c) for c in choices],
+            required=True,
+            label='Departments:'
+        )
 
 
 class AddHostForm(forms.Form):
@@ -17,7 +25,8 @@ class AddHostForm(forms.Form):
             choices=[(c, c) for c in choices],
             required=True,
             label='Admin(s):',
-            help_text="Are you the only admin or should other admins from your department have the same access as you."
+            help_text=("Are you the only admin or should other admins "
+                       + "from your department have the same access as you.")
         )
 
     ipv4_addr = forms.GenericIPAddressField(
@@ -30,27 +39,29 @@ class AddHostForm(forms.Form):
 
 
 class ChangeHostDetailForm(forms.Form):
-    # create lists of tuples in order to make use of the model validation of django
-    SERVICE_CHOICES = [(profile.value, profile.value) for profile in HostServiceContract]
+    # create lists of tuples in order to make use of the model validation of
+    # django
+    SERVICE_CHOICES = [(profile.value, profile.value)
+                       for profile in HostServiceContract]
     FW_CHOICES = [(fw.value, fw.value) for fw in HostFWContract]
 
     service_profile = forms.ChoiceField(
         choices=SERVICE_CHOICES,
-        label='Service Profile',
-        help_text='Internet Service Profile that has to be chosen for this host.',
-        required = False,
-        initial=''
+        label="Service Profile",
+        help_text=("Internet Service Profile that has to be chosen "
+                   + "for this host."),
+        required=False,
+        initial=""
     )
 
     fw = forms.ChoiceField(
         choices=FW_CHOICES,
         label='Host-based Firewall',
         help_text='Host-based Firewall running on this host.',
-        required = False,
+        required=False,
         initial='',
         show_hidden_initial=True
     )
-    
 
 
 class AddHostRulesForm(forms.Form):
@@ -74,15 +85,19 @@ class AddHostRulesForm(forms.Form):
                         assert port >= 0
                         assert port < 65536
                     if len(port_range) == 2:
-                        # check that, if range is specified, the second port number is bigger than the first one
+                        # check that, if range is specified, the second
+                        # port number is bigger than the first one
                         assert int(port_range[1]) > int(port_range[0])
                     port_entries.append(p_str)
             except Exception:
-                raise forms.ValidationError("Invalid format for port list.", code="ports_invalid")
+                raise forms.ValidationError("Invalid format for port list.",
+                                            code="ports_invalid")
             return port_entries
 
-    SUBNET_CHOICES = [(sub.name, sub.display()) for sub in HostBasedPolicySrcContract]
-    PROTOCOL_CHOICES = [(proto.value, proto.value) for proto in HostBasedPolicyProtocolContract]
+    SUBNET_CHOICES = [(sub.name, sub.display())
+                      for sub in HostBasedPolicySrcContract]
+    PROTOCOL_CHOICES = [(proto.value, proto.value)
+                        for proto in HostBasedPolicyProtocolContract]
 
     subnet = forms.ChoiceField(
         choices=SUBNET_CHOICES,
@@ -94,8 +109,9 @@ class AddHostRulesForm(forms.Form):
 
     ports = PortsField(
         label='Ports:',
-        help_text='Allow incoming traffic on these ports.\n' \
-            'Multiple ports must be seperated by commas. Port ranges can be specified with a colon "1000:4242".',
+        help_text=("Allow incoming traffic on these ports.\n"
+                   + "Multiple ports must be separated by commas. Port ranges "
+                   + "can be specified with a colon '1000:4242'."),
         required=True,
         widget=forms.TextInput,
     )
@@ -106,5 +122,3 @@ class AddHostRulesForm(forms.Form):
         help_text="Allow traffic of this protocol.",
         required=True,
     )
-
-
