@@ -62,6 +62,7 @@ class Command(BaseCommand):
         logger.info("Host under review: %s", str(host.ipv4_addr))
 
     def handle(self, *args, **options):
+        logger.info("Start sync IPAM and scanner!")
         # quick sanity check if service profiles are still up-to-date
         if not (
             {sp for sp in HostServiceContract}
@@ -198,6 +199,7 @@ class Command(BaseCommand):
                                     logger.warning("Invalid host status: %s",
                                                    str(host.status))
 
+                    logger.info("Sync IPAM and scanner finished.")
                     return
 
 

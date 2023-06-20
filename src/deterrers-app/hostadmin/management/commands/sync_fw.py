@@ -293,6 +293,7 @@ class Command(BaseCommand):
         logger.info("Host under review: %s", str(host.ipv4_addr))
 
     def handle(self, *args, **options):
+        logger.info("Start sync IPAM and FW.")
         # quick sanity check if service profiles and address groups are
         # still up-to-date
         if not (
@@ -453,6 +454,7 @@ class Command(BaseCommand):
                                         str(host.status)
                                     )
 
+                    logger.info("Sync IPAM and FW finished.")
                     return
 
 
