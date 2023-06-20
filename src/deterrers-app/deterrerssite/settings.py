@@ -14,7 +14,7 @@ import os
 from pathlib import Path
 import ssl
 
-DOMAIN_NAME = os.environ.get('DOMAIN_NAME', 'deterrers.example.com')
+DOMAIN_NAME = os.environ.get('DOMAIN_NAME', 'localhost')
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -29,7 +29,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'NON_SECRET_DEV_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = True
 DEBUG = os.environ.get('DJANGO_DEBUG', '') != 'False'
 
 # 'DJANGO_ALLOWED_HOSTS' should be a single string of hosts with a space
@@ -40,18 +39,9 @@ ALLOWED_HOSTS = os.environ.get(
     "localhost 127.0.0.1 0.0.0.0 [::1]"
 ).split(" ")
 
-CSRF_TRUSTED_ORIGINS = [
-    'https://deterrers.rz.uni-osnabrueck.de',
-    'http://deterrers.rz.uni-osnabrueck.de',
-    'https://deterrers.rz.uos.de',
-    'http://deterrers.rz.uos.de',
-    'https://vm305.rz.uos.de',
-    'http://vm305.rz.uos.de',
-    'https://vm305.rz.uni-osnabrueck.de',
-    'http://vm305.rz.uni-osnabrueck.de',
-    'https://*.127.0.0.1',
-    'http://*.127.0.0.1'
-]
+CSRF_TRUSTED_ORIGINS = os.environ.get(
+    "CSRF_TRUSTED_ORIGINS", "https://*.127.0.0.1 http://*.127.0.0.1"
+).split(' ')
 
 # more extensive logging
 LOGGING = {
@@ -59,7 +49,8 @@ LOGGING = {
     "disable_existing_loggers": False,
     'formatters': {
         'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'format': ('{levelname} {asctime} {module} {process:d} '
+                       + '{thread:d} {message}'),
             'style': '{',
         },
     },
@@ -130,7 +121,10 @@ MIDDLEWARE = [
 
 # e-mail configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-DEFAULT_FROM_EMAIL = 'no-reply+deterrers@rz.uni-osnabrueck.de'
+DEFAULT_FROM_EMAIL = os.environ.get(
+    'DEFAULT_EMAIL_FROM',
+    'no-reply@example.de'
+)
 EMAIL_HOST = os.environ.get('SMTP_URL', 'localhost')
 EMAIL_PORT = os.environ.get('SMTP_PORT', 25)
 EMAIL_HOST_USER = os.environ.get('SMTP_USERNAME', '')
@@ -226,44 +220,49 @@ LOGIN_REDIRECT_URL = '/'
 AUTH_USER_MODEL = 'myuser.MyUser'
 
 
-# Setup for LDAP Authentication
+""" Setup for LDAP Authentication """
 
 AUTHENTICATION_BACKENDS = [
     "django_python3_ldap.auth.LDAPBackend",
     'django.contrib.auth.backends.ModelBackend',
 ]
-
-LDAP_AUTH_URL = ["ldap://ldap.uni-osnabrueck.de"]
-
+LDAP_AUTH_URL = os.environ.get("LDAP_AUTH_URL", " ").split(' ')
 LDAP_AUTH_USE_TLS = True
-
 LDAP_AUTH_TLS_VERSION = ssl.PROTOCOL_TLSv1_2
-
-LDAP_AUTH_SEARCH_BASE = "ou=people,dc=uni-osnabrueck,dc=de"
-
+LDAP_AUTH_SEARCH_BASE = os.environ.get("LDAP_AUTH_SEARCH_BASE", "")
 LDAP_AUTH_USER_FIELDS = {
     "username": "uid",
     "first_name": "givenName",
     "last_name": "sn",
     "email": "mail",
 }
-
 LDAP_AUTH_USER_LOOKUP_FIELDS = ("username",)
-
 # The LDAP username and password of a user for querying the LDAP database for
 # user details. If None, then the authenticated user will be used for
 # querying, and the `ldap_sync_users`, `ldap_clean_users` commands will
 # perform an anonymous query.
 LDAP_AUTH_CONNECTION_USERNAME = None
 LDAP_AUTH_CONNECTION_PASSWORD = None
-
 # Set connection/receive timeouts (in seconds) on the underlying `ldap3`
 # library.
 LDAP_AUTH_CONNECT_TIMEOUT = None
 LDAP_AUTH_RECEIVE_TIMEOUT = None
-
-
 LOGIN_URL = '/login/'
+
+
+""" CONFIGS FOR MAINTENANCE MODE """
+
+MAINTENANCE_MODE = os.environ.get('MAINTENANCE_MODE', '') == 'True'
+# if True admin site will not be affected by the maintenance-mode page
+MAINTENANCE_MODE_IGNORE_ADMIN_SITE = True
+# if True the superuser will not see the maintenance-mode page
+MAINTENANCE_MODE_IGNORE_SUPERUSER = True
+# list of urls that will not be affected by the maintenance-mode
+# urls will be used to compile regular expressions objects
+MAINTENANCE_MODE_IGNORE_URLS = ()
+
+
+""" SETUP APP CONFIG """
 
 # get all secret keys for APIs etc.
 IPAM_URL = os.environ.get('IPAM_URL')
@@ -280,11 +279,8 @@ FIREWALL_SECRET_KEY = os.environ.get('FIREWALL_SECRET_KEY')
 
 DJANGO_SUPERUSER_USERNAME = os.environ.get('DJANGO_SUPERUSER_USERNAME', '')
 
-MAINTENANCE_MODE = os.environ.get('MAINTENANCE_MODE', '') == 'True'
-# if True admin site will not be affected by the maintenance-mode page
-MAINTENANCE_MODE_IGNORE_ADMIN_SITE = True
-# if True the superuser will not see the maintenance-mode page
-MAINTENANCE_MODE_IGNORE_SUPERUSER = True
-# list of urls that will not be affected by the maintenance-mode
-# urls will be used to compile regular expressions objects
-MAINTENANCE_MODE_IGNORE_URLS = ()
+# Risk assessment thresholds
+REGI_HIGH_CVSS_T = float(os.environ.get("REGI_HIGH_CVSS_T", 8.5))
+REGI_MEDIUM_CVSS_T = float(os.environ.get("REGI_MEDIUM_CVSS_T", 5.0))
+PERIO_HIGH_CVSS_T = float(os.environ.get("PERIO_HIGH_CVSS_T", 8.5))
+PERIO_MEDIUM_CVSS_T = float(os.environ.get("PERIO_MEDIUM_CVSS_T", 6.0))
