@@ -259,7 +259,7 @@ MAINTENANCE_MODE_IGNORE_ADMIN_SITE = True
 MAINTENANCE_MODE_IGNORE_SUPERUSER = True
 # list of urls that will not be affected by the maintenance-mode
 # urls will be used to compile regular expressions objects
-MAINTENANCE_MODE_IGNORE_URLS = ()
+MAINTENANCE_MODE_IGNORE_URLS = (LOGIN_URL, )
 
 
 """ SETUP APP CONFIG """
