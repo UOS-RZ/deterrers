@@ -1,4 +1,4 @@
-Django == 4.2
+Django == 4.2.1
 ldap3 == 2.9.1
 django-python3-ldap == 0.15.4
 requests
