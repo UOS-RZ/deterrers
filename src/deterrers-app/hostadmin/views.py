@@ -1084,8 +1084,8 @@ def v_scanner_registration_alert(request):
                         block_reasons, notify_reasons = assess_host_risk(
                             host,
                             vulnerabilities,
-                            medium_cvss_threshold=5.0,
-                            high_cvss_threshold=8.5
+                            medium_cvss_threshold=settings.REGI_MEDIUM_CVSS_T,
+                            high_cvss_threshold=settings.REGI_HIGH_CVSS_T
                         )
 
                         # block if there were reasons found
@@ -1328,8 +1328,8 @@ def v_scanner_periodic_alert(request):
                         block_reasons, notify_reasons = assess_host_risk(
                             host,
                             vulnerabilities,
-                            medium_cvss_threshold=5.0,
-                            high_cvss_threshold=10.0
+                            medium_cvss_threshold=settings.PERIO_MEDIUM_CVSS_T,
+                            high_cvss_threshold=settings.PERIO_HIGH_CVSS_T
                         )
                         # block if there were reasons found
                         if len(block_reasons) != 0:
