@@ -3,7 +3,7 @@ import requests
 from lxml import etree
 import time
 
-from .contracts import HostStatusContract, PaloAltoAddressGroup
+from hostadmin.core.contracts import HostStatusContract, PaloAltoAddressGroup
 
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ class PaloAltoAPIError(Exception):
     """
 
 
-class PaloAltoInterface():
+class PaloAltoWrapper():
     """
     Interface to the Palo Alto Firewall's PAN-OS v10.1.
     Uses the REST API for object manipulation and XML API for configuration

@@ -9,10 +9,10 @@ from hostadmin.core.host import MyHost
 from hostadmin.core.contracts import (HostStatusContract,
                                       HostServiceContract,
                                       HostFWContract)
-from hostadmin.core.ipam_api_interface import ProteusIPAMInterface
-from hostadmin.core.v_scanner_interface import GmpVScannerInterface
-from hostadmin.core.fw_interface import (PaloAltoInterface,
-                                         PaloAltoAddressGroup)
+from hostadmin.core.data_logic.ipam_wrapper import ProteusIPAMWrapper
+from hostadmin.core.scanner.gmp_wrapper import GmpScannerWrapper
+from hostadmin.core.fw.pa_wrapper import (PaloAltoWrapper,
+                                          PaloAltoAddressGroup)
 from hostadmin.core.risk_assessor import VulnerabilityScanResult
 
 
@@ -135,21 +135,21 @@ def set_host_offline(host_ipv4: str) -> bool:
     Returns:
         bool: Returns True on success and False if something went wrong.
     """
-    with ProteusIPAMInterface(
+    with ProteusIPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
     ) as ipam:
         if not ipam.enter_ok:
             return False
-        with GmpVScannerInterface(
+        with GmpScannerWrapper(
             settings.V_SCANNER_USERNAME,
             settings.V_SCANNER_SECRET_KEY,
             settings.V_SCANNER_URL
         ) as scanner:
             if not scanner.enter_ok:
                 return False
-            with PaloAltoInterface(
+            with PaloAltoWrapper(
                 settings.FIREWALL_USERNAME,
                 settings.FIREWALL_SECRET_KEY,
                 settings.FIREWALL_URL
@@ -205,21 +205,21 @@ def set_host_online(host_ipv4: str) -> bool:
     """
     logger.info("Set host %s online.", host_ipv4)
 
-    with ProteusIPAMInterface(
+    with ProteusIPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
     ) as ipam:
         if not ipam.enter_ok:
             return False
-        with GmpVScannerInterface(
+        with GmpScannerWrapper(
             settings.V_SCANNER_USERNAME,
             settings.V_SCANNER_SECRET_KEY,
             settings.V_SCANNER_URL
         ) as scanner:
             if not scanner.enter_ok:
                 return False
-            with PaloAltoInterface(
+            with PaloAltoWrapper(
                 settings.FIREWALL_USERNAME,
                 settings.FIREWALL_SECRET_KEY,
                 settings.FIREWALL_URL
@@ -228,15 +228,22 @@ def set_host_online(host_ipv4: str) -> bool:
                     return False
 
                 host = ipam.get_host_info_from_ip(host_ipv4)
-                if (not host.is_valid()
-                    or host.service_profile is HostServiceContract.EMPTY):
+                if (
+                    not host.is_valid()
+                    or host.service_profile is HostServiceContract.EMPTY
+                ):
                     logger.error("Can not set host '%s' online.", str(host))
                     return False
 
                 # add only the IPv4 address to periodic vulnerability scan
-                response_url = settings.DOMAIN_NAME + reverse('v_scanner_periodic_alert')
-                if not scanner.add_host_to_periodic_scans(host_ip=host_ipv4, deterrers_url=response_url):
-                    logger.error("Couldn't add host %s to periodic scan!", host_ipv4)
+                response_url = (settings.DOMAIN_NAME
+                                + reverse('v_scanner_periodic_alert'))
+                if not scanner.add_host_to_periodic_scans(
+                    host_ip=host_ipv4,
+                    deterrers_url=response_url
+                ):
+                    logger.error("Couldn't add host %s to periodic scan!",
+                                 host_ipv4)
                     return False
 
                 # get IPv6 address to all IPv4 address
@@ -244,21 +251,40 @@ def set_host_online(host_ipv4: str) -> bool:
                 ips_to_update.add(str(host.ipv4_addr))
 
                 # first make sure ip is not already in any AddressGroups
-                suc = fw.remove_addr_objs_from_addr_grps(ips_to_update, {ag for ag in PaloAltoAddressGroup})
+                suc = fw.remove_addr_objs_from_addr_grps(
+                    ips_to_update,
+                    {ag for ag in PaloAltoAddressGroup}
+                )
                 if not suc:
                     logger.error("Couldn't update firewall configuration!")
                     return False
                 match host.service_profile:
                     case HostServiceContract.HTTP:
-                        suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.HTTP,})
+                        suc = fw.add_addr_objs_to_addr_grps(
+                            ips_to_update,
+                            {PaloAltoAddressGroup.HTTP, }
+                        )
                     case HostServiceContract.SSH:
-                        suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.SSH,})
+                        suc = fw.add_addr_objs_to_addr_grps(
+                            ips_to_update,
+                            {PaloAltoAddressGroup.SSH, }
+                        )
                     case HostServiceContract.MULTIPURPOSE:
-                        suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.OPEN,})
+                        suc = fw.add_addr_objs_to_addr_grps(
+                            ips_to_update,
+                            {PaloAltoAddressGroup.OPEN, }
+                        )
                     case HostServiceContract.HTTP_SSH:
-                        suc = fw.add_addr_objs_to_addr_grps(ips_to_update, {PaloAltoAddressGroup.HTTP, PaloAltoAddressGroup.SSH})
+                        suc = fw.add_addr_objs_to_addr_grps(
+                            ips_to_update,
+                            {
+                                PaloAltoAddressGroup.HTTP,
+                                PaloAltoAddressGroup.SSH
+                            }
+                        )
                     case _:
-                        logger.error("Unknown service profile: %s", str(host.service_profile))
+                        logger.error("Unknown service profile: %s",
+                                     str(host.service_profile))
                         return False
                 if not suc:
                     logger.error("Couldn't update firewall configuration!")
@@ -270,7 +296,6 @@ def set_host_online(host_ipv4: str) -> bool:
                     logger.error("Couldn't update host information!")
                     return False
     return True
-
 
 
 def extract_report_data(report) -> tuple[str, str, dict]:
@@ -289,9 +314,9 @@ def extract_report_data(report) -> tuple[str, str, dict]:
         scan_start = report.xpath('//scan_start')[0].text
         scan_end = report.xpath('report/report/scan_end')[0].text
 
-        highest_severity_filtered = report.xpath(
-            'report/report/severity/filtered'
-        )[0].text
+        # highest_severity_filtered = report.xpath(
+        #     'report/report/severity/filtered'
+        # )[0].text
 
         results_xml = report.xpath('report/report/results/result')
         results = {}

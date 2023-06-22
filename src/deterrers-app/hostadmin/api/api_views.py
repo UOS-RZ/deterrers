@@ -1,7 +1,8 @@
 import logging
 
 from rest_framework.response import Response
-from rest_framework.decorators import (api_view, authentication_classes,
+from rest_framework.decorators import (api_view,
+                                       authentication_classes,
                                        permission_classes)
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
@@ -12,12 +13,15 @@ from django.http import Http404
 from django.urls import reverse
 
 from myuser.models import MyUser
-from hostadmin.util import (available_actions, set_host_bulk_offline,
-                            set_host_online, set_host_offline)
-from hostadmin.core.ipam_api_interface import ProteusIPAMInterface
-from hostadmin.core.v_scanner_interface import GmpVScannerInterface
+from hostadmin.util import (available_actions,
+                            set_host_bulk_offline,
+                            set_host_online,
+                            set_host_offline)
+from hostadmin.core.data_logic.ipam_wrapper import ProteusIPAMWrapper
+from hostadmin.core.scanner.gmp_wrapper import GmpScannerWrapper
 from hostadmin.core.host import MyHost
-from hostadmin.core.contracts import (HostStatusContract, HostServiceContract,
+from hostadmin.core.contracts import (HostStatusContract,
+                                      HostServiceContract,
                                       HostBasedPolicySrcContract,
                                       HostBasedPolicyProtocolContract,
                                       HostFWContract)
@@ -50,7 +54,7 @@ def __get_host(request) -> Response:
     """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(settings.IPAM_USERNAME,
+    with ProteusIPAMWrapper(settings.IPAM_USERNAME,
                               settings.IPAM_SECRET_KEY,
                               settings.IPAM_URL) as ipam:
         if not ipam.enter_ok:
@@ -90,7 +94,7 @@ def __add_host(request) -> Response:
     """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(settings.IPAM_USERNAME,
+    with ProteusIPAMWrapper(settings.IPAM_USERNAME,
                               settings.IPAM_SECRET_KEY,
                               settings.IPAM_URL) as ipam:
         if not ipam.enter_ok:
@@ -146,7 +150,7 @@ def __remove_host(request) -> Response:
     """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(settings.IPAM_USERNAME,
+    with ProteusIPAMWrapper(settings.IPAM_USERNAME,
                               settings.IPAM_SECRET_KEY,
                               settings.IPAM_URL) as ipam:
         if not ipam.enter_ok:
@@ -199,7 +203,7 @@ def __remove_host(request) -> Response:
     return Response()
 
 
-def __update_host_logic(ipam: ProteusIPAMInterface,
+def __update_host_logic(ipam: ProteusIPAMWrapper,
                         host: MyHost,
                         host_update_data: dict):
     """
@@ -297,7 +301,7 @@ def __update_host(request) -> Response:
     """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(settings.IPAM_USERNAME,
+    with ProteusIPAMWrapper(settings.IPAM_USERNAME,
                               settings.IPAM_SECRET_KEY,
                               settings.IPAM_URL) as ipam:
         if not ipam.enter_ok:
@@ -366,7 +370,7 @@ def hosts(request):
     logger.info("API Request: Get all hosts for user %s",
                 request.user.username)
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
-    with ProteusIPAMInterface(settings.IPAM_USERNAME,
+    with ProteusIPAMWrapper(settings.IPAM_USERNAME,
                               settings.IPAM_SECRET_KEY,
                               settings.IPAM_URL) as ipam:
         if not ipam.enter_ok:
@@ -441,12 +445,12 @@ def register_bulk(hostadmin: MyUser, ipv4_addrs: set[str]):
         ipv4_addrs (set[str]): Set of unique IPv4 addresses.
     """
     ipv4_addrs = set(ipv4_addrs)
-    with ProteusIPAMInterface(settings.IPAM_USERNAME,
+    with ProteusIPAMWrapper(settings.IPAM_USERNAME,
                               settings.IPAM_SECRET_KEY,
                               settings.IPAM_URL) as ipam:
         if not ipam.enter_ok:
             raise Http500()
-        with GmpVScannerInterface(settings.V_SCANNER_USERNAME,
+        with GmpScannerWrapper(settings.V_SCANNER_USERNAME,
                                   settings.V_SCANNER_SECRET_KEY,
                                   settings.V_SCANNER_URL) as scanner:
             if not scanner.enter_ok:
@@ -508,7 +512,7 @@ def block_bulk(hostadmin: MyUser, ipv4_addrs: set[str]):
     """
     ipv4_addrs = set(ipv4_addrs)
 
-    with ProteusIPAMInterface(settings.IPAM_USERNAME,
+    with ProteusIPAMWrapper(settings.IPAM_USERNAME,
                               settings.IPAM_SECRET_KEY,
                               settings.IPAM_URL) as ipam:
         if not ipam.enter_ok:
