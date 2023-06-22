@@ -5,8 +5,8 @@ import logging
 
 from django.conf import settings
 
-from hostadmin.core.ipam_api_interface import ProteusIPAMInterface
-from hostadmin.core.v_scanner_interface import GmpVScannerInterface
+from hostadmin.core.data_logic.ipam_wrapper import ProteusIPAMWrapper
+from hostadmin.core.scanner.gmp_wrapper import GmpScannerWrapper
 from hostadmin.core.contracts import HostStatusContract, HostServiceContract
 from hostadmin.core.host import MyHost
 
@@ -26,12 +26,12 @@ class Command(BaseCommand):
             help='Indicates whether to actually update the scanner config'
         )
 
-    def __add_ip(self, scanner: GmpVScannerInterface, ipv4: str):
+    def __add_ip(self, scanner: GmpScannerWrapper, ipv4: str):
         logger.warning("IP %s is missing in scanner", str(ipv4))
         if self.sync:
             scanner.add_host_to_periodic_scans(ipv4, '')
 
-    def __rmv_ip(self, scanner: GmpVScannerInterface, ipv4: str):
+    def __rmv_ip(self, scanner: GmpScannerWrapper, ipv4: str):
         logger.warning("IP %s is wrongfully present in scanner", str(ipv4))
         if self.sync:
             scanner.remove_host_from_periodic_scans(ipv4)
@@ -39,8 +39,8 @@ class Command(BaseCommand):
     def __sync_host_online(
         self,
         host:  MyHost,
-        ipam: ProteusIPAMInterface,
-        scanner: GmpVScannerInterface,
+        ipam: ProteusIPAMWrapper,
+        scanner: GmpScannerWrapper,
         v_scanner_hosts: set
     ):
         ipv4 = str(host.ipv4_addr)
@@ -50,8 +50,8 @@ class Command(BaseCommand):
     def __sync_host_blocked(
         self,
         host:  MyHost,
-        ipam: ProteusIPAMInterface,
-        scanner: GmpVScannerInterface,
+        ipam: ProteusIPAMWrapper,
+        scanner: GmpScannerWrapper,
         v_scanner_hosts: set
     ):
         ipv4 = str(host.ipv4_addr)
@@ -89,7 +89,7 @@ class Command(BaseCommand):
                 ipam_username = os.environ.get('IPAM_USERNAME')
                 ipam_password = os.environ.get('IPAM_SECRET_KEY',)
                 ipam_url = os.environ.get('IPAM_URL')
-            with ProteusIPAMInterface(
+            with ProteusIPAMWrapper(
                 ipam_username,
                 ipam_password,
                 ipam_url
@@ -112,7 +112,7 @@ class Command(BaseCommand):
                         v_scanner_url = os.environ.get(
                             'V_SCANNER_URL'
                         )
-                    with GmpVScannerInterface(
+                    with GmpScannerWrapper(
                         v_scanner_username,
                         v_scanner_password,
                         v_scanner_url

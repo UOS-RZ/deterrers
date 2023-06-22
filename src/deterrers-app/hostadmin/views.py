@@ -20,29 +20,29 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.mail import EmailMessage
 
-from .util import (add_changelog,
-                   available_actions,
-                   registration_mail_body,
-                   scan_mail_body,
-                   periodic_mail_body,
-                   set_host_offline,
-                   set_host_online,
-                   extract_report_data)
+from hostadmin.util import (add_changelog,
+                            available_actions,
+                            registration_mail_body,
+                            scan_mail_body,
+                            periodic_mail_body,
+                            set_host_offline,
+                            set_host_online,
+                            extract_report_data)
 
-from .forms import (ChangeHostDetailForm,
-                    AddHostRulesForm,
-                    HostadminForm,
-                    AddHostForm)
-from .core.ipam_api_interface import ProteusIPAMInterface
-from .core.v_scanner_interface import GmpVScannerInterface
-from .core.fw_interface import PaloAltoInterface
-from .core.risk_assessor import assess_host_risk
-from .core.rule_generator import generate_fw_config
-from .core.contracts import (HostBasedPolicySrcContract,
-                             HostBasedPolicyProtocolContract,
-                             HostStatusContract,
-                             HostServiceContract,
-                             HostFWContract,)
+from hostadmin.forms import (ChangeHostDetailForm,
+                             AddHostRulesForm,
+                             HostadminForm,
+                             AddHostForm)
+from hostadmin.core.data_logic.ipam_wrapper import ProteusIPAMWrapper
+from hostadmin.core.scanner.gmp_wrapper import GmpScannerWrapper
+from hostadmin.core.fw.pa_wrapper import PaloAltoWrapper
+from hostadmin.core.risk_assessor import assess_host_risk
+from hostadmin.core.rule_generator import generate_fw_config
+from hostadmin.core.contracts import (HostBasedPolicySrcContract,
+                                      HostBasedPolicyProtocolContract,
+                                      HostStatusContract,
+                                      HostServiceContract,
+                                      HostFWContract,)
 
 
 from myuser.models import MyUser
@@ -147,7 +147,7 @@ def host_detail_view(request, ipv4: str):
                 ipv4, request.user.username)
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(
+    with ProteusIPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -240,7 +240,7 @@ def hosts_list_view(request):
     PAGINATE = 200
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(
+    with ProteusIPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -321,7 +321,7 @@ def hostadmin_init_view(request):
     """
     logger.info("Request: Initialize hostadmin %s", request.user.username)
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
-    with ProteusIPAMInterface(
+    with ProteusIPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -382,7 +382,7 @@ def update_host_detail(request, ipv4: str):
     )
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(
+    with ProteusIPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -579,14 +579,14 @@ def register_host(request, ipv4: str):
     )
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(
+    with ProteusIPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
     ) as ipam:
         if not ipam.enter_ok:
             return HttpResponse(status=500)
-        with GmpVScannerInterface(
+        with GmpScannerWrapper(
             settings.V_SCANNER_USERNAME,
             settings.V_SCANNER_SECRET_KEY,
             settings.V_SCANNER_URL
@@ -672,14 +672,14 @@ def scan_host(request, ipv4: str):
     )
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(
+    with ProteusIPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
     ) as ipam:
         if not ipam.enter_ok:
             return HttpResponse(status=500)
-        with GmpVScannerInterface(
+        with GmpScannerWrapper(
             settings.V_SCANNER_USERNAME,
             settings.V_SCANNER_SECRET_KEY,
             settings.V_SCANNER_URL
@@ -766,7 +766,7 @@ def block_host(request, ipv4: str):
     )
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(
+    with ProteusIPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -827,7 +827,7 @@ def delete_host_rule(request, ipv4: str, rule_id: uuid.UUID):
     )
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(
+    with ProteusIPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -892,7 +892,7 @@ def get_fw_config(request, ipv4: str):
         request.user.username
     )
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
-    with ProteusIPAMInterface(
+    with ProteusIPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -954,7 +954,7 @@ def remove_host(request, ipv4: str):
     """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(
+    with ProteusIPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -1051,14 +1051,14 @@ def v_scanner_registration_alert(request):
             task_uuid = request.GET['task_uuid']
             target_uuid = request.GET['target_uuid']
             alert_uuid = request.GET['alert_uuid']
-            with GmpVScannerInterface(
+            with GmpScannerWrapper(
                 settings.V_SCANNER_USERNAME,
                 settings.V_SCANNER_SECRET_KEY,
                 settings.V_SCANNER_URL
             ) as scanner:
                 if not scanner.enter_ok:
                     return
-                with ProteusIPAMInterface(
+                with ProteusIPAMWrapper(
                     settings.IPAM_USERNAME,
                     settings.IPAM_SECRET_KEY,
                     settings.IPAM_URL
@@ -1190,14 +1190,14 @@ def v_scanner_scan_alert(request):
             task_uuid = request.GET['task_uuid']
             target_uuid = request.GET['target_uuid']
             alert_uuid = request.GET['alert_uuid']
-            with GmpVScannerInterface(
+            with GmpScannerWrapper(
                 settings.V_SCANNER_USERNAME,
                 settings.V_SCANNER_SECRET_KEY,
                 settings.V_SCANNER_URL
             ) as scanner:
                 if not scanner.enter_ok:
                     return
-                with ProteusIPAMInterface(
+                with ProteusIPAMWrapper(
                     settings.IPAM_USERNAME,
                     settings.IPAM_SECRET_KEY,
                     settings.IPAM_URL
@@ -1212,7 +1212,7 @@ def v_scanner_scan_alert(request):
 
                     # reset hosts status
                     host = ipam.get_host_info_from_ip(host_ipv4)
-                    with PaloAltoInterface(
+                    with PaloAltoWrapper(
                         settings.FIREWALL_USERNAME,
                         settings.FIREWALL_SECRET_KEY,
                         settings.FIREWALL_URL
@@ -1285,14 +1285,14 @@ def v_scanner_periodic_alert(request):
         """
         try:
             task_uuid = request.GET['task_uuid']
-            with GmpVScannerInterface(
+            with GmpScannerWrapper(
                 settings.V_SCANNER_USERNAME,
                 settings.V_SCANNER_SECRET_KEY,
                 settings.V_SCANNER_URL
             ) as scanner:
                 if not scanner.enter_ok:
                     return
-                with ProteusIPAMInterface(
+                with ProteusIPAMWrapper(
                     settings.IPAM_USERNAME,
                     settings.IPAM_SECRET_KEY,
                     settings.IPAM_URL

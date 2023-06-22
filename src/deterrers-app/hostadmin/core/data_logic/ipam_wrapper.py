@@ -5,11 +5,11 @@ import socket
 import threading
 import ipaddress
 
-from .host import MyHost
-from .contracts import (HostStatusContract,
-                        HostServiceContract,
-                        HostFWContract)
-from .rule_generator import HostBasedPolicy
+from hostadmin.core.host import MyHost
+from hostadmin.core.contracts import (HostStatusContract,
+                                      HostServiceContract,
+                                      HostFWContract)
+from hostadmin.core.rule_generator import HostBasedPolicy
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 # add_tag_to_host()
 
 
-class ProteusIPAMInterface():
+class ProteusIPAMWrapper():
     """
     Interface to BlueCat's Proteus IP Address Manager REST API
     """
@@ -271,7 +271,7 @@ class ProteusIPAMInterface():
 
         return dns_names
 
-    def get_id_of_addr(self, ipv4: str) -> int | None:
+    def __get_id_of_addr(self, ipv4: str) -> int | None:
         """
         Get the entity ID of the IP4Address object in IPAM to a given IPv4
         address.

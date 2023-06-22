@@ -59,7 +59,7 @@ class GmpAPIError(Exception):
      """
 
 
-class GmpVScannerInterface():
+class GmpScannerWrapper():
     """
     Interface to the Greenbone Vulnerability Scanner via Greenbone Management
     Protocol (GMP) v22.4.

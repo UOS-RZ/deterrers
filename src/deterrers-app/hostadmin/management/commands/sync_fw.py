@@ -6,8 +6,9 @@ import logging
 
 from django.conf import settings
 
-from hostadmin.core.ipam_api_interface import ProteusIPAMInterface
-from hostadmin.core.fw_interface import PaloAltoInterface, PaloAltoAddressGroup
+from hostadmin.core.data_logic.ipam_wrapper import ProteusIPAMWrapper
+from hostadmin.core.fw.fw_interface import (PaloAltoWrapper,
+                                            PaloAltoAddressGroup)
 from hostadmin.core.contracts import HostStatusContract, HostServiceContract
 from hostadmin.core.host import MyHost
 
@@ -29,7 +30,7 @@ class Command(BaseCommand):
 
     def __add_ips_to_addr_grps(
         self,
-        fw: PaloAltoInterface,
+        fw: PaloAltoWrapper,
         ips: list,
         grps: set
     ):
@@ -43,7 +44,7 @@ class Command(BaseCommand):
 
     def __rmv_ips_from_addr_grps(
         self,
-        fw: PaloAltoInterface,
+        fw: PaloAltoWrapper,
         ips: list,
         grps: set
     ):
@@ -58,8 +59,8 @@ class Command(BaseCommand):
     def __sync_host_online(
         self,
         host: MyHost,
-        ipam: ProteusIPAMInterface,
-        fw: PaloAltoInterface,
+        ipam: ProteusIPAMWrapper,
+        fw: PaloAltoWrapper,
         fw_web_ipv4s: set,
         fw_ssh_ipv4s: set,
         fw_open_ipv4s: set,
@@ -69,7 +70,7 @@ class Command(BaseCommand):
     ):
 
         ipv4 = str(host.ipv4_addr)
-        ipv6s = ipam.get_IP6Addresses(ipam.get_id_of_addr(ipv4))
+        ipv6s = ipam.get_IP6Addresses(host.entity_id)
         if len(ipv6s) > 1:
             logger.info(f"---> {ipv4} is linked to {ipv6s}")
 
@@ -259,8 +260,8 @@ class Command(BaseCommand):
     def __sync_host_blocked(
         self,
         host:  MyHost,
-        ipam: ProteusIPAMInterface,
-        fw: PaloAltoInterface,
+        ipam: ProteusIPAMWrapper,
+        fw: PaloAltoWrapper,
         fw_web_ipv4s: set,
         fw_ssh_ipv4s: set,
         fw_open_ipv4s: set,
@@ -270,7 +271,7 @@ class Command(BaseCommand):
     ):
 
         ipv4 = str(host.ipv4_addr)
-        ipv6s = ipam.get_IP6Addresses(ipam.get_id_of_addr(ipv4))
+        ipv6s = ipam.get_IP6Addresses(host.entity_id)
         if len(ipv6s) > 1:
             logger.info(f"---> {ipv4} is linked to {ipv6s}")
 
@@ -332,7 +333,7 @@ class Command(BaseCommand):
                 ipam_username = os.environ.get('IPAM_USERNAME')
                 ipam_password = os.environ.get('IPAM_SECRET_KEY',)
                 ipam_url = os.environ.get('IPAM_URL')
-            with ProteusIPAMInterface(
+            with ProteusIPAMWrapper(
                 ipam_username,
                 ipam_password,
                 ipam_url
@@ -349,7 +350,7 @@ class Command(BaseCommand):
                         fw_username = os.environ.get('FIREWALL_USERNAME')
                         fw_password = os.environ.get('FIREWALL_SECRET_KEY')
                         fw_url = os.environ.get('FIREWALL_URL')
-                    with PaloAltoInterface(
+                    with PaloAltoWrapper(
                         fw_username,
                         fw_password,
                         fw_url
