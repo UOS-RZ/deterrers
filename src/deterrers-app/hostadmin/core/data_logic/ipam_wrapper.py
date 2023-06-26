@@ -468,73 +468,73 @@ class ProteusIPAMWrapper(DataAbstract):
 
         return None
 
-    def get_host_info_from_id(self, id: int) -> MyHost | None:
-        """
-        Queries the Proteus IPAM API for an entity with the given id and
-        returns an instance of MyHost.
+    # def get_host_info_from_id(self, id: int) -> MyHost | None:
+    #     """
+    #     Queries the Proteus IPAM API for an entity with the given id and
+    #     returns an instance of MyHost.
 
-        Args:
-            id (int): Identifier for the entity in the Proteus IPAM system.
+    #     Args:
+    #         id (int): Identifier for the entity in the Proteus IPAM system.
 
-        Returns:
-            MyHost|None: Returns an instance of MyHost populated with the
-            fields from the IPAM system and None on error.
-        """
-        try:
-            # get entity with given id
-            get_entitybyid_url = (self.main_url
-                                  + "getEntityById?"
-                                  + f"id={id}")
-            response = requests.get(get_entitybyid_url,
-                                    headers=self.header,
-                                    timeout=self.TIMEOUT)
-            data = response.json()
-            (host_id,
-             name,
-             ip,
-             mac,
-             status,
-             service,
-             fw,
-             rules) = self.__parse_ipam_host_entity(data)
-            # get all tagged admins
-            tagged_admins = self.__get_admins_of_host(host_id)
-            # get dns records
-            dns_rcs = self.__get_linked_dns_records(ip)
+    #     Returns:
+    #         MyHost|None: Returns an instance of MyHost populated with the
+    #         fields from the IPAM system and None on error.
+    #     """
+    #     try:
+    #         # get entity with given id
+    #         get_entitybyid_url = (self.main_url
+    #                               + "getEntityById?"
+    #                               + f"id={id}")
+    #         response = requests.get(get_entitybyid_url,
+    #                                 headers=self.header,
+    #                                 timeout=self.TIMEOUT)
+    #         data = response.json()
+    #         (host_id,
+    #          name,
+    #          ip,
+    #          mac,
+    #          status,
+    #          service,
+    #          fw,
+    #          rules) = self.__parse_ipam_host_entity(data)
+    #         # get all tagged admins
+    #         tagged_admins = self.__get_admins_of_host(host_id)
+    #         # get dns records
+    #         dns_rcs = self.__get_linked_dns_records(ip)
 
-            my_host = MyHost(
-                ipv4_addr=ip,
-                mac_addr=mac,
-                admin_ids=tagged_admins,
-                status=status,
-                name=name,
-                dns_rcs=dns_rcs,
-                service_profile=service,
-                fw=fw,
-                host_based_policies=rules,
-                entity_id=int(host_id)
-            )
-            if my_host.is_valid():
-                return my_host
-            else:
-                logger.warning("Host '%s' is not valid!", str(my_host))
-        except requests.exceptions.ConnectTimeout:
-            logger.exception('Connection to %s timed out!', self.main_url)
-        except requests.exceptions.ConnectionError:
-            logger.exception('Could not establish connection to "%s"!',
-                             self.main_url)
-        except Exception:
-            logger.exception("Caught an unknown exception!")
+    #         my_host = MyHost(
+    #             ipv4_addr=ip,
+    #             mac_addr=mac,
+    #             admin_ids=tagged_admins,
+    #             status=status,
+    #             name=name,
+    #             dns_rcs=dns_rcs,
+    #             service_profile=service,
+    #             fw=fw,
+    #             host_based_policies=rules,
+    #             entity_id=int(host_id)
+    #         )
+    #         if my_host.is_valid():
+    #             return my_host
+    #         else:
+    #             logger.warning("Host '%s' is not valid!", str(my_host))
+    #     except requests.exceptions.ConnectTimeout:
+    #         logger.exception('Connection to %s timed out!', self.main_url)
+    #     except requests.exceptions.ConnectionError:
+    #         logger.exception('Could not establish connection to "%s"!',
+    #                          self.main_url)
+    #     except Exception:
+    #         logger.exception("Caught an unknown exception!")
 
-        return None
+    #     return None
 
-    def get_hosts_of_admin(self, admin_rz_id: str) -> list[MyHost]:
+    def get_hosts_of_admin(self, admin_name: str) -> list[MyHost]:
         """
         Queries all hosts that are tagged with an admin or their corresponding
         parent tag in the Proteus IPAM system.
 
         Args:
-            admin_rz_id (str): Identifier string for the admin tag in the
+            admin_name (str): Identifier string for the admin tag in the
             Proteus IPAM system.
 
         Returns:
@@ -599,11 +599,11 @@ class ProteusIPAMWrapper(DataAbstract):
             return hosts
 
         # escape user input
-        admin_rz_id = self.__escape_user_input(admin_rz_id)
+        admin_name = self.__escape_user_input(admin_name)
 
         hosts = []
         try:
-            admin_tag_id = self.__get_tag_id(admin_rz_id)
+            admin_tag_id = self.__get_tag_id(admin_name)
             department_tag_id = self.__get_parent_tag(admin_tag_id)['id']
             # get all linked hosts to this admin tag
             hosts += __get_linked_hosts(admin_tag_id)

@@ -10,7 +10,7 @@ class DataAbstract(ABC):
         pass
 
     @abstractmethod
-    def get_hosts_of_admin(self, admin_rz_id: str) -> list[MyHost]:
+    def get_hosts_of_admin(self, admin_name: str) -> list[MyHost]:
         pass
 
     @abstractmethod
@@ -32,13 +32,13 @@ class DataAbstract(ABC):
     @abstractmethod
     def create_admin(
         self,
-        admin_tag_name: str,
-        department_tag_name: str
+        admin_name: str,
+        department_name: str
     ) -> bool:
         pass
 
     @abstractmethod
-    def is_admin(self, admin_tag_name: str) -> bool | None:
+    def is_admin(self, admin_name: str) -> bool | None:
         pass
 
     @abstractmethod
