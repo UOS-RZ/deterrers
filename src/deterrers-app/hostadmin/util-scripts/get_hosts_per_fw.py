@@ -12,7 +12,7 @@ if __name__ == '__main__':
     with ProteusIPAMWrapper(username, password, 'proteus.rz.uos.de') as ipam:
         admin_tag_names = ipam.get_all_admin_names()
         for a_tag_name in admin_tag_names:
-            hosts = ipam.get_hosts_of_admin(admin_rz_id=a_tag_name)
+            hosts = ipam.get_hosts_of_admin(admin_name=a_tag_name)
             for host in hosts:
                 fw_host_mapping[host.fw].add(host.ipv4_addr)
 
