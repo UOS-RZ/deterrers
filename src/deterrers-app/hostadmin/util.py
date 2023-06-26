@@ -158,7 +158,7 @@ def set_host_offline(host_ipv4: str) -> bool:
                     return False
 
                 host = ipam.get_host_info_from_ip(host_ipv4)
-                ips_to_block = ipam.get_IP6Addresses(host.entity_id)
+                ips_to_block = ipam.get_IP6Addresses(host)
                 ips_to_block.add(str(host.ipv4_addr))
                 # change the perimeter firewall configuration so that host
                 # is blocked (IPv4 and IPv6 if available)
@@ -247,7 +247,7 @@ def set_host_online(host_ipv4: str) -> bool:
                     return False
 
                 # get IPv6 address to all IPv4 address
-                ips_to_update = ipam.get_IP6Addresses(host.entity_id)
+                ips_to_update = ipam.get_IP6Addresses(host)
                 ips_to_update.add(str(host.ipv4_addr))
 
                 # first make sure ip is not already in any AddressGroups
