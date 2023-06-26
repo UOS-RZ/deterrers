@@ -10,7 +10,7 @@ if __name__ == '__main__':
 
     fw_host_mapping = {fw: set() for fw in HostFWContract}
     with ProteusIPAMWrapper(username, password, 'proteus.rz.uos.de') as ipam:
-        admin_tag_names = ipam.get_admin_tag_names()
+        admin_tag_names = ipam.get_all_admin_names()
         for a_tag_name in admin_tag_names:
             hosts = ipam.get_hosts_of_admin(admin_rz_id=a_tag_name)
             for host in hosts:

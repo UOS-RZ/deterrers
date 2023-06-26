@@ -264,22 +264,34 @@ def hosts_list_view(request):
             form = AddHostForm(request.POST, choices=tag_choices)
             if form.is_valid():
                 tag_name = form.cleaned_data['admin_tag']
-                host_ip = form.cleaned_data['ipv4_addr']
-                code = ipam.add_tag_to_host(tag_name, host_ip)
-                # NOTE: return codes are not well defined by Proteus
-                # but any 2xx is fine
-                if code in range(200, 205, 1):
-                    return HttpResponseRedirect(reverse('hosts_list'))
-                elif code == 409:
+                host_ipv4 = form.cleaned_data['ipv4_addr']
+                host = ipam.get_host_info_from_ip(host_ipv4)
+                if not host:
                     form.add_error(
                         None,
-                        "Conflict while adding host! Has it been added before?"
+                        "Host not found!"
+                    )
+                elif not host.is_valid():
+                    form.add_error(
+                        None,
+                        "Host not valid!"
                     )
                 else:
-                    form.add_error(
-                        None,
-                        "Couldn't add host! Is information in IPAM correct?"
-                    )
+                    code = ipam.add_admin_to_host(tag_name, host)
+                    # NOTE: return codes are not well defined by Proteus
+                    # but any 2xx is fine
+                    if code in range(200, 205, 1):
+                        return HttpResponseRedirect(reverse('hosts_list'))
+                    elif code == 409:
+                        form.add_error(
+                            None,
+                            "Conflict while adding host!"
+                        )
+                    else:
+                        form.add_error(
+                            None,
+                            f"Couldn't add host! Code: {code}"
+                        )
         else:
             form = AddHostForm(choices=tag_choices)
 
@@ -336,12 +348,12 @@ def hostadmin_init_view(request):
         if ipam.is_admin(hostadmin.username):
             return HttpResponseRedirect(reverse('hosts_list'))
 
-        department_choices = ipam.get_department_tag_names()
+        department_choices = ipam.get_department_names()
         # do processing based on whether this is GET or POST request
         if request.method == 'POST':
             form = HostadminForm(request.POST, choices=department_choices)
             if form.is_valid():
-                if ipam.create_admin_tag(
+                if ipam.create_admin(
                     hostadmin.username,
                     form.cleaned_data['department']
                 ):
@@ -526,6 +538,7 @@ def update_host_detail(request, ipv4: str):
                                 "%s is not supported yet.",
                                 host.service_profile
                             )
+                    # TODO: check return value
                     ipam.update_host_info(host)
 
                 # redirect to a new URL:
@@ -996,9 +1009,9 @@ def remove_host(request, ipv4: str):
 
         # remove all admin tags
         for admin_tag_name in host.admin_ids:
-            ipam.remove_tag_from_host(admin_tag_name, str(host.ipv4_addr))
+            ipam.remove_admin_from_host(admin_tag_name, host)
         # check that no admins are left for this host
-        if len(ipam.get_admins_of_host(host.entity_id)) > 0:
+        if len(host.admin_ids) > 0:
             logger.error(
                 "Couldn't remove all tags from host '%s'",
                 str(host.ipv4_addr)
@@ -1113,7 +1126,7 @@ def v_scanner_registration_alert(request):
                         # get HTML report and send via e-mail to admin
                         report_html = scanner.get_report_html(report_uuid)
                         # get all department names for use below
-                        departments = ipam.get_department_tag_names()
+                        departments = ipam.get_department_names()
                         # deduce admin email addr and filter out departments
                         admin_addresses = [admin_id + "@uos.de"
                                            for admin_id in host.admin_ids
@@ -1223,7 +1236,7 @@ def v_scanner_scan_alert(request):
                     if not ipam.update_host_info(host):
                         raise RuntimeError("Couldn't update host information!")
                     # get all department names for use below
-                    departments = ipam.get_department_tag_names()
+                    departments = ipam.get_department_names()
 
                 # get HTML report and send via e-mail to admin
                 report_html = scanner.get_report_html(report_uuid)
@@ -1342,7 +1355,7 @@ def v_scanner_periodic_alert(request):
                                 raise RuntimeError("Couldn't block host")
                             # deduce admin email addr and filter out
                             # departments
-                            departments = ipam.get_department_tag_names()
+                            departments = ipam.get_department_names()
                             admin_addrs = [admin_id + "@uos.de"
                                            for admin_id in host.admin_ids
                                            if admin_id not in departments]
@@ -1369,7 +1382,7 @@ def v_scanner_periodic_alert(request):
                             """
                         # only send mail if not block
                         elif len(notify_reasons) != 0:
-                            departments = ipam.get_department_tag_names()
+                            departments = ipam.get_department_names()
                             admin_addrs = [admin_id + "@uos.de"
                                            for admin_id in host.admin_ids
                                            if admin_id not in departments]

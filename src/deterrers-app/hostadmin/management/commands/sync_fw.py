@@ -70,7 +70,7 @@ class Command(BaseCommand):
     ):
 
         ipv4 = str(host.ipv4_addr)
-        ipv6s = ipam.get_IP6Addresses(host.entity_id)
+        ipv6s = ipam.get_IP6Addresses(host)
         if len(ipv6s) > 1:
             logger.info(f"---> {ipv4} is linked to {ipv6s}")
 
@@ -271,7 +271,7 @@ class Command(BaseCommand):
     ):
 
         ipv4 = str(host.ipv4_addr)
-        ipv6s = ipam.get_IP6Addresses(host.entity_id)
+        ipv6s = ipam.get_IP6Addresses(host)
         if len(ipv6s) > 1:
             logger.info(f"---> {ipv4} is linked to {ipv6s}")
 
@@ -363,7 +363,7 @@ class Command(BaseCommand):
                         # get all hosts in IPAM
                         logger.info("Get assets from IPAM!")
                         ipam_hosts_total = {}
-                        admin_tag_names = ipam.get_admin_tag_names()
+                        admin_tag_names = ipam.get_all_admin_names()
                         for a_tag_name in admin_tag_names:
                             hosts = ipam.get_hosts_of_admin(
                                 admin_rz_id=a_tag_name
