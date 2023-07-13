@@ -154,7 +154,7 @@ class Command(BaseCommand):
 
                             # if stash target exists use it, else use
                             # default target
-                            target_uuid = scanner._GmpVScannerInterface__get_target_id(
+                            target_uuid = scanner._GmpScannerWrapper__get_target_id(
                                 scanner.PERIODIC_TASK_STASH_TARGET_NAME
                             )
                             if not target_uuid:

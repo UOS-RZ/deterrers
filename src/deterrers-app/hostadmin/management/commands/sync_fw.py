@@ -7,8 +7,8 @@ import logging
 from django.conf import settings
 
 from hostadmin.core.data_logic.ipam_wrapper import ProteusIPAMWrapper
-from hostadmin.core.fw.fw_interface import (PaloAltoWrapper,
-                                            PaloAltoAddressGroup)
+from hostadmin.core.fw.pa_wrapper import (PaloAltoWrapper,
+                                          AddressGroup)
 from hostadmin.core.contracts import HostStatusContract, HostServiceContract
 from hostadmin.core.host import MyHost
 
@@ -80,38 +80,38 @@ class Command(BaseCommand):
                     self.__add_ips_to_addr_grps(
                         fw,
                         [ipv4, ],
-                        {PaloAltoAddressGroup.HTTP, }
+                        {AddressGroup.HTTP, }
                     )
                 if ipv4 in fw_ssh_ipv4s:
                     self.__rmv_ips_from_addr_grps(
                         fw,
                         [ipv4, ],
-                        {PaloAltoAddressGroup.SSH, }
+                        {AddressGroup.SSH, }
                     )
                 if ipv4 in fw_open_ipv4s:
                     self.__rmv_ips_from_addr_grps(
                         fw,
                         [ipv4, ],
-                        {PaloAltoAddressGroup.OPEN, }
+                        {AddressGroup.OPEN, }
                     )
                 for ipv6 in ipv6s:
                     if ipv6 not in fw_web_ipv6s:
                         self.__add_ips_to_addr_grps(
                             fw,
                             [ipv6, ],
-                            {PaloAltoAddressGroup.HTTP, }
+                            {AddressGroup.HTTP, }
                         )
                     if ipv6 in fw_ssh_ipv6s:
                         self.__rmv_ips_from_addr_grps(
                             fw,
                             [ipv6, ],
-                            {PaloAltoAddressGroup.SSH, }
+                            {AddressGroup.SSH, }
                         )
                     if ipv6 in fw_open_ipv6s:
                         self.__rmv_ips_from_addr_grps(
                             fw,
                             [ipv6, ],
-                            {PaloAltoAddressGroup.OPEN, }
+                            {AddressGroup.OPEN, }
                             )
 
             case HostServiceContract.SSH:
@@ -119,114 +119,114 @@ class Command(BaseCommand):
                     self.__rmv_ips_from_addr_grps(
                         fw,
                         [ipv4, ],
-                        {PaloAltoAddressGroup.HTTP, }
+                        {AddressGroup.HTTP, }
                     )
                 if ipv4 not in fw_ssh_ipv4s:
                     self.__add_ips_to_addr_grps(
                         fw,
                         [ipv4, ],
-                        {PaloAltoAddressGroup.SSH, }
+                        {AddressGroup.SSH, }
                     )
                 if ipv4 in fw_open_ipv4s:
                     self.__rmv_ips_from_addr_grps(
                         fw,
                         [ipv4, ],
-                        {PaloAltoAddressGroup.OPEN, }
+                        {AddressGroup.OPEN, }
                     )
                 for ipv6 in ipv6s:
                     if ipv6 in fw_web_ipv6s:
                         self.__rmv_ips_from_addr_grps(
                             fw,
                             [ipv6, ],
-                            {PaloAltoAddressGroup.HTTP, }
+                            {AddressGroup.HTTP, }
                         )
                     if ipv6 not in fw_ssh_ipv6s:
                         self.__add_ips_to_addr_grps(
                             fw,
                             [ipv6, ],
-                            {PaloAltoAddressGroup.SSH, }
+                            {AddressGroup.SSH, }
                         )
                     if ipv6 in fw_open_ipv6s:
                         self.__rmv_ips_from_addr_grps(
                             fw,
                             [ipv6, ],
-                            {PaloAltoAddressGroup.OPEN, }
+                            {AddressGroup.OPEN, }
                         )
             case HostServiceContract.HTTP_SSH:
                 if ipv4 not in fw_web_ipv4s:
                     self.__add_ips_to_addr_grps(
                         fw,
                         [ipv4, ],
-                        {PaloAltoAddressGroup.HTTP, }
+                        {AddressGroup.HTTP, }
                     )
                 if ipv4 not in fw_ssh_ipv4s:
                     self.__add_ips_to_addr_grps(
                         fw,
                         [ipv4, ],
-                        {PaloAltoAddressGroup.SSH, }
+                        {AddressGroup.SSH, }
                     )
                 if ipv4 in fw_open_ipv4s:
                     self.__rmv_ips_from_addr_grps(
                         fw,
                         [ipv4, ],
-                        {PaloAltoAddressGroup.OPEN, }
+                        {AddressGroup.OPEN, }
                     )
                 for ipv6 in ipv6s:
                     if ipv6 not in fw_web_ipv6s:
                         self.__add_ips_to_addr_grps(
                             fw,
                             [ipv6, ],
-                            {PaloAltoAddressGroup.HTTP, }
+                            {AddressGroup.HTTP, }
                         )
                     if ipv6 not in fw_ssh_ipv6s:
                         self.__add_ips_to_addr_grps(
                             fw,
                             [ipv6, ],
-                            {PaloAltoAddressGroup.SSH, }
+                            {AddressGroup.SSH, }
                         )
                     if ipv6 in fw_open_ipv6s:
                         self.__rmv_ips_from_addr_grps(
                             fw,
                             [ipv6, ],
-                            {PaloAltoAddressGroup.OPEN, }
+                            {AddressGroup.OPEN, }
                         )
             case HostServiceContract.MULTIPURPOSE:
                 if ipv4 in fw_web_ipv4s:
                     self.__rmv_ips_from_addr_grps(
                         fw,
                         [ipv4, ],
-                        {PaloAltoAddressGroup.HTTP, }
+                        {AddressGroup.HTTP, }
                     )
                 if ipv4 in fw_ssh_ipv4s:
                     self.__rmv_ips_from_addr_grps(
                         fw,
                         [ipv4, ],
-                        {PaloAltoAddressGroup.SSH, }
+                        {AddressGroup.SSH, }
                     )
                 if ipv4 not in fw_open_ipv4s:
                     self.__add_ips_to_addr_grps(
                         fw,
                         [ipv4, ],
-                        {PaloAltoAddressGroup.OPEN, }
+                        {AddressGroup.OPEN, }
                     )
                 for ipv6 in ipv6s:
                     if ipv6 in fw_web_ipv6s:
                         self.__rmv_ips_from_addr_grps(
                             fw,
                             [ipv6, ],
-                            {PaloAltoAddressGroup.HTTP, }
+                            {AddressGroup.HTTP, }
                         )
                     if ipv6 in fw_ssh_ipv6s:
                         self.__rmv_ips_from_addr_grps(
                             fw,
                             [ipv6, ],
-                            {PaloAltoAddressGroup.SSH, }
+                            {AddressGroup.SSH, }
                         )
                     if ipv6 not in fw_open_ipv6s:
                         self.__add_ips_to_addr_grps(
                             fw,
                             [ipv6, ],
-                            {PaloAltoAddressGroup.OPEN, }
+                            {AddressGroup.OPEN, }
                         )
             case HostServiceContract.EMPTY:
                 if ipv4 in fw_web_ipv4s.union(
@@ -235,7 +235,7 @@ class Command(BaseCommand):
                     self.__rmv_ips_from_addr_grps(
                         fw,
                         [ipv4, ],
-                        {addr_grp for addr_grp in PaloAltoAddressGroup}
+                        {addr_grp for addr_grp in AddressGroup}
                     )
 
                 for ipv6 in ipv6s:
@@ -245,7 +245,7 @@ class Command(BaseCommand):
                         self.__rmv_ips_from_addr_grps(
                             fw,
                             [ipv6, ],
-                            {addr_grp for addr_grp in PaloAltoAddressGroup}
+                            {addr_grp for addr_grp in AddressGroup}
                         )
             case _:
                 logger.warning(
@@ -279,7 +279,7 @@ class Command(BaseCommand):
             self.__rmv_ips_from_addr_grps(
                 fw,
                 [ipv4, ],
-                {addr_grp for addr_grp in PaloAltoAddressGroup}
+                {addr_grp for addr_grp in AddressGroup}
             )
 
         for ipv6 in ipv6s:
@@ -287,7 +287,7 @@ class Command(BaseCommand):
                 self.__rmv_ips_from_addr_grps(
                     fw,
                     [ipv6, ],
-                    {addr_grp for addr_grp in PaloAltoAddressGroup}
+                    {addr_grp for addr_grp in AddressGroup}
                 )
 
     def __sync_host_under_review(self, host: MyHost):
@@ -312,11 +312,11 @@ class Command(BaseCommand):
             exit()
         if not (
             {
-                addrgrp for addrgrp in PaloAltoAddressGroup
+                addrgrp for addrgrp in AddressGroup
             } == {
-                PaloAltoAddressGroup.HTTP,
-                PaloAltoAddressGroup.SSH,
-                PaloAltoAddressGroup.OPEN
+                AddressGroup.HTTP,
+                AddressGroup.SSH,
+                AddressGroup.OPEN
             }
         ):
             logger.error("Palo Alto AddressGroups are not up-to-date!")
@@ -372,6 +372,7 @@ class Command(BaseCommand):
                                 ipam_hosts_total[str(host.ipv4_addr)] = host
 
                         # get all hosts that are online in FW
+                        # TODO: simplify with fw.get_addrs_in_service_profile()
                         logger.info('Get assets unblocked by FW!')
                         fw_ipv4s = set()
                         fw_web_ipv4s = set()
@@ -381,7 +382,7 @@ class Command(BaseCommand):
                         fw_web_ipv6s = set()
                         fw_ssh_ipv6s = set()
                         fw_open_ipv6s = set()
-                        for ag in PaloAltoAddressGroup:
+                        for ag in AddressGroup:
                             addr_objs = fw.get_addr_objs_in_addr_grp(ag)
                             for addr_obj in addr_objs:
                                 # check if IPv4
@@ -391,11 +392,11 @@ class Command(BaseCommand):
                                     )
                                     fw_ipv4s.add(str(ipv4))
                                     match ag:
-                                        case PaloAltoAddressGroup.HTTP:
+                                        case AddressGroup.HTTP:
                                             fw_web_ipv4s.add(str(ipv4))
-                                        case PaloAltoAddressGroup.SSH:
+                                        case AddressGroup.SSH:
                                             fw_ssh_ipv4s.add(str(ipv4))
-                                        case PaloAltoAddressGroup.OPEN:
+                                        case AddressGroup.OPEN:
                                             fw_open_ipv4s.add(str(ipv4))
                                     continue
                                 except Exception:
@@ -407,11 +408,11 @@ class Command(BaseCommand):
                                     ).exploded
                                     fw_ipv6s.add(str(ipv6))
                                     match ag:
-                                        case PaloAltoAddressGroup.HTTP:
+                                        case AddressGroup.HTTP:
                                             fw_web_ipv6s.add(str(ipv6))
-                                        case PaloAltoAddressGroup.SSH:
+                                        case AddressGroup.SSH:
                                             fw_ssh_ipv6s.add(str(ipv6))
-                                        case PaloAltoAddressGroup.OPEN:
+                                        case AddressGroup.OPEN:
                                             fw_open_ipv6s.add(str(ipv6))
                                 except Exception:
                                     logger.exception(

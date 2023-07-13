@@ -87,13 +87,3 @@ class HostFWContract(Enum):
     FIREWALLD = 'FirewallD'
     NFTABLES = 'nftables'
     EMPTY = ''
-
-
-class PaloAltoAddressGroup(Enum):
-    """
-    Enumeration of the different AddressGroup names which specify the service
-    profiles in the PaloAlto firewall configuration.
-    """
-    HTTP = "FWP1-WEB-DETERRERS"
-    SSH = "FWP2-SSH-DETERRERS"
-    OPEN = "FWP3-OPEN-DETERRERS"
