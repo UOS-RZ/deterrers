@@ -14,6 +14,7 @@ from hostadmin.core.host import MyHost
 
 logger = logging.getLogger(__name__)
 
+# TODO: make new with new methods in pa_wrapper
 
 class Command(BaseCommand):
     help = 'Compares data in IPAM with data in perimeter FW.'
