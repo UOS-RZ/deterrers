@@ -11,8 +11,7 @@ from hostadmin.core.contracts import (HostStatusContract,
                                       HostFWContract)
 from hostadmin.core.data_logic.ipam_wrapper import ProteusIPAMWrapper
 from hostadmin.core.scanner.gmp_wrapper import GmpScannerWrapper
-from hostadmin.core.fw.pa_wrapper import (PaloAltoWrapper,
-                                          PaloAltoAddressGroup)
+from hostadmin.core.fw.pa_wrapper import PaloAltoWrapper
 from hostadmin.core.risk_assessor import VulnerabilityScanResult
 
 
@@ -162,10 +161,7 @@ def set_host_offline(host_ipv4: str) -> bool:
                 ips_to_block.add(str(host.ipv4_addr))
                 # change the perimeter firewall configuration so that host
                 # is blocked (IPv4 and IPv6 if available)
-                if not fw.remove_addr_objs_from_addr_grps(
-                    ips_to_block,
-                    {ag for ag in PaloAltoAddressGroup}
-                ):
+                if not fw.block_ips(ips_to_block):
                     return False
 
                 # remove from periodic scan
@@ -251,41 +247,14 @@ def set_host_online(host_ipv4: str) -> bool:
                 ips_to_update.add(str(host.ipv4_addr))
 
                 # first make sure ip is not already in any AddressGroups
-                suc = fw.remove_addr_objs_from_addr_grps(
-                    ips_to_update,
-                    {ag for ag in PaloAltoAddressGroup}
-                )
+                suc = fw.block_ips(ips_to_update)
                 if not suc:
                     logger.error("Couldn't update firewall configuration!")
                     return False
-                match host.service_profile:
-                    case HostServiceContract.HTTP:
-                        suc = fw.add_addr_objs_to_addr_grps(
-                            ips_to_update,
-                            {PaloAltoAddressGroup.HTTP, }
-                        )
-                    case HostServiceContract.SSH:
-                        suc = fw.add_addr_objs_to_addr_grps(
-                            ips_to_update,
-                            {PaloAltoAddressGroup.SSH, }
-                        )
-                    case HostServiceContract.MULTIPURPOSE:
-                        suc = fw.add_addr_objs_to_addr_grps(
-                            ips_to_update,
-                            {PaloAltoAddressGroup.OPEN, }
-                        )
-                    case HostServiceContract.HTTP_SSH:
-                        suc = fw.add_addr_objs_to_addr_grps(
-                            ips_to_update,
-                            {
-                                PaloAltoAddressGroup.HTTP,
-                                PaloAltoAddressGroup.SSH
-                            }
-                        )
-                    case _:
-                        logger.error("Unknown service profile: %s",
-                                     str(host.service_profile))
-                        return False
+                suc = fw.allow_service_profile_for_ips(
+                    ips_to_update,
+                    host.service_profile
+                )
                 if not suc:
                     logger.error("Couldn't update firewall configuration!")
                     return False

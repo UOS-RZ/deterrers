@@ -111,7 +111,7 @@ class GmpScannerWrapper():
             be forwarded.
 
         Returns:
-            GreenboneVScannerInterface: Returns self.
+            GmpScannerWrapper: Returns self.
         """
         logger.debug("Start session with vulnerability scanner.")
         try:

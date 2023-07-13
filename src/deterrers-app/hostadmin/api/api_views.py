@@ -216,7 +216,7 @@ def __update_host_logic(ipam: ProteusIPAMWrapper,
     Utility function that does the actual update logic.
 
     Args:
-        ipam (ProteusIPAMInterface): Instantiated IPAMInterface object
+        ipam (ProteusIPAMWrapper): Instantiated ProteusIPAMWrapper object
         for communication.
         host (MyHost): Host to update.
         host_update_data (dict): Dict holding the update data.

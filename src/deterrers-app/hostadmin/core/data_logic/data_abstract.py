@@ -4,6 +4,7 @@ from hostadmin.core.host import MyHost
 
 
 class DataAbstract(ABC):
+    """TODO"""
 
     @abstractmethod
     def get_host_info_from_ip(self, ipv4: str) -> MyHost | None:
