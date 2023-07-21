@@ -7,14 +7,12 @@ import logging
 from django.conf import settings
 
 from hostadmin.core.data_logic.ipam_wrapper import ProteusIPAMWrapper
-from hostadmin.core.fw.pa_wrapper import (PaloAltoWrapper,
-                                          AddressGroup)
+from hostadmin.core.fw.pa_wrapper import PaloAltoWrapper
 from hostadmin.core.contracts import HostStatusContract, HostServiceContract
 from hostadmin.core.host import MyHost
 
 logger = logging.getLogger(__name__)
 
-# TODO: make new with new methods in pa_wrapper
 
 class Command(BaseCommand):
     help = 'Compares data in IPAM with data in perimeter FW.'
@@ -29,267 +27,54 @@ class Command(BaseCommand):
             help='Indicates whether to actually update the FW configuration'
         )
 
-    def __add_ips_to_addr_grps(
-        self,
-        fw: PaloAltoWrapper,
-        ips: list,
-        grps: set
-    ):
-        logger.warning(
-            "IPs %s are missing in AddressGroups %s",
-            str(ips),
-            str(grps)
-        )
-        if self.sync:
-            fw.add_addr_objs_to_addr_grps(ips, grps)
-
-    def __rmv_ips_from_addr_grps(
-        self,
-        fw: PaloAltoWrapper,
-        ips: list,
-        grps: set
-    ):
-        logger.warning(
-            "IPs %s are wrongfully present in AddressGroups %s",
-            str(ips),
-            str(grps)
-        )
-        if self.sync:
-            fw.remove_addr_objs_from_addr_grps(ips, grps)
-
     def __sync_host_online(
         self,
         host: MyHost,
         ipam: ProteusIPAMWrapper,
         fw: PaloAltoWrapper,
-        fw_web_ipv4s: set,
-        fw_ssh_ipv4s: set,
-        fw_open_ipv4s: set,
-        fw_web_ipv6s: set,
-        fw_ssh_ipv6s: set,
-        fw_open_ipv6s: set
+        fw_ip_addrs_allowed_sp: set
     ):
 
-        ipv4 = str(host.ipv4_addr)
-        ipv6s = ipam.get_IP6Addresses(host)
+        ipv6s = {ipaddress.IPv6Address(ipv6)
+                 for ipv6 in ipam.get_IP6Addresses(host)}
         if len(ipv6s) > 1:
-            logger.info(f"---> {ipv4} is linked to {ipv6s}")
+            logger.info(f"---> {host.ipv4_addr} is linked to {ipv6s}")
+        ips = ipv6s.union({host.ipv4_addr, })
 
-        match host.service_profile:
-            case HostServiceContract.HTTP:
-                if ipv4 not in fw_web_ipv4s:
-                    self.__add_ips_to_addr_grps(
-                        fw,
-                        [ipv4, ],
-                        {AddressGroup.HTTP, }
-                    )
-                if ipv4 in fw_ssh_ipv4s:
-                    self.__rmv_ips_from_addr_grps(
-                        fw,
-                        [ipv4, ],
-                        {AddressGroup.SSH, }
-                    )
-                if ipv4 in fw_open_ipv4s:
-                    self.__rmv_ips_from_addr_grps(
-                        fw,
-                        [ipv4, ],
-                        {AddressGroup.OPEN, }
-                    )
-                for ipv6 in ipv6s:
-                    if ipv6 not in fw_web_ipv6s:
-                        self.__add_ips_to_addr_grps(
-                            fw,
-                            [ipv6, ],
-                            {AddressGroup.HTTP, }
-                        )
-                    if ipv6 in fw_ssh_ipv6s:
-                        self.__rmv_ips_from_addr_grps(
-                            fw,
-                            [ipv6, ],
-                            {AddressGroup.SSH, }
-                        )
-                    if ipv6 in fw_open_ipv6s:
-                        self.__rmv_ips_from_addr_grps(
-                            fw,
-                            [ipv6, ],
-                            {AddressGroup.OPEN, }
-                            )
-
-            case HostServiceContract.SSH:
-                if ipv4 in fw_web_ipv4s:
-                    self.__rmv_ips_from_addr_grps(
-                        fw,
-                        [ipv4, ],
-                        {AddressGroup.HTTP, }
-                    )
-                if ipv4 not in fw_ssh_ipv4s:
-                    self.__add_ips_to_addr_grps(
-                        fw,
-                        [ipv4, ],
-                        {AddressGroup.SSH, }
-                    )
-                if ipv4 in fw_open_ipv4s:
-                    self.__rmv_ips_from_addr_grps(
-                        fw,
-                        [ipv4, ],
-                        {AddressGroup.OPEN, }
-                    )
-                for ipv6 in ipv6s:
-                    if ipv6 in fw_web_ipv6s:
-                        self.__rmv_ips_from_addr_grps(
-                            fw,
-                            [ipv6, ],
-                            {AddressGroup.HTTP, }
-                        )
-                    if ipv6 not in fw_ssh_ipv6s:
-                        self.__add_ips_to_addr_grps(
-                            fw,
-                            [ipv6, ],
-                            {AddressGroup.SSH, }
-                        )
-                    if ipv6 in fw_open_ipv6s:
-                        self.__rmv_ips_from_addr_grps(
-                            fw,
-                            [ipv6, ],
-                            {AddressGroup.OPEN, }
-                        )
-            case HostServiceContract.HTTP_SSH:
-                if ipv4 not in fw_web_ipv4s:
-                    self.__add_ips_to_addr_grps(
-                        fw,
-                        [ipv4, ],
-                        {AddressGroup.HTTP, }
-                    )
-                if ipv4 not in fw_ssh_ipv4s:
-                    self.__add_ips_to_addr_grps(
-                        fw,
-                        [ipv4, ],
-                        {AddressGroup.SSH, }
-                    )
-                if ipv4 in fw_open_ipv4s:
-                    self.__rmv_ips_from_addr_grps(
-                        fw,
-                        [ipv4, ],
-                        {AddressGroup.OPEN, }
-                    )
-                for ipv6 in ipv6s:
-                    if ipv6 not in fw_web_ipv6s:
-                        self.__add_ips_to_addr_grps(
-                            fw,
-                            [ipv6, ],
-                            {AddressGroup.HTTP, }
-                        )
-                    if ipv6 not in fw_ssh_ipv6s:
-                        self.__add_ips_to_addr_grps(
-                            fw,
-                            [ipv6, ],
-                            {AddressGroup.SSH, }
-                        )
-                    if ipv6 in fw_open_ipv6s:
-                        self.__rmv_ips_from_addr_grps(
-                            fw,
-                            [ipv6, ],
-                            {AddressGroup.OPEN, }
-                        )
-            case HostServiceContract.MULTIPURPOSE:
-                if ipv4 in fw_web_ipv4s:
-                    self.__rmv_ips_from_addr_grps(
-                        fw,
-                        [ipv4, ],
-                        {AddressGroup.HTTP, }
-                    )
-                if ipv4 in fw_ssh_ipv4s:
-                    self.__rmv_ips_from_addr_grps(
-                        fw,
-                        [ipv4, ],
-                        {AddressGroup.SSH, }
-                    )
-                if ipv4 not in fw_open_ipv4s:
-                    self.__add_ips_to_addr_grps(
-                        fw,
-                        [ipv4, ],
-                        {AddressGroup.OPEN, }
-                    )
-                for ipv6 in ipv6s:
-                    if ipv6 in fw_web_ipv6s:
-                        self.__rmv_ips_from_addr_grps(
-                            fw,
-                            [ipv6, ],
-                            {AddressGroup.HTTP, }
-                        )
-                    if ipv6 in fw_ssh_ipv6s:
-                        self.__rmv_ips_from_addr_grps(
-                            fw,
-                            [ipv6, ],
-                            {AddressGroup.SSH, }
-                        )
-                    if ipv6 not in fw_open_ipv6s:
-                        self.__add_ips_to_addr_grps(
-                            fw,
-                            [ipv6, ],
-                            {AddressGroup.OPEN, }
-                        )
-            case HostServiceContract.EMPTY:
-                if ipv4 in fw_web_ipv4s.union(
-                    fw_ssh_ipv4s
-                ).union(fw_open_ipv4s):
-                    self.__rmv_ips_from_addr_grps(
-                        fw,
-                        [ipv4, ],
-                        {addr_grp for addr_grp in AddressGroup}
-                    )
-
-                for ipv6 in ipv6s:
-                    if ipv6 in fw_web_ipv6s.union(
-                        fw_ssh_ipv6s
-                    ).union(fw_open_ipv6s):
-                        self.__rmv_ips_from_addr_grps(
-                            fw,
-                            [ipv6, ],
-                            {addr_grp for addr_grp in AddressGroup}
-                        )
-            case _:
-                logger.warning(
-                    "Invalid service profile %s for %s",
-                    str(host.service_profile),
-                    str(ipv4)
+        if ips.difference(fw_ip_addrs_allowed_sp):
+            logger.warning(
+                "IPs %s are not in service profile %s",
+                str(ips.difference(fw_ip_addrs_allowed_sp)),
+                str(host.service_profile)
+            )
+            if self.sync:
+                fw.block_ips([str(ip) for ip in ips])
+                fw.allow_service_profile_for_ips(
+                    [str(ip) for ip in ips],
+                    host.service_profile
                 )
-                # TODO: maybe make also sure that ips are not present in
-                # any AddressGroup
-                return
 
     def __sync_host_blocked(
         self,
         host:  MyHost,
         ipam: ProteusIPAMWrapper,
         fw: PaloAltoWrapper,
-        fw_web_ipv4s: set,
-        fw_ssh_ipv4s: set,
-        fw_open_ipv4s: set,
-        fw_web_ipv6s: set,
-        fw_ssh_ipv6s: set,
-        fw_open_ipv6s: set
+        fw_ip_addrs_allowed_total: set
     ):
 
-        ipv4 = str(host.ipv4_addr)
-        ipv6s = ipam.get_IP6Addresses(host)
+        ipv6s = {ipaddress.IPv6Address(ipv6)
+                 for ipv6 in ipam.get_IP6Addresses(host)}
         if len(ipv6s) > 1:
-            logger.info(f"---> {ipv4} is linked to {ipv6s}")
+            logger.info(f"---> {host.ipv4_addr} is linked to {ipv6s}")
+        ips = ipv6s.union({host.ipv4_addr, })
 
-        if ipv4 in fw_web_ipv4s.union(fw_ssh_ipv4s).union(fw_open_ipv4s):
-            self.__rmv_ips_from_addr_grps(
-                fw,
-                [ipv4, ],
-                {addr_grp for addr_grp in AddressGroup}
+        if ips.intersection(fw_ip_addrs_allowed_total):
+            logger.warning(
+                "IPs %s are allowed but should be blocked",
+                str(ips.intersection(fw_ip_addrs_allowed_total))
             )
-
-        for ipv6 in ipv6s:
-            if ipv6 in fw_web_ipv6s.union(fw_ssh_ipv6s).union(fw_open_ipv6s):
-                self.__rmv_ips_from_addr_grps(
-                    fw,
-                    [ipv6, ],
-                    {addr_grp for addr_grp in AddressGroup}
-                )
+            if self.sync:
+                fw.block_ips([str(ip) for ip in ips])
 
     def __sync_host_under_review(self, host: MyHost):
         logger.info("Host under review: %s", str(host.ipv4_addr))
@@ -310,17 +95,6 @@ class Command(BaseCommand):
             }
         ):
             logger.error("Service Profiles not up-to-date!")
-            exit()
-        if not (
-            {
-                addrgrp for addrgrp in AddressGroup
-            } == {
-                AddressGroup.HTTP,
-                AddressGroup.SSH,
-                AddressGroup.OPEN
-            }
-        ):
-            logger.error("Palo Alto AddressGroups are not up-to-date!")
             exit()
 
         self.sync = options['sync']
@@ -363,99 +137,65 @@ class Command(BaseCommand):
 
                         # get all hosts in IPAM
                         logger.info("Get assets from IPAM!")
-                        ipam_hosts_total = {}
+                        ipam_hosts_total = {
+                            sp: set()
+                            for sp in HostServiceContract
+                        }
                         admin_tag_names = ipam.get_all_admin_names()
                         for a_tag_name in admin_tag_names:
                             hosts = ipam.get_hosts_of_admin(
                                 admin_name=a_tag_name
                             )
                             for host in hosts:
-                                ipam_hosts_total[str(host.ipv4_addr)] = host
-
-                        # get all hosts that are online in FW
-                        # TODO: simplify with fw.get_addrs_in_service_profile()
-                        logger.info('Get assets unblocked by FW!')
-                        fw_ipv4s = set()
-                        fw_web_ipv4s = set()
-                        fw_ssh_ipv4s = set()
-                        fw_open_ipv4s = set()
-                        fw_ipv6s = set()
-                        fw_web_ipv6s = set()
-                        fw_ssh_ipv6s = set()
-                        fw_open_ipv6s = set()
-                        for ag in AddressGroup:
-                            addr_objs = fw.get_addr_objs_in_addr_grp(ag)
-                            for addr_obj in addr_objs:
-                                # check if IPv4
-                                try:
-                                    ipv4 = ipaddress.IPv4Address(
-                                        addr_obj.replace('-', '.')
-                                    )
-                                    fw_ipv4s.add(str(ipv4))
-                                    match ag:
-                                        case AddressGroup.HTTP:
-                                            fw_web_ipv4s.add(str(ipv4))
-                                        case AddressGroup.SSH:
-                                            fw_ssh_ipv4s.add(str(ipv4))
-                                        case AddressGroup.OPEN:
-                                            fw_open_ipv4s.add(str(ipv4))
-                                    continue
-                                except Exception:
-                                    pass
-                                # check if IPv6
-                                try:
-                                    ipv6 = ipaddress.IPv6Address(
-                                        addr_obj.replace('-', ':')
-                                    ).exploded
-                                    fw_ipv6s.add(str(ipv6))
-                                    match ag:
-                                        case AddressGroup.HTTP:
-                                            fw_web_ipv6s.add(str(ipv6))
-                                        case AddressGroup.SSH:
-                                            fw_ssh_ipv6s.add(str(ipv6))
-                                        case AddressGroup.OPEN:
-                                            fw_open_ipv6s.add(str(ipv6))
-                                except Exception:
-                                    logger.exception(
-                                        f"Could not parse {addr_obj}"
-                                    )
+                                ipam_hosts_total[host.service_profile].add(
+                                    host
+                                )
 
                         """ SYNC DATA """
 
-                        for ipv4, host in ipam_hosts_total.items():
-                            match host.status:
-                                case HostStatusContract.ONLINE:
-                                    self.__sync_host_online(
-                                        host,
-                                        ipam,
-                                        fw,
-                                        fw_web_ipv4s,
-                                        fw_ssh_ipv4s,
-                                        fw_open_ipv4s,
-                                        fw_web_ipv6s,
-                                        fw_ssh_ipv6s,
-                                        fw_open_ipv6s
-                                    )
-                                case HostStatusContract.UNDER_REVIEW:
-                                    self.__sync_host_under_review(host)
-                                case (HostStatusContract.BLOCKED
-                                      | HostStatusContract.UNREGISTERED):
-                                    self.__sync_host_blocked(
-                                        host,
-                                        ipam,
-                                        fw,
-                                        fw_web_ipv4s,
-                                        fw_ssh_ipv4s,
-                                        fw_open_ipv4s,
-                                        fw_web_ipv6s,
-                                        fw_ssh_ipv6s,
-                                        fw_open_ipv6s
-                                    )
-                                case _:
-                                    logger.warning(
-                                        "Invalid host status: %s",
-                                        str(host.status)
-                                    )
+                        for service_profile, hosts in ipam_hosts_total.items():
+                            # get addresses from firewall that are in the
+                            # service profile
+                            fw_ip_addrs_allowed_sp = fw.get_addrs_in_service_profile(
+                                service_profile
+                            )
+
+                            # get addresses from firewall are in some allowing
+                            # service profile
+                            fw_ip_addrs_allowed_total = set()
+                            for out_sp in set(HostServiceContract).difference(
+                                {HostServiceContract.EMPTY, }
+                            ):
+                                fw_ip_addrs_allowed_total.update(
+                                    fw.get_addrs_in_service_profile(out_sp)
+                                )
+
+                            # iterate through all hosts and sync them according
+                            # to their status
+                            for host in hosts:
+                                match host.status:
+                                    case HostStatusContract.ONLINE:
+                                        self.__sync_host_online(
+                                            host,
+                                            ipam,
+                                            fw,
+                                            fw_ip_addrs_allowed_sp
+                                        )
+                                    case HostStatusContract.UNDER_REVIEW:
+                                        self.__sync_host_under_review(host)
+                                    case (HostStatusContract.BLOCKED
+                                          | HostStatusContract.UNREGISTERED):
+                                        self.__sync_host_blocked(
+                                            host,
+                                            ipam,
+                                            fw,
+                                            fw_ip_addrs_allowed_total
+                                        )
+                                    case _:
+                                        logger.warning(
+                                            "Invalid host status: %s",
+                                            str(host.status)
+                                        )
 
                     logger.info("Sync IPAM and FW finished.")
                     return

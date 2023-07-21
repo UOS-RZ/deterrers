@@ -235,6 +235,30 @@ class PaloAltoWrapper(FWAbstract):
 
         return obj_name
 
+    def __get_all_addr_obj_names(self) -> set[str]:
+        """
+        Queries all addr obj names at the firewall.
+
+        Returns:
+            set[str]: Returns a set of strings.
+        """
+
+        get_address_params = f"location={self.LOCATION}"
+        get_address_url = (self.rest_url
+                           + "Objects/Addresses?"
+                           + get_address_params)
+        response = requests.get(get_address_url, headers=self.header,
+                                timeout=self.TIMEOUT)
+        data = response.json()
+
+        if not (data.get('@status') == 'success'
+                and data.get('@code') == '19'):
+            return None
+
+        obj_names = {obj['@name'] for obj in data.get('result').get('entry')}
+
+        return obj_names
+
     def __get_addr_grp_properties(self,
                                   addr_grp: AddressGroup) -> dict:
         """
@@ -289,6 +313,21 @@ class PaloAltoWrapper(FWAbstract):
         pending = (response_xml.xpath("//response/result")[0].text == "yes")
         return pending
 
+    def __cancle_commit(self):
+        """
+        Try to cancle scheduled commits.
+
+        Raises:
+            PaloAltoAPIError: Raised when commit couldn't be canceled.
+        """
+        cancle_commit_url = (self.xml_url
+                             + "?type=op&cmd=<request><clear-commit-tasks>"
+                             + "</clear-commit-tasks></request>")
+        response = requests.get(cancle_commit_url, headers=self.header,
+                                timeout=self.TIMEOUT)
+        if response.status_code != 200:
+            raise PaloAltoAPIError("Could not cancel commit!")
+
     def commit_changes(self) -> None:
         """
         Commit changes of current user.
@@ -318,49 +357,12 @@ class PaloAltoWrapper(FWAbstract):
 
         return True
 
-    def __cancle_commit(self):
-        """
-        Try to cancle scheduled commits.
-
-        Raises:
-            PaloAltoAPIError: Raised when commit couldn't be canceled.
-        """
-        cancle_commit_url = (self.xml_url
-                             + "?type=op&cmd=<request><clear-commit-tasks>"
-                             + "</clear-commit-tasks></request>")
-        response = requests.get(cancle_commit_url, headers=self.header,
-                                timeout=self.TIMEOUT)
-        if response.status_code != 200:
-            raise PaloAltoAPIError("Could not cancle commit!")
-
-    def get_addr_objs_in_addr_grp(self,
-                                  addr_grp: AddressGroup) -> set:
-        """
-        Queries all the names of AddressObjects in a given AddressGroup.
-
-        Args:
-            addr_grp (PaloAltoAddressGroup): AddressGroup to get the
-            IP addresses of.
-
-        Returns:
-            set: Returns a set of address object names.
-        """
-        try:
-            # get all properties of the address group
-            addr_grp_obj = self.__get_addr_grp_properties(addr_grp)
-            addr_obj_names = addr_grp_obj['static']['member']
-            return set(addr_obj_names)
-        except (PaloAltoAPIError, requests.exceptions.JSONDecodeError):
-            logger.exception("Couldn't get AddressObjects of AddressGroup %s",
-                             addr_grp.value)
-            return set()
-
     def get_addrs_in_service_profile(
         self,
         service_profile: HostServiceContract
     ) -> set[ipaddress.IPv4Address | ipaddress.IPv6Address]:
         """
-        Queries all IP addresses for that are in some internet service profile
+        Queries all IP addresses that are in some internet service profile
         at the perimeter FW.
 
         Args:
@@ -373,98 +375,50 @@ class PaloAltoWrapper(FWAbstract):
         """
         try:
             ip_addrs = set()
-            addr_obj_names = set()
-            # map service profile to address groups in Palo Alto
-            for addr_grp in AddressGroup.get_addr_grps(service_profile):
-                # get all properties of the address group
-                addr_grp_obj = self.__get_addr_grp_properties(addr_grp)
-                # get only those addresses which are in all addrs grps
-                addr_obj_names.intersection(
-                    set(addr_grp_obj['static']['member'])
+            # map service profile to address groups in Palo Altoaddr_grp
+            srvc_prfl_addr_obj_names = self.__get_all_addr_obj_names()
+            in_addr_grps = AddressGroup.get_addr_grps(service_profile)
+            for addr_grp in in_addr_grps:
+                # get all IP addresses in the address group
+                addr_grp_addr_obj_names = set(self.__get_addr_grp_properties(
+                    addr_grp
+                )['static']['member'])
+                # remove all ip addrs that are not in the relevant addr grps
+                srvc_prfl_addr_obj_names.intersection_update(
+                    addr_grp_addr_obj_names
                 )
-            # for all addr objs generate the IPv4/v6 address object
-            for addr_obj_name in addr_obj_names:
+
+            for addr_grp in set(AddressGroup).difference(in_addr_grps):
+                # get all IP addresses in the address group
+                addr_grp_addr_obj_names = set(self.__get_addr_grp_properties(
+                    addr_grp
+                )['static']['member'])
+                # remove all ip addrs that are in unrelevant addr grps
+                srvc_prfl_addr_obj_names.difference_update(
+                    addr_grp_addr_obj_names
+                )
+
+            # for all addr objs generate the IPv4/v6 address object if possible
+            for addr_obj_name in srvc_prfl_addr_obj_names:
                 try:
                     ipv4 = ipaddress.IPv4Address(
                         addr_obj_name.replace('-', '.')
                     )
                     ip_addrs.add(ipv4)
                 except Exception:
-                    pass
-                try:
-                    ipv6 = ipaddress.IPv6Address(
-                        addr_obj_name.replace('-', ':')
-                    )
-                    ip_addrs.add(ipv6)
-                except Exception:
-                    logger.error("")
+                    try:
+                        ipv6 = ipaddress.IPv6Address(
+                            addr_obj_name.replace('-', ':')
+                        )
+                        ip_addrs.add(ipv6)
+                    except Exception:
+                        pass
 
             return ip_addrs
         except (PaloAltoAPIError, requests.exceptions.JSONDecodeError):
             logger.exception("Couldn't get AddressObjects of AddressGroup %s",
                              addr_grp.value)
             return set()
-
-    def add_addr_objs_to_addr_grps(
-        self,
-        ip_addrs: list[str],
-        addr_grps: set[AddressGroup]
-    ) -> bool:
-        """
-        Creates AddressObjects for IP addresses if necessary and adds them
-        to some AddressGroups.
-
-        Args:
-            ip_addr (list[str]): IP addresses of the AddressObjects.
-            addr_grps (set[AddressGroups]): AddressGroups to which the
-            AddressObject is added.
-
-        Returns:
-            bool: Returns True on success and False if something went wrong.
-        """
-        try:
-            addr_obj_names = []
-            for ip in ip_addrs:
-                name = self.__get_addr_obj(ip)
-                if not name:
-                    name = self.__create_addr_obj(ip)
-                addr_obj_names.append(name)
-
-            for addr_grp_name in addr_grps:
-                # get all properties of the address group
-                addr_grp_obj = self.__get_addr_grp_properties(addr_grp_name)
-                # put the new addr obj into the addr grp
-                put_addr_grp_params = (f"name={addr_grp_name.value}&location="
-                                       + f"{self.LOCATION}&input-format=json")
-                put_addr_grp_url = (self.rest_url + "Objects/AddressGroups?"
-                                    + put_addr_grp_params)
-                put_addr_grp_payload = {
-                    "entry": {
-                        "static": {
-                            "member": list(set(addr_grp_obj['static']['member']
-                                               + addr_obj_names)),
-                        },
-                        "@name": addr_grp_obj['@name'],
-                        "description": addr_grp_obj.get('description', '')
-                    }
-                }
-                response = requests.put(
-                    put_addr_grp_url, json=put_addr_grp_payload,
-                    headers=self.header, timeout=self.TIMEOUT
-                )
-                data = response.json()
-                if (response.status_code != 200
-                        or data.get('@status') != 'success'):
-                    raise PaloAltoAPIError(
-                        f"Could not update Address Group {addr_grp_name.value}. "
-                        + f"Status code: {response.status_code}. "
-                        + f"Status: {data.get('@status')}")
-
-        except (PaloAltoAPIError, requests.exceptions.JSONDecodeError):
-            logger.exception("Couldn't add AddressObjects to AddressGroups!")
-            return False
-
-        return True
 
     def allow_service_profile_for_ips(
         self,
@@ -523,67 +477,6 @@ class PaloAltoWrapper(FWAbstract):
 
         except (PaloAltoAPIError, requests.exceptions.JSONDecodeError):
             logger.exception("Couldn't add AddressObjects to AddressGroups!")
-            return False
-
-        return True
-
-    def remove_addr_objs_from_addr_grps(
-        self,
-        ip_addrs: list[str],
-        addr_grps: set[AddressGroup]
-    ) -> bool:
-        """
-        Removes AddressObjects from some AddressGroups.
-
-        Args:
-            ip_addr (list[str]): IP addresses of the AddressObjects.
-            addr_grps (set[AddressGroups]): AddressGroups from which the
-            AddressObject is removed.
-
-        Returns:
-            bool: Returns True on success and False if something went wrong.
-        """
-        try:
-            addr_obj_names = []
-            for ip in ip_addrs:
-                name = self.__get_addr_obj(ip)
-                if name:
-                    addr_obj_names.append(name)
-            for addr_grp_name in addr_grps:
-                # get all properties of the address group
-                addr_grp_obj = self.__get_addr_grp_properties(addr_grp_name)
-                # remove addr obj from addr grp
-                put_addr_grp_params = (f"name={addr_grp_name.value}&location="
-                                       + f"{self.LOCATION}&input-format=json")
-                put_addr_grp_url = (self.rest_url + "Objects/AddressGroups?"
-                                    + put_addr_grp_params)
-                put_addr_grp_payload = {
-                    "entry": {
-                        "static": {
-                            "member": list(
-                                set(addr_grp_obj['static']['member'])
-                                - set(addr_obj_names)
-                            ),
-                        },
-                        "@name": addr_grp_obj['@name'],
-                        "description": addr_grp_obj.get('description', '')
-                    }
-                }
-                response = requests.put(
-                    put_addr_grp_url, json=put_addr_grp_payload,
-                    headers=self.header, timeout=self.TIMEOUT
-                )
-                data = response.json()
-                if (response.status_code != 200
-                        or data.get('@status') != 'success'):
-                    raise PaloAltoAPIError(
-                        f"Could not update Address Group {addr_grp_name.value}. "
-                        + f"Status code: {response.status_code}. "
-                        + f"Status: {data.get('@status')}")
-
-        except (PaloAltoAPIError, requests.exceptions.JSONDecodeError):
-            logger.exception("Couldn't remove AddressObjects from "
-                             + "AddressGroups!")
             return False
 
         return True

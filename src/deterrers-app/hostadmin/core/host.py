@@ -59,6 +59,9 @@ class MyHost():
         return (ipaddress.IPv4Address(self.ipv4_addr)
                 < ipaddress.IPv4Address(other.ipv4_addr))
 
+    def __hash__(self) -> int:
+        return int(self.ipv4_addr)
+
     def get_ipv4_escaped(self) -> str:
         return str(self.ipv4_addr).replace('.', '_')
 
