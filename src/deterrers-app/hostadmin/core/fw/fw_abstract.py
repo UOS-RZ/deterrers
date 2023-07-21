@@ -6,10 +6,13 @@ from hostadmin.core.contracts import (HostStatusContract,
 
 
 class FWAbstract(ABC):
-    """TODO"""
+    """ Abstract class for implementation of perimeter firewall wrappers. """
 
     @abstractmethod
     def commit_changes(self) -> None:
+        """
+        Initiate commit if FW works with commits.
+        """
         pass
 
     @abstractmethod
@@ -17,6 +20,18 @@ class FWAbstract(ABC):
         self,
         serv_profile: HostServiceContract
     ) -> set[ipaddress.IPv4Address | ipaddress.IPv6Address]:
+        """
+        Query a set of IP addresses for which given internet service profile
+        is allowed at perimeter firewall.
+
+        Args:
+            serv_profile (HostServiceContract): Internet service profile for
+            which IP addresses are queried.
+
+        Returns:
+            set[ipaddress.IPv4Address | ipaddress.IPv6Address]: Returns a set
+            of IPv4 and IPv6 addresses.
+        """
         pass
 
     @abstractmethod
@@ -25,6 +40,16 @@ class FWAbstract(ABC):
         ip_addrs: list[str],
         service_profile: HostServiceContract
     ) -> bool:
+        """
+        Allow internet service profile for multiple IPs.
+
+        Args:
+            ip_addrs (list[str]): IP addresses in string format.
+            service_profile (HostServiceContract): Internet service profile.
+
+        Returns:
+            bool: Returns True on success and False otherwise.
+        """
         pass
 
     @abstractmethod
@@ -32,8 +57,26 @@ class FWAbstract(ABC):
         self,
         ip_addrs: list[str]
     ) -> bool:
+        """
+        Block multiple IPs at the perimeter firewall.
+
+        Args:
+            ip_addrs (list[str]): IP addresses in string format.
+
+        Returns:
+            bool: Returns True on success and False otherwise.
+        """
         pass
 
     @abstractmethod
     def get_host_status(self, ip_addr: str) -> HostStatusContract:
+        """
+        Queries the host status for a given IP address.
+
+        Args:
+            ip_addr (str): IP address.
+
+        Returns:
+            HostStatusContract: Returns the host status.
+        """
         pass
