@@ -180,8 +180,8 @@ def set_host_offline(host_ipv4: str) -> bool:
 def set_host_bulk_offline(host_ipv4s: set[str]) -> bool:
     # TODO: optimize for better performance by querying many ips to FW
     for ipv4 in host_ipv4s:
-        set_host_offline(ipv4)
-        logger.error("Couldn't block host: %s", ipv4)
+        if not set_host_offline(ipv4):
+            logger.error("Couldn't block host: %s", ipv4)
         continue
     return True
 
