@@ -26,8 +26,7 @@ from hostadmin.util import (add_changelog,
                             scan_mail_body,
                             periodic_mail_body,
                             set_host_offline,
-                            set_host_online,
-                            extract_report_data)
+                            set_host_online)
 
 from hostadmin.forms import (ChangeHostDetailForm,
                              AddHostRulesForm,
@@ -1079,8 +1078,9 @@ def v_scanner_registration_alert(request):
                     if not ipam.enter_ok:
                         return
 
-                    report_xml = scanner.get_report_xml(report_uuid)
-                    _, scan_end, scan_results = extract_report_data(report_xml)
+                    _, scan_end, scan_results = scanner.extract_report_data(
+                        report_uuid
+                    )
                     if scan_results is None:
                         return
                     # Risk assessment
@@ -1218,8 +1218,9 @@ def v_scanner_scan_alert(request):
                     if not ipam.enter_ok:
                         return
 
-                    report_xml = scanner.get_report_xml(report_uuid)
-                    _, scan_end, results = extract_report_data(report_xml)
+                    _, scan_end, results = scanner.extract_report_data(
+                        report_uuid
+                    )
                     if results is None:
                         return
 
@@ -1323,8 +1324,9 @@ def v_scanner_periodic_alert(request):
 
                     admin_mail_copy = ""
                     report_uuid = scanner.get_latest_report_uuid(task_uuid)
-                    report_xml = scanner.get_report_xml(report_uuid)
-                    _, _, scan_results = extract_report_data(report_xml)
+                    _, _, scan_results = scanner.extract_report_data(
+                        report_uuid
+                    )
                     if scan_results is None:
                         return
                     # Risk assessment
