@@ -537,8 +537,11 @@ def update_host_detail(request, ipv4: str):
                                 "%s is not supported yet.",
                                 host.service_profile
                             )
-                    # TODO: check return value
-                    ipam.update_host_info(host)
+                    if not ipam.update_host_info(host):
+                        messages.error(
+                            request,
+                            ("Failed to update information!")
+                        )
 
                 # redirect to a new URL:
                 return HttpResponseRedirect(
@@ -1055,14 +1058,6 @@ def v_scanner_registration_alert(request):
             request (_type_): Request object.
         """
         try:
-            host_ipv4 = request.GET['host_ip']
-            # TODO: if task was manually restarted in Greenbone, this
-            # report_id will be outdated; better query it with help
-            # of task_uuid
-            report_uuid = request.GET['report_uuid']
-            task_uuid = request.GET['task_uuid']
-            target_uuid = request.GET['target_uuid']
-            alert_uuid = request.GET['alert_uuid']
             with GmpScannerWrapper(
                 settings.V_SCANNER_USERNAME,
                 settings.V_SCANNER_SECRET_KEY,
@@ -1077,6 +1072,12 @@ def v_scanner_registration_alert(request):
                 ) as ipam:
                     if not ipam.enter_ok:
                         return
+
+                    host_ipv4 = request.GET['host_ip']
+                    task_uuid = request.GET['task_uuid']
+                    report_uuid = scanner.get_latest_report_uuid(task_uuid)
+                    target_uuid = request.GET['target_uuid']
+                    alert_uuid = request.GET['alert_uuid']
 
                     _, scan_end, scan_results = scanner.extract_report_data(
                         report_uuid
