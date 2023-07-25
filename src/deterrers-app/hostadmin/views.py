@@ -37,11 +37,11 @@ from hostadmin.core.scanner.gmp_wrapper import GmpScannerWrapper
 from hostadmin.core.fw.pa_wrapper import PaloAltoWrapper
 from hostadmin.core.risk_assessor import assess_host_risk
 from hostadmin.core.rule_generator import generate_fw_config
-from hostadmin.core.contracts import (HostBasedPolicySrcContract,
-                                      HostBasedPolicyProtocolContract,
-                                      HostStatusContract,
-                                      HostServiceContract,
-                                      HostFWContract,)
+from hostadmin.core.contracts import (HostBasedPolicySrc,
+                                      HostBasedPolicyProtocol,
+                                      HostStatus,
+                                      HostServiceProfile,
+                                      HostFW,)
 
 
 from myuser.models import MyUser
@@ -172,7 +172,7 @@ def host_detail_view(request, ipv4: str):
         if request.method == 'POST':
             form = AddHostRulesForm(request.POST)
             if form.is_valid():
-                subnet = HostBasedPolicySrcContract[
+                subnet = HostBasedPolicySrc[
                     form.cleaned_data['subnet']
                 ].value
                 ports = form.cleaned_data['ports']
@@ -197,7 +197,7 @@ def host_detail_view(request, ipv4: str):
         'host_detail': host,
         'host_rules': [
             {
-                'allow_src': HostBasedPolicySrcContract(
+                'allow_src': HostBasedPolicySrc(
                     p.allow_srcs
                 ).display(),
                 'allow_ports': p.allow_ports,
@@ -426,15 +426,15 @@ def update_host_detail(request, ipv4: str):
                 # update the actual model instance
                 service_profile_change = (
                     host.service_profile
-                    != HostServiceContract(
+                    != HostServiceProfile(
                         form.cleaned_data['service_profile']
                     )
                 )
-                host.service_profile = HostServiceContract(
+                host.service_profile = HostServiceProfile(
                     form.cleaned_data['service_profile']
                 )
-                fw_change = host.fw != HostFWContract(form.cleaned_data['fw'])
-                host.fw = HostFWContract(form.cleaned_data['fw'])
+                fw_change = host.fw != HostFW(form.cleaned_data['fw'])
+                host.fw = HostFW(form.cleaned_data['fw'])
                 if not ipam.update_host_info(host):
                     form.add_error(
                         None,
@@ -459,8 +459,8 @@ def update_host_detail(request, ipv4: str):
                     )
                 elif service_profile_change:
                     # if host is already online, update the perimeter FW
-                    if host.status == HostStatusContract.ONLINE:
-                        if host.service_profile == HostServiceContract.EMPTY:
+                    if host.status == HostStatus.ONLINE:
+                        if host.service_profile == HostServiceProfile.EMPTY:
                             form.add_error(
                                 None,
                                 "Please make sure to choose a service profile."
@@ -491,45 +491,45 @@ def update_host_detail(request, ipv4: str):
 
                     # auto-add some host-based policies
                     match host.service_profile:
-                        case HostServiceContract.EMPTY:
+                        case HostServiceProfile.EMPTY:
                             pass
-                        case (HostServiceContract.SSH
-                              | HostServiceContract.HTTP
-                              | HostServiceContract.HTTP_SSH) as s_p:
+                        case (HostServiceProfile.SSH
+                              | HostServiceProfile.HTTP
+                              | HostServiceProfile.HTTP_SSH) as s_p:
                             # allow SSH standard port 22 over TCP if a service
                             # profile is specified
                             host.add_host_based_policy(
-                                HostBasedPolicySrcContract.ANY.value,
+                                HostBasedPolicySrc.ANY.value,
                                 ['22'],
-                                HostBasedPolicyProtocolContract.TCP.value
+                                HostBasedPolicyProtocol.TCP.value
                             )
                             match s_p:
-                                case HostServiceContract.SSH:
+                                case HostServiceProfile.SSH:
                                     # since SSH rules have already been added
                                     # do nothing else
                                     pass
-                                case (HostServiceContract.HTTP
-                                      | HostServiceContract.HTTP_SSH):
+                                case (HostServiceProfile.HTTP
+                                      | HostServiceProfile.HTTP_SSH):
                                     # allow HTTP and HTTPS standard ports
                                     # 80 and 443 over TCP
                                     host.add_host_based_policy(
-                                        HostBasedPolicySrcContract.ANY.value,
+                                        HostBasedPolicySrc.ANY.value,
                                         ['80'],
-                                        HostBasedPolicyProtocolContract.TCP.value
+                                        HostBasedPolicyProtocol.TCP.value
                                     )
                                     host.add_host_based_policy(
-                                        HostBasedPolicySrcContract.ANY.value,
+                                        HostBasedPolicySrc.ANY.value,
                                         ['443'],
-                                        HostBasedPolicyProtocolContract.TCP.value
+                                        HostBasedPolicyProtocol.TCP.value
                                     )
-                        case HostServiceContract.MULTIPURPOSE:
+                        case HostServiceProfile.MULTIPURPOSE:
                             # allow nothing else; users are expected to
                             # configure their own rules
                             messages.warning(
                                 request,
                                 ("Please make sure to configure custom rules "
                                  + "for your desired services when choosing "
-                                 + f"the {HostServiceContract.MULTIPURPOSE.value} "
+                                 + f"the {HostServiceProfile.MULTIPURPOSE.value} "
                                  + "profile!")
                             )
                         case _:
@@ -635,7 +635,7 @@ def register_host(request, ipv4: str):
                  alert_uuid) = scanner.create_registration_scan(ipv4, own_url)
                 if target_uuid and task_uuid and report_uuid and alert_uuid:
                     # update state in IPAM
-                    host.status = HostStatusContract.UNDER_REVIEW
+                    host.status = HostStatus.UNDER_REVIEW
                     if not ipam.update_host_info(host):
                         scanner.clean_up_scan_objects(
                             target_uuid, task_uuid,
@@ -728,7 +728,7 @@ def scan_host(request, ipv4: str):
                  alert_uuid) = scanner.create_ordinary_scan(ipv4, own_url)
                 if target_uuid and task_uuid and report_uuid and alert_uuid:
                     # update state in IPAM
-                    host.status = HostStatusContract.UNDER_REVIEW
+                    host.status = HostStatus.UNDER_REVIEW
                     if not ipam.update_host_info(host):
                         scanner.clean_up_scan_objects(
                             target_uuid,
@@ -997,14 +997,14 @@ def remove_host(request, ipv4: str):
             return HttpResponse(status=409)
 
         # block
-        if host.status == HostStatusContract.ONLINE:
+        if host.status == HostStatus.ONLINE:
             if not set_host_offline(str(host.ipv4_addr)):
                 return HttpResponse(status=500)
 
         # set all DETERRERS fields to blank
-        host.status = HostStatusContract.UNREGISTERED
-        host.service_profile = HostServiceContract.EMPTY
-        host.fw = HostFWContract.EMPTY
+        host.status = HostStatus.UNREGISTERED
+        host.service_profile = HostServiceProfile.EMPTY
+        host.fw = HostFW.EMPTY
         host.host_based_policies = []
         if not ipam.update_host_info(host):
             return HttpResponse(status=500)

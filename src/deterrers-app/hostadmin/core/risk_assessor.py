@@ -3,7 +3,7 @@ from enum import Flag, auto
 from cvss import CVSS2, CVSS3
 
 from hostadmin.core.host import MyHost
-from hostadmin.core.contracts import HostServiceContract
+from hostadmin.core.contracts import HostServiceProfile
 
 logger = logging.getLogger(__name__)
 
@@ -203,7 +203,7 @@ def assess_vulnerability_risk(
         # vulnerability can be ignored if it affects port and protocol
         # outside of internet service profile
         match host.service_profile:
-            case HostServiceContract.HTTP:
+            case HostServiceProfile.HTTP:
                 unblocked_locations = [
                     ('general', 'ip'),
                     ('general', 'tcp'),
@@ -213,7 +213,7 @@ def assess_vulnerability_risk(
                 if (vul.port, vul.proto.lower()) in unblocked_locations:
                     risk = risk | RiskFlag.PORT_MATCH | RiskFlag.PROTO_MATCH
 
-            case HostServiceContract.SSH:
+            case HostServiceProfile.SSH:
                 unblocked_locations = [
                     ('general', 'ip'),
                     ('general', 'tcp'),
@@ -222,7 +222,7 @@ def assess_vulnerability_risk(
                 if (vul.port, vul.proto.lower()) in unblocked_locations:
                     risk = risk | RiskFlag.PORT_MATCH | RiskFlag.PROTO_MATCH
 
-            case HostServiceContract.HTTP_SSH:
+            case HostServiceProfile.HTTP_SSH:
                 unblocked_locations = [
                     ('general', 'ip'),
                     ('general', 'tcp'),
@@ -233,7 +233,7 @@ def assess_vulnerability_risk(
                 if (vul.port, vul.proto.lower()) in unblocked_locations:
                     risk = risk | RiskFlag.PORT_MATCH | RiskFlag.PROTO_MATCH
 
-            case HostServiceContract.MULTIPURPOSE:
+            case HostServiceProfile.MULTIPURPOSE:
                 # these services are always blocked at perimeter FW, so if
                 # vulnerability matches service there is no risk of exposure
                 # NOTE: depends on FW configuration
@@ -327,7 +327,7 @@ def assess_vulnerability_risk(
                 if (vul.port, vul.proto.lower()) not in blocked_locations:
                     risk = risk | RiskFlag.PORT_MATCH | RiskFlag.PROTO_MATCH
 
-            case HostServiceContract.EMPTY:
+            case HostServiceProfile.EMPTY:
                 pass
 
             case _:

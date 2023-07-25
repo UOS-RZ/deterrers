@@ -1,8 +1,8 @@
 from abc import (ABC, abstractmethod)
 import ipaddress
 
-from hostadmin.core.contracts import (HostStatusContract,
-                                      HostServiceContract)
+from hostadmin.core.contracts import (HostStatus,
+                                      HostServiceProfile)
 
 
 class FWAbstract(ABC):
@@ -18,7 +18,7 @@ class FWAbstract(ABC):
     @abstractmethod
     def get_addrs_in_service_profile(
         self,
-        serv_profile: HostServiceContract
+        serv_profile: HostServiceProfile
     ) -> set[ipaddress.IPv4Address | ipaddress.IPv6Address]:
         """
         Query a set of IP addresses for which given internet service profile
@@ -38,7 +38,7 @@ class FWAbstract(ABC):
     def allow_service_profile_for_ips(
         self,
         ip_addrs: list[str],
-        service_profile: HostServiceContract
+        service_profile: HostServiceProfile
     ) -> bool:
         """
         Allow internet service profile for multiple IPs.
@@ -69,7 +69,7 @@ class FWAbstract(ABC):
         pass
 
     @abstractmethod
-    def get_host_status(self, ip_addr: str) -> HostStatusContract:
+    def get_host_status(self, ip_addr: str) -> HostStatus:
         """
         Queries the host status for a given IP address.
 

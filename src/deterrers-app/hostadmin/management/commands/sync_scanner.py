@@ -7,7 +7,7 @@ from django.conf import settings
 
 from hostadmin.core.data_logic.ipam_wrapper import ProteusIPAMWrapper
 from hostadmin.core.scanner.gmp_wrapper import GmpScannerWrapper
-from hostadmin.core.contracts import HostStatusContract, HostServiceContract
+from hostadmin.core.contracts import HostStatus, HostServiceProfile
 from hostadmin.core.host import MyHost
 
 logger = logging.getLogger(__name__)
@@ -65,14 +65,14 @@ class Command(BaseCommand):
         logger.info("Start sync IPAM and scanner!")
         # quick sanity check if service profiles are still up-to-date
         if not (
-            {sp for sp in HostServiceContract}
+            {sp for sp in HostServiceProfile}
             ==
             {
-                HostServiceContract.EMPTY,
-                HostServiceContract.HTTP,
-                HostServiceContract.SSH,
-                HostServiceContract.HTTP_SSH,
-                HostServiceContract.MULTIPURPOSE
+                HostServiceProfile.EMPTY,
+                HostServiceProfile.HTTP,
+                HostServiceProfile.SSH,
+                HostServiceProfile.HTTP_SSH,
+                HostServiceProfile.MULTIPURPOSE
             }
         ):
             logger.error("Service Profiles not up-to-date!")
@@ -178,17 +178,17 @@ class Command(BaseCommand):
                         for ipv4, host in ipam_hosts_total.items():
 
                             match host.status:
-                                case HostStatusContract.ONLINE:
+                                case HostStatus.ONLINE:
                                     self.__sync_host_online(
                                         host,
                                         ipam,
                                         scanner,
                                         v_scanner_hosts
                                     )
-                                case HostStatusContract.UNDER_REVIEW:
+                                case HostStatus.UNDER_REVIEW:
                                     self.__sync_host_under_review(host)
-                                case (HostStatusContract.BLOCKED
-                                      | HostStatusContract.UNREGISTERED):
+                                case (HostStatus.BLOCKED
+                                      | HostStatus.UNREGISTERED):
                                     self.__sync_host_blocked(
                                         host,
                                         ipam,

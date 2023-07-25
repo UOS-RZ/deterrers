@@ -6,8 +6,8 @@ from enum import Enum
 import ipaddress
 
 from hostadmin.core.fw.fw_abstract import FWAbstract
-from hostadmin.core.contracts import (HostStatusContract,
-                                      HostServiceContract)
+from hostadmin.core.contracts import (HostStatus,
+                                      HostServiceProfile)
 
 
 logger = logging.getLogger(__name__)
@@ -30,17 +30,17 @@ class AddressGroup(Enum):
     OPEN = "FWP3-OPEN-DETERRERS"
 
     @classmethod
-    def get_addr_grps(cla, servc_prof: HostServiceContract) -> set:
+    def get_addr_grps(cla, servc_prof: HostServiceProfile) -> set:
         match servc_prof:
-            case HostServiceContract.HTTP:
+            case HostServiceProfile.HTTP:
                 return {cla.HTTP, }
-            case HostServiceContract.SSH:
+            case HostServiceProfile.SSH:
                 return {cla.SSH, }
-            case HostServiceContract.HTTP_SSH:
+            case HostServiceProfile.HTTP_SSH:
                 return {cla.HTTP, cla.SSH}
-            case HostServiceContract.MULTIPURPOSE:
+            case HostServiceProfile.MULTIPURPOSE:
                 return {cla.OPEN, }
-            case HostServiceContract.EMPTY:
+            case HostServiceProfile.EMPTY:
                 return set()
             case _:
                 raise NotImplementedError("Unknown service profile!")
@@ -359,7 +359,7 @@ class PaloAltoWrapper(FWAbstract):
 
     def get_addrs_in_service_profile(
         self,
-        service_profile: HostServiceContract
+        service_profile: HostServiceProfile
     ) -> set[ipaddress.IPv4Address | ipaddress.IPv6Address]:
         """
         Queries all IP addresses that are in some internet service profile
@@ -423,7 +423,7 @@ class PaloAltoWrapper(FWAbstract):
     def allow_service_profile_for_ips(
         self,
         ip_addrs: list[str],
-        service_profile: HostServiceContract
+        service_profile: HostServiceProfile
     ) -> bool:
         """
         Creates AddressObjects for IP addresses if necessary and adds them
@@ -539,7 +539,7 @@ class PaloAltoWrapper(FWAbstract):
 
         return True
 
-    def get_host_status(self, ip_addr: str) -> HostStatusContract:
+    def get_host_status(self, ip_addr: str) -> HostStatus:
         """
         Query the status of a host at the perimeter firewall.
 
@@ -555,16 +555,16 @@ class PaloAltoWrapper(FWAbstract):
             if not addr_obj_name:
                 # if addr_obj does not exist yet, the host has not been
                 # registered
-                return HostStatusContract.UNREGISTERED
+                return HostStatus.UNREGISTERED
 
             for addr_grp in AddressGroup:
                 # get all properties of the address group
                 addr_grp_obj = self.__get_addr_grp_properties(addr_grp)
                 if addr_obj_name in addr_grp_obj['static']['member']:
                     # if addr_obj is member of any addr_grp than it is online
-                    return HostStatusContract.ONLINE
+                    return HostStatus.ONLINE
             # if addr_obj is not member of any addr_grp than it is offline
-            return HostStatusContract.BLOCKED
+            return HostStatus.BLOCKED
 
         except (PaloAltoAPIError, requests.exceptions.JSONDecodeError):
             logger.exception("Couldn't remove AddressObject from AddressGroups!")

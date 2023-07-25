@@ -8,7 +8,7 @@ from django.conf import settings
 
 from hostadmin.core.data_logic.ipam_wrapper import ProteusIPAMWrapper
 from hostadmin.core.fw.pa_wrapper import PaloAltoWrapper
-from hostadmin.core.contracts import HostStatusContract, HostServiceContract
+from hostadmin.core.contracts import HostStatus, HostServiceProfile
 from hostadmin.core.host import MyHost
 
 logger = logging.getLogger(__name__)
@@ -85,13 +85,13 @@ class Command(BaseCommand):
         # still up-to-date
         if not (
             {
-                sp for sp in HostServiceContract
+                sp for sp in HostServiceProfile
             } == {
-                HostServiceContract.EMPTY,
-                HostServiceContract.HTTP,
-                HostServiceContract.SSH,
-                HostServiceContract.HTTP_SSH,
-                HostServiceContract.MULTIPURPOSE
+                HostServiceProfile.EMPTY,
+                HostServiceProfile.HTTP,
+                HostServiceProfile.SSH,
+                HostServiceProfile.HTTP_SSH,
+                HostServiceProfile.MULTIPURPOSE
             }
         ):
             logger.error("Service Profiles not up-to-date!")
@@ -139,7 +139,7 @@ class Command(BaseCommand):
                         logger.info("Get assets from IPAM!")
                         ipam_hosts_total = {
                             sp: set()
-                            for sp in HostServiceContract
+                            for sp in HostServiceProfile
                         }
                         admin_tag_names = ipam.get_all_admin_names()
                         for a_tag_name in admin_tag_names:
@@ -163,8 +163,8 @@ class Command(BaseCommand):
                             # get addresses from firewall are in some allowing
                             # service profile
                             fw_ip_addrs_allowed_total = set()
-                            for out_sp in set(HostServiceContract).difference(
-                                {HostServiceContract.EMPTY, }
+                            for out_sp in set(HostServiceProfile).difference(
+                                {HostServiceProfile.EMPTY, }
                             ):
                                 fw_ip_addrs_allowed_total.update(
                                     fw.get_addrs_in_service_profile(out_sp)
@@ -174,17 +174,17 @@ class Command(BaseCommand):
                             # to their status
                             for host in hosts:
                                 match host.status:
-                                    case HostStatusContract.ONLINE:
+                                    case HostStatus.ONLINE:
                                         self.__sync_host_online(
                                             host,
                                             ipam,
                                             fw,
                                             fw_ip_addrs_allowed_sp
                                         )
-                                    case HostStatusContract.UNDER_REVIEW:
+                                    case HostStatus.UNDER_REVIEW:
                                         self.__sync_host_under_review(host)
-                                    case (HostStatusContract.BLOCKED
-                                          | HostStatusContract.UNREGISTERED):
+                                    case (HostStatus.BLOCKED
+                                          | HostStatus.UNREGISTERED):
                                         self.__sync_host_blocked(
                                             host,
                                             ipam,
