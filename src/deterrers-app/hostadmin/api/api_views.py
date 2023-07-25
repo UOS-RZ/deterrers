@@ -1,7 +1,8 @@
 import logging
 
 from rest_framework.response import Response
-from rest_framework.decorators import (api_view, authentication_classes,
+from rest_framework.decorators import (api_view,
+                                       authentication_classes,
                                        permission_classes)
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
@@ -12,15 +13,18 @@ from django.http import Http404
 from django.urls import reverse
 
 from myuser.models import MyUser
-from hostadmin.util import (available_actions, set_host_bulk_offline,
-                            set_host_online, set_host_offline)
-from hostadmin.core.ipam_api_interface import ProteusIPAMInterface
-from hostadmin.core.v_scanner_interface import GmpVScannerInterface
+from hostadmin.util import (available_actions,
+                            set_host_bulk_offline,
+                            set_host_online,
+                            set_host_offline)
+from hostadmin.core.data_logic.ipam_wrapper import ProteusIPAMWrapper
+from hostadmin.core.scanner.gmp_wrapper import GmpScannerWrapper
 from hostadmin.core.host import MyHost
-from hostadmin.core.contracts import (HostStatusContract, HostServiceContract,
-                                      HostBasedPolicySrcContract,
-                                      HostBasedPolicyProtocolContract,
-                                      HostFWContract)
+from hostadmin.core.contracts import (HostStatus,
+                                      HostServiceProfile,
+                                      HostBasedPolicySrc,
+                                      HostBasedPolicyProtocol,
+                                      HostFW)
 from .serializers import MyHostSerializer, HostActionSerializer
 
 logger = logging.getLogger(__name__)
@@ -50,9 +54,11 @@ def __get_host(request) -> Response:
     """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(settings.IPAM_USERNAME,
-                              settings.IPAM_SECRET_KEY,
-                              settings.IPAM_URL) as ipam:
+    with ProteusIPAMWrapper(
+        settings.IPAM_USERNAME,
+        settings.IPAM_SECRET_KEY,
+        settings.IPAM_URL
+    ) as ipam:
         if not ipam.enter_ok:
             raise Http500("No connection to IPAM")
 
@@ -90,9 +96,11 @@ def __add_host(request) -> Response:
     """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(settings.IPAM_USERNAME,
-                              settings.IPAM_SECRET_KEY,
-                              settings.IPAM_URL) as ipam:
+    with ProteusIPAMWrapper(
+        settings.IPAM_USERNAME,
+        settings.IPAM_SECRET_KEY,
+        settings.IPAM_URL
+    ) as ipam:
         if not ipam.enter_ok:
             raise Http500("No connection to IPAM")
 
@@ -106,27 +114,27 @@ def __add_host(request) -> Response:
             raise Http400("Invalid data given")
         host_update_data = host_serializer.validated_data
         host_ipv4 = host_update_data['ipv4_addr']
+        host = ipam.get_host_info_from_ip(host_ipv4)
+        if not host:
+            raise Http404("Host not found")
+        if not host.is_valid():
+            raise Http409("Host not valid")
         try:
             tag_names = set(host_update_data['admin_ids'])
         except KeyError:
             raise Http400("No admin IDs provided")
         # check if tag names are either department or admin tag
         for tag_name in tag_names:
-            if (tag_name in ipam.get_department_tag_names()
+            if (tag_name in ipam.get_department_names()
                     or ipam.is_admin(tag_name)):
                 # add tag to host
-                code = ipam.add_tag_to_host(tag_name, host_ipv4)
+                code = ipam.add_admin_to_host(tag_name, host)
                 if code not in range(200,  205, 1):
                     return Response(status=code)
 
         # update host if there are changes
         if (host_update_data.get('service_profile', None)
                 or host_update_data.get('fw', None)):
-            host = ipam.get_host_info_from_ip(host_ipv4)
-            if not host:
-                raise Http404("Host not found")
-            if not host.is_valid():
-                raise Http409("Host not valid")
             __update_host_logic(ipam, host, host_update_data)
 
     return Response()
@@ -146,9 +154,11 @@ def __remove_host(request) -> Response:
     """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(settings.IPAM_USERNAME,
-                              settings.IPAM_SECRET_KEY,
-                              settings.IPAM_URL) as ipam:
+    with ProteusIPAMWrapper(
+        settings.IPAM_USERNAME,
+        settings.IPAM_SECRET_KEY,
+        settings.IPAM_URL
+    ) as ipam:
         if not ipam.enter_ok:
             raise Http500("No connection to IPAM")
         # check if user has IPAM permission or an admin tag for them exists
@@ -174,22 +184,22 @@ def __remove_host(request) -> Response:
             raise Http409("Removing host currently not available")
 
         # block
-        if host.status == HostStatusContract.ONLINE:
+        if host.status == HostStatus.ONLINE:
             if not set_host_offline(str(host.ipv4_addr)):
                 raise Http500("Host could not be set offline")
 
         # set all DETERRERS fields to blank
-        host.status = HostStatusContract.UNREGISTERED
-        host.service_profile = HostServiceContract.EMPTY
-        host.fw = HostFWContract.EMPTY
+        host.status = HostStatus.UNREGISTERED
+        host.service_profile = HostServiceProfile.EMPTY
+        host.fw = HostFW.EMPTY
         host.host_based_policies = []
         ipam.update_host_info(host)
 
         # remove all admin tags
         for admin_tag_name in host.admin_ids:
-            ipam.remove_tag_from_host(admin_tag_name, str(host.ipv4_addr))
+            ipam.remove_admin_from_host(admin_tag_name, host)
         # check that no admins are left for this host
-        if len(ipam.get_admins_of_host(host.entity_id)) > 0:
+        if len(host.entity_id) > 0:
             logger.error(
                 "Couldn't remove all tags from host '%s'",
                 str(host.ipv4_addr)
@@ -199,14 +209,14 @@ def __remove_host(request) -> Response:
     return Response()
 
 
-def __update_host_logic(ipam: ProteusIPAMInterface,
+def __update_host_logic(ipam: ProteusIPAMWrapper,
                         host: MyHost,
                         host_update_data: dict):
     """
     Utility function that does the actual update logic.
 
     Args:
-        ipam (ProteusIPAMInterface): Instanciated IPAMInterface object
+        ipam (ProteusIPAMWrapper): Instantiated ProteusIPAMWrapper object
         for communication.
         host (MyHost): Host to update.
         host_update_data (dict): Dict holding the update data.
@@ -234,8 +244,8 @@ def __update_host_logic(ipam: ProteusIPAMInterface,
         return
     elif service_profile_change:
         # if host is already online, update the perimeter FW
-        if host.status == HostStatusContract.ONLINE:
-            if host.service_profile == HostServiceContract.EMPTY:
+        if host.status == HostStatus.ONLINE:
+            if host.service_profile == HostServiceProfile.EMPTY:
                 if not set_host_offline(str(host.ipv4_addr)):
                     raise Http500("Could not set host offline")
             else:
@@ -244,37 +254,37 @@ def __update_host_logic(ipam: ProteusIPAMInterface,
 
         # auto-add some host-based policies
         match host.service_profile:
-            case HostServiceContract.EMPTY:
+            case HostServiceProfile.EMPTY:
                 pass
-            case (HostServiceContract.SSH
-                  | HostServiceContract.HTTP
-                  | HostServiceContract.HTTP_SSH) as s_p:
+            case (HostServiceProfile.SSH
+                  | HostServiceProfile.HTTP
+                  | HostServiceProfile.HTTP_SSH) as s_p:
                 # allow SSH standard port 22 over TCP if a service profile
                 # is specified
                 host.add_host_based_policy(
-                    HostBasedPolicySrcContract.ANY.value, ['22'],
-                    HostBasedPolicyProtocolContract.TCP.value
+                    HostBasedPolicySrc.ANY.value, ['22'],
+                    HostBasedPolicyProtocol.TCP.value
                 )
                 match s_p:
-                    case HostServiceContract.SSH:
+                    case HostServiceProfile.SSH:
                         # since SSH rules have already been added do
                         # nothing else
                         pass
-                    case (HostServiceContract.HTTP
-                          | HostServiceContract.HTTP_SSH):
+                    case (HostServiceProfile.HTTP
+                          | HostServiceProfile.HTTP_SSH):
                         # allow HTTP and HTTPS standard ports 80 and 443
                         # over TCP
                         host.add_host_based_policy(
-                            HostBasedPolicySrcContract.ANY.value,
+                            HostBasedPolicySrc.ANY.value,
                             ['80'],
-                            HostBasedPolicyProtocolContract.TCP.value
+                            HostBasedPolicyProtocol.TCP.value
                         )
                         host.add_host_based_policy(
-                            HostBasedPolicySrcContract.ANY.value,
+                            HostBasedPolicySrc.ANY.value,
                             ['443'],
-                            HostBasedPolicyProtocolContract.TCP.value
+                            HostBasedPolicyProtocol.TCP.value
                         )
-            case HostServiceContract.MULTIPURPOSE:
+            case HostServiceProfile.MULTIPURPOSE:
                 # allow nothing else; users are expected to configure their
                 # own rules
                 pass
@@ -297,9 +307,11 @@ def __update_host(request) -> Response:
     """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(settings.IPAM_USERNAME,
-                              settings.IPAM_SECRET_KEY,
-                              settings.IPAM_URL) as ipam:
+    with ProteusIPAMWrapper(
+        settings.IPAM_USERNAME,
+        settings.IPAM_SECRET_KEY,
+        settings.IPAM_URL
+    ) as ipam:
         if not ipam.enter_ok:
             raise Http500("No connection to IPAM")
 
@@ -333,15 +345,17 @@ def __update_host(request) -> Response:
 
             # add new admins
             for admin_tag_name in admins_to_add:
-                if (admin_tag_name in ipam.get_department_tag_names()
-                        or ipam.is_admin(admin_tag_name)):
-                    code = ipam.add_tag_to_host(admin_tag_name, ipv4_addr)
+                if (
+                    admin_tag_name in ipam.get_department_names()
+                    or ipam.is_admin(admin_tag_name)
+                ):
+                    code = ipam.add_admin_to_host(admin_tag_name, host)
                     if code not in range(200,  205, 1):
                         return Response(status=code)
 
             # remove old admins
             for admin_tag_name in admins_to_delete:
-                ipam.remove_tag_from_host(admin_tag_name, ipv4_addr)
+                ipam.remove_admin_from_host(admin_tag_name, host)
 
         # Update host properties
         __update_host_logic(ipam, host, host_update_data)
@@ -366,9 +380,11 @@ def hosts(request):
     logger.info("API Request: Get all hosts for user %s",
                 request.user.username)
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
-    with ProteusIPAMInterface(settings.IPAM_USERNAME,
-                              settings.IPAM_SECRET_KEY,
-                              settings.IPAM_URL) as ipam:
+    with ProteusIPAMWrapper(
+        settings.IPAM_USERNAME,
+        settings.IPAM_SECRET_KEY,
+        settings.IPAM_URL
+    ) as ipam:
         if not ipam.enter_ok:
             return Response(status=500)
 
@@ -441,14 +457,18 @@ def register_bulk(hostadmin: MyUser, ipv4_addrs: set[str]):
         ipv4_addrs (set[str]): Set of unique IPv4 addresses.
     """
     ipv4_addrs = set(ipv4_addrs)
-    with ProteusIPAMInterface(settings.IPAM_USERNAME,
-                              settings.IPAM_SECRET_KEY,
-                              settings.IPAM_URL) as ipam:
+    with ProteusIPAMWrapper(
+        settings.IPAM_USERNAME,
+        settings.IPAM_SECRET_KEY,
+        settings.IPAM_URL
+    ) as ipam:
         if not ipam.enter_ok:
             raise Http500()
-        with GmpVScannerInterface(settings.V_SCANNER_USERNAME,
-                                  settings.V_SCANNER_SECRET_KEY,
-                                  settings.V_SCANNER_URL) as scanner:
+        with GmpScannerWrapper(
+            settings.V_SCANNER_USERNAME,
+            settings.V_SCANNER_SECRET_KEY,
+            settings.V_SCANNER_URL
+        ) as scanner:
             if not scanner.enter_ok:
                 raise Http500()
 
@@ -483,7 +503,7 @@ def register_bulk(hostadmin: MyUser, ipv4_addrs: set[str]):
                                                      response_url)
                 if target_uuid and task_uuid and report_uuid and alert_uuid:
                     # update state in IPAM
-                    host.status = HostStatusContract.UNDER_REVIEW
+                    host.status = HostStatus.UNDER_REVIEW
                     if not ipam.update_host_info(host):
                         scanner.clean_up_scan_objects(target_uuid, task_uuid,
                                                       report_uuid, alert_uuid)
@@ -508,9 +528,11 @@ def block_bulk(hostadmin: MyUser, ipv4_addrs: set[str]):
     """
     ipv4_addrs = set(ipv4_addrs)
 
-    with ProteusIPAMInterface(settings.IPAM_USERNAME,
-                              settings.IPAM_SECRET_KEY,
-                              settings.IPAM_URL) as ipam:
+    with ProteusIPAMWrapper(
+        settings.IPAM_USERNAME,
+        settings.IPAM_SECRET_KEY,
+        settings.IPAM_URL
+    ) as ipam:
         if not ipam.enter_ok:
             raise Http500
 

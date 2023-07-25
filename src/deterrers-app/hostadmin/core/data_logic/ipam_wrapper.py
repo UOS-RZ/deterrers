@@ -5,11 +5,12 @@ import socket
 import threading
 import ipaddress
 
-from .host import MyHost
-from .contracts import (HostStatusContract,
-                        HostServiceContract,
-                        HostFWContract)
-from .rule_generator import HostBasedPolicy
+from hostadmin.core.data_logic.data_abstract import DataAbstract
+from hostadmin.core.host import MyHost
+from hostadmin.core.contracts import (HostStatus,
+                                      HostServiceProfile,
+                                      HostFW)
+from hostadmin.core.rule_generator import HostBasedPolicy
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 # add_tag_to_host()
 
 
-class ProteusIPAMInterface():
+class ProteusIPAMWrapper(DataAbstract):
     """
     Interface to BlueCat's Proteus IP Address Manager REST API
     """
@@ -119,19 +120,19 @@ class ProteusIPAMInterface():
             except KeyError:
                 mac = ''
             try:
-                status = HostStatusContract(props['deterrers_status'])
+                status = HostStatus(props['deterrers_status'])
             except KeyError:
                 status = None
             try:
-                service_profile = HostServiceContract(
+                service_profile = HostServiceProfile(
                     props['deterrers_service_profile']
                 )
             except KeyError:
-                service_profile = HostServiceContract.EMPTY
+                service_profile = HostServiceProfile.EMPTY
             try:
-                fw = HostFWContract(props['deterrers_fw'])
+                fw = HostFW(props['deterrers_fw'])
             except KeyError:
-                fw = HostFWContract.EMPTY
+                fw = HostFW.EMPTY
             try:
                 rules = [HostBasedPolicy.from_string(p_str)
                          for p_str in json.loads(props['deterrers_rules'])]
@@ -141,8 +142,8 @@ class ProteusIPAMInterface():
             ip = ''
             mac = ''
             status = None
-            service_profile = HostServiceContract.EMPTY
-            fw = HostFWContract.EMPTY
+            service_profile = HostServiceProfile.EMPTY
+            fw = HostFW.EMPTY
             rules = []
         return host_id, name, ip, mac, status, service_profile, fw, rules
 
@@ -186,7 +187,7 @@ class ProteusIPAMInterface():
         return self.__tag_group_id
 
     def __get_tag_id(self, tag_name: str) -> str:
-        for d_tag in self.get_department_tags():
+        for d_tag in self.__get_department_tags():
             if d_tag['name'] == tag_name:
                 return d_tag['id']
             admin_tags = self.__get_child_tags(d_tag['id'])
@@ -271,7 +272,7 @@ class ProteusIPAMInterface():
 
         return dns_names
 
-    def get_id_of_addr(self, ipv4: str) -> int | None:
+    def __get_id_of_addr(self, ipv4: str) -> int | None:
         """
         Get the entity ID of the IP4Address object in IPAM to a given IPv4
         address.
@@ -288,223 +289,7 @@ class ProteusIPAMInterface():
         except Exception:
             return None
 
-    def get_host_info_from_ip(self, ipv4: str) -> MyHost | None:
-        """
-        Queries the Proteus IPAM API for an entity with the given IP and
-        returns an instance of MyHost.
-
-        Args:
-            ipv4 (str): IPv4 address of the host entity in the Proteus IPAM
-            system.
-
-        Returns:
-            MyHost: Returns an instance of MyHost populated with the fields
-            from the IPAM system and None on error.
-        """
-        # escape user input
-        ipv4 = self.__escape_user_input(ipv4)
-
-        # check if ip string has valid syntax
-        try:
-            ipaddress.ip_address(ipv4)
-        except ValueError:
-            logger.error('IPAM API Interface received invalid IP: %s', ipv4)
-            return None
-
-        try:
-            data = self.__get_IP4Address(ipv4)
-            (host_id,
-             name,
-             ipv4,
-             mac,
-             status,
-             service,
-             fw,
-             rules) = self.__parse_ipam_host_entity(data)
-            # get all tagged admins
-            tagged_admins = self.get_admins_of_host(host_id)
-            # get dns records
-            dns_rcs = self.__get_linked_dns_records(ipv4)
-
-            my_host = MyHost(
-                ipv4_addr=ipv4,
-                mac_addr=mac,
-                admin_ids=tagged_admins,
-                status=status,
-                name=name,
-                dns_rcs=dns_rcs,
-                service_profile=service,
-                fw=fw,
-                host_based_policies=rules,
-                entity_id=int(host_id)
-            )
-            if my_host.is_valid():
-                return my_host
-            else:
-                logger.warning("Host '%s' is not valid!", str(my_host))
-        except requests.exceptions.ConnectTimeout:
-            logger.exception('Connection to %s timed out!', self.main_url)
-        except requests.exceptions.ConnectionError:
-            logger.exception('Could not establish connection to "%s"!',
-                             self.main_url)
-        except Exception:
-            logger.exception("Caught an unknown exception!")
-
-        return None
-
-    def get_host_info_from_id(self, id: int) -> MyHost | None:
-        """
-        Queries the Proteus IPAM API for an entity with the given id and
-        returns an instance of MyHost.
-
-        Args:
-            id (int): Identifier for the entity in the Proteus IPAM system.
-
-        Returns:
-            MyHost|None: Returns an instance of MyHost populated with the
-            fields from the IPAM system and None on error.
-        """
-        try:
-            # get entity with given id
-            get_entitybyid_url = (self.main_url
-                                  + "getEntityById?"
-                                  + f"id={id}")
-            response = requests.get(get_entitybyid_url,
-                                    headers=self.header,
-                                    timeout=self.TIMEOUT)
-            data = response.json()
-            (host_id,
-             name,
-             ip,
-             mac,
-             status,
-             service,
-             fw,
-             rules) = self.__parse_ipam_host_entity(data)
-            # get all tagged admins
-            tagged_admins = self.get_admins_of_host(host_id)
-            # get dns records
-            dns_rcs = self.__get_linked_dns_records(ip)
-
-            my_host = MyHost(
-                ipv4_addr=ip,
-                mac_addr=mac,
-                admin_ids=tagged_admins,
-                status=status,
-                name=name,
-                dns_rcs=dns_rcs,
-                service_profile=service,
-                fw=fw,
-                host_based_policies=rules,
-                entity_id=int(host_id)
-            )
-            if my_host.is_valid():
-                return my_host
-            else:
-                logger.warning("Host '%s' is not valid!", str(my_host))
-        except requests.exceptions.ConnectTimeout:
-            logger.exception('Connection to %s timed out!', self.main_url)
-        except requests.exceptions.ConnectionError:
-            logger.exception('Could not establish connection to "%s"!',
-                             self.main_url)
-        except Exception:
-            logger.exception("Caught an unknown exception!")
-
-        return None
-
-    def get_hosts_of_admin(self, admin_rz_id: str) -> list[MyHost]:
-        """
-        Queries all hosts that are tagged with an admin or their corresponding
-        parent tag in the Proteus IPAM system.
-
-        Args:
-            admin_rz_id (str): Identifier string for the admin tag in the
-            Proteus IPAM system.
-
-        Returns:
-            list(): Returns a list of MyHost instances.
-        """
-
-        def __get_linked_hosts(tag_id: str | int):
-            threads = []
-            hosts = []
-
-            def get_host_task(hosts: list, host_e):
-                (host_id,
-                 name,
-                 ip,
-                 mac,
-                 status,
-                 service,
-                 fw,
-                 rules) = self.__parse_ipam_host_entity(host_e)
-                # get all tagged admins
-                tagged_admins = self.get_admins_of_host(host_id)
-                # get dns records
-                dns_rcs = self.__get_linked_dns_records(ip)
-                my_host = MyHost(
-                    ipv4_addr=ip,
-                    mac_addr=mac,
-                    admin_ids=tagged_admins,
-                    status=status,
-                    name=name,
-                    dns_rcs=dns_rcs,
-                    service_profile=service,
-                    fw=fw,
-                    host_based_policies=rules,
-                    entity_id=int(host_id)
-                )
-                if my_host.is_valid():
-                    hosts.append(my_host)
-                else:
-                    logger.warning("Host '%s' is not valid!", str(my_host))
-
-            # get tagged host's ids
-            get_linked_entity_url = (self.main_url
-                                     + "getLinkedEntities?"
-                                     + "count=-1"
-                                     + f"&entityId={tag_id}"
-                                     + "&start=0"
-                                     + "&type=IP4Address")
-            response = requests.get(get_linked_entity_url,
-                                    headers=self.header,
-                                    timeout=self.TIMEOUT)
-            data = response.json()
-            # start a thread for each host that queries the relevant
-            # information and appends host to hosts-list
-            for host_e in data:
-                t = threading.Thread(target=get_host_task,
-                                     args=[hosts, host_e, ])
-                threads.append(t)
-                t.start()
-            # wait until all threads have completed
-            for t in threads:
-                t.join(float(self.TIMEOUT))
-            return hosts
-
-        # escape user input
-        admin_rz_id = self.__escape_user_input(admin_rz_id)
-
-        hosts = []
-        try:
-            admin_tag_id = self.__get_tag_id(admin_rz_id)
-            department_tag_id = self.__get_parent_tag(admin_tag_id)['id']
-            # get all linked hosts to this admin tag
-            hosts += __get_linked_hosts(admin_tag_id)
-            # get all linked hosts to the parent tag
-            hosts += __get_linked_hosts(department_tag_id)
-
-        except requests.exceptions.ConnectTimeout:
-            logger.exception('Connection to %s timed out!', self.main_url)
-        except requests.exceptions.ConnectionError:
-            logger.exception('Could not establish connection to "%s"!',
-                             self.main_url)
-        except Exception:
-            logger.exception("Caught an unknown exception!")
-
-        return hosts
-
-    def get_admins_of_host(self, host_id: int) -> list:
+    def __get_admins_of_host(self, host_id: int) -> list:
         """
         Queries the Proteus IPAM system for all tagged admins of a host.
 
@@ -558,12 +343,289 @@ class ProteusIPAMInterface():
 
         return tagged_admins
 
-    def get_IP6Addresses(self, ipv4_id: int) -> set[str]:
+    def __get_department_tags(self) -> list[dict]:
+        """
+        Get all department tag entities.
+
+        Returns:
+            list[dict]: Returns a list of dicts holding the properties of the
+            department tag entities.
+        """
+        try:
+            # simple caching of department tag names
+            if not self.__department_tags:
+                tag_group_id = self.__get_tag_grp_id()
+                self.__department_tags = self.__get_child_tags(tag_group_id)
+        except Exception:
+            logger.exception("Couldn't query department tags from IPAM!")
+            return []
+
+        return self.__department_tags
+
+    def __host_is_tagged(self, host_id: str | int,  tag_id: str | int) -> bool:
+        """
+        Checks if tag is already linked to host or if tag is admin tag and
+        corresponding department tag is linked.
+
+        Args:
+            host_id (str | int): Proteus entity ID of IPv4Address object.
+            tag_id (str | int): Proteus entity ID of Tag object.
+
+        Returns:
+            bool: Returns True if tag or parent tag is linked to host.
+            False otherwise.
+        """
+        try:
+            # get parent tag
+            parent_tag = self.__get_parent_tag(tag_id)
+
+            # query tags that are linked to host
+            linkedentities_parameters = ("count=-1"
+                                         + f"&entityId={host_id}"
+                                         + "&start=0"
+                                         + "&type=Tag")
+            get_linkedentities_url = (self.main_url
+                                      + "getLinkedEntities?"
+                                      + linkedentities_parameters)
+            response = requests.get(get_linkedentities_url,
+                                    headers=self.header,
+                                    timeout=self.TIMEOUT)
+            data = response.json()
+            # check for each tag of host if it is the given tag or the parent
+            # of the given tag
+            for t_entity in data:
+                t_id = t_entity['id']
+                if int(t_id) == int(tag_id):
+                    return True
+                if int(t_id) == int(parent_tag.get('id')):
+                    return True
+        except Exception:
+            logger.exception("Couldn't query if host is already tagged!")
+
+        return False
+
+    def get_host_info_from_ip(self, ipv4: str) -> MyHost | None:
+        """
+        Queries the Proteus IPAM API for an entity with the given IP and
+        returns an instance of MyHost.
+
+        Args:
+            ipv4 (str): IPv4 address of the host entity in the Proteus IPAM
+            system.
+
+        Returns:
+            MyHost: Returns an instance of MyHost populated with the fields
+            from the IPAM system and None on error.
+        """
+        # escape user input
+        ipv4 = self.__escape_user_input(ipv4)
+
+        # check if ip string has valid syntax
+        try:
+            ipaddress.ip_address(ipv4)
+        except ValueError:
+            logger.error('IPAM API Interface received invalid IP: %s', ipv4)
+            return None
+
+        try:
+            data = self.__get_IP4Address(ipv4)
+            (host_id,
+             name,
+             ipv4,
+             mac,
+             status,
+             service,
+             fw,
+             rules) = self.__parse_ipam_host_entity(data)
+            # get all tagged admins
+            tagged_admins = self.__get_admins_of_host(host_id)
+            # get dns records
+            dns_rcs = self.__get_linked_dns_records(ipv4)
+
+            my_host = MyHost(
+                ipv4_addr=ipv4,
+                mac_addr=mac,
+                admin_ids=tagged_admins,
+                status=status,
+                name=name,
+                dns_rcs=dns_rcs,
+                service_profile=service,
+                fw=fw,
+                host_based_policies=rules,
+                entity_id=int(host_id)
+            )
+            if my_host.is_valid():
+                return my_host
+            else:
+                logger.warning("Host '%s' is not valid!", str(my_host))
+        except requests.exceptions.ConnectTimeout:
+            logger.exception('Connection to %s timed out!', self.main_url)
+        except requests.exceptions.ConnectionError:
+            logger.exception('Could not establish connection to "%s"!',
+                             self.main_url)
+        except Exception:
+            logger.exception("Caught an unknown exception!")
+
+        return None
+
+    # def get_host_info_from_id(self, id: int) -> MyHost | None:
+    #     """
+    #     Queries the Proteus IPAM API for an entity with the given id and
+    #     returns an instance of MyHost.
+
+    #     Args:
+    #         id (int): Identifier for the entity in the Proteus IPAM system.
+
+    #     Returns:
+    #         MyHost|None: Returns an instance of MyHost populated with the
+    #         fields from the IPAM system and None on error.
+    #     """
+    #     try:
+    #         # get entity with given id
+    #         get_entitybyid_url = (self.main_url
+    #                               + "getEntityById?"
+    #                               + f"id={id}")
+    #         response = requests.get(get_entitybyid_url,
+    #                                 headers=self.header,
+    #                                 timeout=self.TIMEOUT)
+    #         data = response.json()
+    #         (host_id,
+    #          name,
+    #          ip,
+    #          mac,
+    #          status,
+    #          service,
+    #          fw,
+    #          rules) = self.__parse_ipam_host_entity(data)
+    #         # get all tagged admins
+    #         tagged_admins = self.__get_admins_of_host(host_id)
+    #         # get dns records
+    #         dns_rcs = self.__get_linked_dns_records(ip)
+
+    #         my_host = MyHost(
+    #             ipv4_addr=ip,
+    #             mac_addr=mac,
+    #             admin_ids=tagged_admins,
+    #             status=status,
+    #             name=name,
+    #             dns_rcs=dns_rcs,
+    #             service_profile=service,
+    #             fw=fw,
+    #             host_based_policies=rules,
+    #             entity_id=int(host_id)
+    #         )
+    #         if my_host.is_valid():
+    #             return my_host
+    #         else:
+    #             logger.warning("Host '%s' is not valid!", str(my_host))
+    #     except requests.exceptions.ConnectTimeout:
+    #         logger.exception('Connection to %s timed out!', self.main_url)
+    #     except requests.exceptions.ConnectionError:
+    #         logger.exception('Could not establish connection to "%s"!',
+    #                          self.main_url)
+    #     except Exception:
+    #         logger.exception("Caught an unknown exception!")
+
+    #     return None
+
+    def get_hosts_of_admin(self, admin_name: str) -> list[MyHost]:
+        """
+        Queries all hosts that are tagged with an admin or their corresponding
+        parent tag in the Proteus IPAM system.
+
+        Args:
+            admin_name (str): Identifier string for the admin tag in the
+            Proteus IPAM system.
+
+        Returns:
+            list(): Returns a list of MyHost instances.
+        """
+
+        def __get_linked_hosts(tag_id: str | int):
+            threads = []
+            hosts = []
+
+            def get_host_task(hosts: list, host_e):
+                (host_id,
+                 name,
+                 ip,
+                 mac,
+                 status,
+                 service,
+                 fw,
+                 rules) = self.__parse_ipam_host_entity(host_e)
+                # get all tagged admins
+                tagged_admins = self.__get_admins_of_host(host_id)
+                # get dns records
+                dns_rcs = self.__get_linked_dns_records(ip)
+                my_host = MyHost(
+                    ipv4_addr=ip,
+                    mac_addr=mac,
+                    admin_ids=tagged_admins,
+                    status=status,
+                    name=name,
+                    dns_rcs=dns_rcs,
+                    service_profile=service,
+                    fw=fw,
+                    host_based_policies=rules,
+                    entity_id=int(host_id)
+                )
+                if my_host.is_valid():
+                    hosts.append(my_host)
+                else:
+                    logger.warning("Host '%s' is not valid!", str(my_host))
+
+            # get tagged host's ids
+            get_linked_entity_url = (self.main_url
+                                     + "getLinkedEntities?"
+                                     + "count=-1"
+                                     + f"&entityId={tag_id}"
+                                     + "&start=0"
+                                     + "&type=IP4Address")
+            response = requests.get(get_linked_entity_url,
+                                    headers=self.header,
+                                    timeout=self.TIMEOUT)
+            data = response.json()
+            # start a thread for each host that queries the relevant
+            # information and appends host to hosts-list
+            for host_e in data:
+                t = threading.Thread(target=get_host_task,
+                                     args=[hosts, host_e, ])
+                threads.append(t)
+                t.start()
+            # wait until all threads have completed
+            for t in threads:
+                t.join(float(self.TIMEOUT))
+            return hosts
+
+        # escape user input
+        admin_name = self.__escape_user_input(admin_name)
+
+        hosts = []
+        try:
+            admin_tag_id = self.__get_tag_id(admin_name)
+            department_tag_id = self.__get_parent_tag(admin_tag_id)['id']
+            # get all linked hosts to this admin tag
+            hosts += __get_linked_hosts(admin_tag_id)
+            # get all linked hosts to the parent tag
+            hosts += __get_linked_hosts(department_tag_id)
+
+        except requests.exceptions.ConnectTimeout:
+            logger.exception('Connection to %s timed out!', self.main_url)
+        except requests.exceptions.ConnectionError:
+            logger.exception('Could not establish connection to "%s"!',
+                             self.main_url)
+        except Exception:
+            logger.exception("Caught an unknown exception!")
+
+        return hosts
+
+    def get_IP6Addresses(self, host: MyHost) -> set[str]:
         """
         Queries the corresponding IPv6 addresses if they exist.
 
         Args:
-            ipv4_id (int): ID of the IP4Address entity in IPAM.
+            host (MyHost): Host instance for which IPv6 addresses are queried
 
         Returns:
             set[str]: Returns all unique public IPv6 addresses which are
@@ -572,7 +634,7 @@ class ProteusIPAMInterface():
         """
         try:
             addrs = set()
-            ipv4_id = int(ipv4_id)
+            ipv4_id = host.entity_id
             linkedentities_parameters = ("count=10000"
                                          + f"&entityId={ipv4_id}"
                                          + "&start=0"
@@ -621,55 +683,35 @@ class ProteusIPAMInterface():
             )
             return set()
 
-    def get_department_tags(self) -> list[dict]:
-        """
-        Get all department tag entities.
-
-        Returns:
-            list[dict]: Returns a list of dicts holding the properties of the
-            department tag entities.
-        """
-        try:
-            # simple caching of department tag names
-            if not self.__department_tags:
-                tag_group_id = self.__get_tag_grp_id()
-                self.__department_tags = self.__get_child_tags(tag_group_id)
-        except Exception:
-            logger.exception("Couldn't query department tags from IPAM!")
-            return []
-
-        return self.__department_tags
-
-    def get_department_tag_names(self) -> list:
+    def get_department_names(self) -> list:
         """
         Get all department tag names.
-        NOTE: Deprecated; use get_department_tags() instead.
 
         Returns:
             list: Returns list of department tag names.
         """
         names = []
-        for dep_tag in self.get_department_tags():
+        for dep_tag in self.__get_department_tags():
             if dep_tag.get('name'):
                 names.append(dep_tag.get('name'))
         return names
 
-    def get_department_to_admin(self, admin_tag_name: str) -> str | None:
+    def get_department_to_admin(self, admin_name: str) -> str | None:
         """
         Query the name of the department an admin belongs to.
 
         Args:
-            admin_tag_name (str): Name of the admin tag.
+            admin_name (str): Name of the admin tag.
 
         Returns:
             str | None: Returns the name of a department or None if something
             went wrong.
         """
         try:
-            for department_tag_entity in self.get_department_tags():
+            for department_tag_entity in self.__get_department_tags():
                 department_tag_id = department_tag_entity['id']
                 # query whether admin tag exists under this department tag
-                entitybyname_parameters = (f"name={admin_tag_name}"
+                entitybyname_parameters = (f"name={admin_name}"
                                            + f"&parentId={department_tag_id}"
                                            + "&start=0"
                                            + "&type=Tag")
@@ -680,14 +722,14 @@ class ProteusIPAMInterface():
                                         headers=self.header,
                                         timeout=self.TIMEOUT)
                 data = response.json()
-                if data['name'] == admin_tag_name:
+                if data['name'] == admin_name:
                     return department_tag_entity['name']
         except Exception:
             logger.exception("Couldn't query parent tag from IPAM!")
 
         return None
 
-    def get_admin_tag_names(self) -> set[str]:
+    def get_all_admin_names(self) -> set[str]:
         """
         Query all admin tag names.
 
@@ -696,7 +738,7 @@ class ProteusIPAMInterface():
         """
         admin_tag_names = []
         try:
-            for d_tag in self.get_department_tags():
+            for d_tag in self.__get_department_tags():
                 d_tag_id = d_tag['id']
                 admin_tags = self.__get_child_tags(d_tag_id)
                 for a_tag in admin_tags:
@@ -706,31 +748,31 @@ class ProteusIPAMInterface():
             logger.exception("Couldn't query admin tag names from IPAM!")
         return set()
 
-    def create_admin_tag(
+    def create_admin(
         self,
-        admin_tag_name: str,
-        department_tag_name: str
+        admin_name: str,
+        department_name: str
     ) -> bool:
         """
         Create an admin tag object under some existing department tag.
 
         Args:
-            admin_tag_name (str): Name of the admin tag to create.
-            department_tag_name (str): Name of the department tag that already
+            admin_name (str): Name of the admin tag to create.
+            department_name (str): Name of the department tag that already
             exists.
 
         Returns:
             bool: Returns True on success and False if something goes wrong.
         """
         try:
-            admin_tag_name = self.__escape_user_input(admin_tag_name)
+            admin_name = self.__escape_user_input(admin_name)
             # get tag_id of department tag
-            for department_tag in self.get_department_tags():
-                if department_tag.get('name') == department_tag_name:
+            for department_tag in self.__get_department_tags():
+                if department_tag.get('name') == department_name:
                     department_tag_id = department_tag.get('id')
                     break
             # create admin tag under given department tag
-            addtag_params = (f"name={admin_tag_name}"
+            addtag_params = (f"name={admin_name}"
                              + f"&parentId={department_tag_id}")
             addtag_url = (self.main_url
                           + "addTag?"
@@ -746,11 +788,11 @@ class ProteusIPAMInterface():
             return True
         except Exception:
             logger.exception("Couldn't create a tag for admin %s!",
-                             admin_tag_name)
+                             admin_name)
 
         return False
 
-    def is_admin(self, admin_tag_name: str) -> bool | None:
+    def is_admin(self, admin_name: str) -> bool | None:
         """
         Check whether an admin tag exists.
 
@@ -764,10 +806,10 @@ class ProteusIPAMInterface():
         try:
             # get all department tags which themselves hold the actual
             # admin tags
-            for department_tag_entity in self.get_department_tags():
+            for department_tag_entity in self.__get_department_tags():
                 department_tag_id = department_tag_entity['id']
                 # query whether admin tag exists under this department tag
-                entitybyname_parameters = (f"name={admin_tag_name}"
+                entitybyname_parameters = (f"name={admin_name}"
                                            + f"&parentId={department_tag_id}"
                                            + "&start=0"
                                            + "&type=Tag")
@@ -778,7 +820,7 @@ class ProteusIPAMInterface():
                                         headers=self.header,
                                         timeout=self.TIMEOUT)
                 data = response.json()
-                if data['name'] == admin_tag_name:
+                if data['name'] == admin_name:
                     return True
             return False
 
@@ -787,69 +829,25 @@ class ProteusIPAMInterface():
 
         return None
 
-    def host_is_tagged(self, host_id: str | int,  tag_id: str | int) -> bool:
-        """
-        Checks if tag is already linked to host or if tag is admin tag and
-        corresponding department tag is linked.
-
-        Args:
-            host_id (str | int): Proteus entity ID of IPv4Address object.
-            tag_id (str | int): Proteus entity ID of Tag object.
-
-        Returns:
-            bool: Returns True if tag or parent tag is linked to host.
-            False otherwise.
-        """
-        try:
-            # get parent tag
-            parent_tag = self.__get_parent_tag(tag_id)
-
-            # query tags that are linked to host
-            linkedentities_parameters = ("count=-1"
-                                         + f"&entityId={host_id}"
-                                         + "&start=0"
-                                         + "&type=Tag")
-            get_linkedentities_url = (self.main_url
-                                      + "getLinkedEntities?"
-                                      + linkedentities_parameters)
-            response = requests.get(get_linkedentities_url,
-                                    headers=self.header,
-                                    timeout=self.TIMEOUT)
-            data = response.json()
-            # check for each tag of host if it is the given tag or the parent
-            # of the given tag
-            for t_entity in data:
-                t_id = t_entity['id']
-                if int(t_id) == int(tag_id):
-                    return True
-                if int(t_id) == int(parent_tag.get('id')):
-                    return True
-        except Exception:
-            logger.exception("Couldn't query if host is already tagged!")
-
-        return False
-
-    def add_tag_to_host(self, tag_name: str, host_ip: str) -> int:
+    def add_admin_to_host(self, admin_name: str, host: MyHost) -> int:
         """
         Link a tag to a IPv4Address object.
 
         Args:
-            tag_name (str): Tag name.
-            host_ip (str): IP address of the host.
+            admin_name (str): Tag name corresponding to admin/department.
+            host (MyHost): Host instance for which admin is added.
 
         Returns:
             int: Returns HTTP status code of the response.
         """
         try:
-            # get IPv4Address object
-            data = self.__get_IP4Address(host_ip)
-            host_id = data['id']
+            host_id = host.entity_id
 
             # get tag object
-            tag_id = self.__get_tag_id(tag_name)
+            tag_id = self.__get_tag_id(admin_name)
 
             # host is already tagged, we are done
-            if self.host_is_tagged(host_id, tag_id):
+            if self.__host_is_tagged(host_id, tag_id):
                 return 200
 
             # link tag to host
@@ -867,24 +865,22 @@ class ProteusIPAMInterface():
 
         return 500
 
-    def remove_tag_from_host(self, tag_name: str, host_ip: str) -> int:
+    def remove_admin_from_host(self, admin_name: str, host: MyHost) -> int:
         """
         Unlink tag from an IPv4Address object.
 
         Args:
-            tag_name (str): Tag name.
-            host_ip (str): IPv4 address of the host.
+            admin_name (str): Tag name corresponding to admin/department.
+            host (MyHost): Host instance.
 
         Returns:
             int: Returns HTTP status code of the response.
         """
         try:
-            # get IPv4Address object
-            data = self.__get_IP4Address(host_ip)
-            host_id = data['id']
+            host_id = host.entity_id
 
             # get tag object
-            tag_id = self.__get_tag_id(tag_name)
+            tag_id = self.__get_tag_id(admin_name)
 
             # unlink tag from host
             linkentities_params = (f"entity1Id={host_id}"
@@ -895,6 +891,10 @@ class ProteusIPAMInterface():
             response = requests.put(linkentities_url,
                                     headers=self.header,
                                     timeout=self.TIMEOUT)
+
+            # remove admin from admin set of host
+            host.admin_ids.remove(admin_name)
+
             return response.status_code
         except Exception:
             logger.exception("Couldn't remove tag from host!")
@@ -931,7 +931,7 @@ class ProteusIPAMInterface():
                 )
                 update_host_body = {
                     'id': host.entity_id,
-                    # NOTE: Do not remove 'name' this or else IP Address Name
+                    # NOTE: Do not remove 'name' or else IP Address Name
                     # field is overwritten with empty string
                     'name': host.name,
                     'type': 'IP4Address',

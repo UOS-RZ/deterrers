@@ -29,7 +29,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'NON_SECRET_DEV_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DJANGO_DEBUG', '') != 'False'
+DEBUG = os.environ.get('DJANGO_DEBUG', '') == 'True'
+
+DEV_MODE = os.environ.get('DEV_MODE', '') == 'True'
+
+if not DEV_MODE:
+    SECURE_HSTS_SECONDS = 3600
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 # 'DJANGO_ALLOWED_HOSTS' should be a single string of hosts with a space
 # between each.
@@ -259,7 +269,12 @@ MAINTENANCE_MODE_IGNORE_ADMIN_SITE = True
 MAINTENANCE_MODE_IGNORE_SUPERUSER = True
 # list of urls that will not be affected by the maintenance-mode
 # urls will be used to compile regular expressions objects
-MAINTENANCE_MODE_IGNORE_URLS = (LOGIN_URL, )
+MAINTENANCE_MODE_IGNORE_URLS = (
+    LOGIN_URL,
+    '/hostadmin/scanner/'
+)
+# retry after
+MAINTENANCE_MODE_RETRY_AFTER = 3600
 
 
 """ SETUP APP CONFIG """

@@ -6,7 +6,7 @@ import uuid
 import json
 import ipaddress
 
-from .contracts import HostFWContract
+from .contracts import HostFW
 
 
 logger = logging.getLogger(__name__)
@@ -394,7 +394,7 @@ systemctl restart nftables
     return PREAMBLE + policy_config + POST_AMBLE
 
 
-def generate_fw_config(fw: HostFWContract,
+def generate_fw_config(fw: HostFW,
                        custom_policies: list[HostBasedPolicy]) -> str | None:
     """
     Generate/Suggest a firewall configuration script for some combination of
@@ -409,11 +409,11 @@ def generate_fw_config(fw: HostFWContract,
         str|None: Configuration script as string. None on error.
     """
     match fw:
-        case HostFWContract.UFW:
+        case HostFW.UFW:
             script = __generate_ufw__script(custom_policies)
-        case HostFWContract.FIREWALLD:
+        case HostFW.FIREWALLD:
             script = __generate_firewalld__script(custom_policies)
-        case HostFWContract.NFTABLES:
+        case HostFW.NFTABLES:
             script = __generate_nftables__script(custom_policies)
         case _:
             logger.error(
