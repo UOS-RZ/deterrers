@@ -7,9 +7,9 @@ import ipaddress
 
 from hostadmin.core.data_logic.data_abstract import DataAbstract
 from hostadmin.core.host import MyHost
-from hostadmin.core.contracts import (HostStatusContract,
-                                      HostServiceContract,
-                                      HostFWContract)
+from hostadmin.core.contracts import (HostStatus,
+                                      HostServiceProfile,
+                                      HostFW)
 from hostadmin.core.rule_generator import HostBasedPolicy
 
 logger = logging.getLogger(__name__)
@@ -120,19 +120,19 @@ class ProteusIPAMWrapper(DataAbstract):
             except KeyError:
                 mac = ''
             try:
-                status = HostStatusContract(props['deterrers_status'])
+                status = HostStatus(props['deterrers_status'])
             except KeyError:
                 status = None
             try:
-                service_profile = HostServiceContract(
+                service_profile = HostServiceProfile(
                     props['deterrers_service_profile']
                 )
             except KeyError:
-                service_profile = HostServiceContract.EMPTY
+                service_profile = HostServiceProfile.EMPTY
             try:
-                fw = HostFWContract(props['deterrers_fw'])
+                fw = HostFW(props['deterrers_fw'])
             except KeyError:
-                fw = HostFWContract.EMPTY
+                fw = HostFW.EMPTY
             try:
                 rules = [HostBasedPolicy.from_string(p_str)
                          for p_str in json.loads(props['deterrers_rules'])]
@@ -142,8 +142,8 @@ class ProteusIPAMWrapper(DataAbstract):
             ip = ''
             mac = ''
             status = None
-            service_profile = HostServiceContract.EMPTY
-            fw = HostFWContract.EMPTY
+            service_profile = HostServiceProfile.EMPTY
+            fw = HostFW.EMPTY
             rules = []
         return host_id, name, ip, mac, status, service_profile, fw, rules
 

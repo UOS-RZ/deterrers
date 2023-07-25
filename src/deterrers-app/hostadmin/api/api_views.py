@@ -20,11 +20,11 @@ from hostadmin.util import (available_actions,
 from hostadmin.core.data_logic.ipam_wrapper import ProteusIPAMWrapper
 from hostadmin.core.scanner.gmp_wrapper import GmpScannerWrapper
 from hostadmin.core.host import MyHost
-from hostadmin.core.contracts import (HostStatusContract,
-                                      HostServiceContract,
-                                      HostBasedPolicySrcContract,
-                                      HostBasedPolicyProtocolContract,
-                                      HostFWContract)
+from hostadmin.core.contracts import (HostStatus,
+                                      HostServiceProfile,
+                                      HostBasedPolicySrc,
+                                      HostBasedPolicyProtocol,
+                                      HostFW)
 from .serializers import MyHostSerializer, HostActionSerializer
 
 logger = logging.getLogger(__name__)
@@ -184,14 +184,14 @@ def __remove_host(request) -> Response:
             raise Http409("Removing host currently not available")
 
         # block
-        if host.status == HostStatusContract.ONLINE:
+        if host.status == HostStatus.ONLINE:
             if not set_host_offline(str(host.ipv4_addr)):
                 raise Http500("Host could not be set offline")
 
         # set all DETERRERS fields to blank
-        host.status = HostStatusContract.UNREGISTERED
-        host.service_profile = HostServiceContract.EMPTY
-        host.fw = HostFWContract.EMPTY
+        host.status = HostStatus.UNREGISTERED
+        host.service_profile = HostServiceProfile.EMPTY
+        host.fw = HostFW.EMPTY
         host.host_based_policies = []
         ipam.update_host_info(host)
 
@@ -244,8 +244,8 @@ def __update_host_logic(ipam: ProteusIPAMWrapper,
         return
     elif service_profile_change:
         # if host is already online, update the perimeter FW
-        if host.status == HostStatusContract.ONLINE:
-            if host.service_profile == HostServiceContract.EMPTY:
+        if host.status == HostStatus.ONLINE:
+            if host.service_profile == HostServiceProfile.EMPTY:
                 if not set_host_offline(str(host.ipv4_addr)):
                     raise Http500("Could not set host offline")
             else:
@@ -254,37 +254,37 @@ def __update_host_logic(ipam: ProteusIPAMWrapper,
 
         # auto-add some host-based policies
         match host.service_profile:
-            case HostServiceContract.EMPTY:
+            case HostServiceProfile.EMPTY:
                 pass
-            case (HostServiceContract.SSH
-                  | HostServiceContract.HTTP
-                  | HostServiceContract.HTTP_SSH) as s_p:
+            case (HostServiceProfile.SSH
+                  | HostServiceProfile.HTTP
+                  | HostServiceProfile.HTTP_SSH) as s_p:
                 # allow SSH standard port 22 over TCP if a service profile
                 # is specified
                 host.add_host_based_policy(
-                    HostBasedPolicySrcContract.ANY.value, ['22'],
-                    HostBasedPolicyProtocolContract.TCP.value
+                    HostBasedPolicySrc.ANY.value, ['22'],
+                    HostBasedPolicyProtocol.TCP.value
                 )
                 match s_p:
-                    case HostServiceContract.SSH:
+                    case HostServiceProfile.SSH:
                         # since SSH rules have already been added do
                         # nothing else
                         pass
-                    case (HostServiceContract.HTTP
-                          | HostServiceContract.HTTP_SSH):
+                    case (HostServiceProfile.HTTP
+                          | HostServiceProfile.HTTP_SSH):
                         # allow HTTP and HTTPS standard ports 80 and 443
                         # over TCP
                         host.add_host_based_policy(
-                            HostBasedPolicySrcContract.ANY.value,
+                            HostBasedPolicySrc.ANY.value,
                             ['80'],
-                            HostBasedPolicyProtocolContract.TCP.value
+                            HostBasedPolicyProtocol.TCP.value
                         )
                         host.add_host_based_policy(
-                            HostBasedPolicySrcContract.ANY.value,
+                            HostBasedPolicySrc.ANY.value,
                             ['443'],
-                            HostBasedPolicyProtocolContract.TCP.value
+                            HostBasedPolicyProtocol.TCP.value
                         )
-            case HostServiceContract.MULTIPURPOSE:
+            case HostServiceProfile.MULTIPURPOSE:
                 # allow nothing else; users are expected to configure their
                 # own rules
                 pass
@@ -503,7 +503,7 @@ def register_bulk(hostadmin: MyUser, ipv4_addrs: set[str]):
                                                      response_url)
                 if target_uuid and task_uuid and report_uuid and alert_uuid:
                     # update state in IPAM
-                    host.status = HostStatusContract.UNDER_REVIEW
+                    host.status = HostStatus.UNDER_REVIEW
                     if not ipam.update_host_info(host):
                         scanner.clean_up_scan_objects(target_uuid, task_uuid,
                                                       report_uuid, alert_uuid)

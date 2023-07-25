@@ -6,9 +6,9 @@ from django.conf import settings
 from django.urls import reverse
 
 from hostadmin.core.host import MyHost
-from hostadmin.core.contracts import (HostStatusContract,
-                                      HostServiceContract,
-                                      HostFWContract)
+from hostadmin.core.contracts import (HostStatus,
+                                      HostServiceProfile,
+                                      HostFW)
 from hostadmin.core.data_logic.ipam_wrapper import ProteusIPAMWrapper
 from hostadmin.core.scanner.gmp_wrapper import GmpScannerWrapper
 from hostadmin.core.fw.pa_wrapper import PaloAltoWrapper
@@ -67,49 +67,49 @@ def available_actions(host: MyHost) -> dict:
     """
     flags = {}
     match host.status:
-        case HostStatusContract.UNREGISTERED:
+        case HostStatus.UNREGISTERED:
             flags['can_update'] = True
             flags['can_register'] = (
-                host.service_profile != HostServiceContract.EMPTY
+                host.service_profile != HostServiceProfile.EMPTY
                 and is_public_ip(host.ipv4_addr)
             )
             flags['can_scan'] = True
             flags['can_download_config'] = (
-                host.service_profile != HostServiceContract.EMPTY
-                and host.fw != HostFWContract.EMPTY
+                host.service_profile != HostServiceProfile.EMPTY
+                and host.fw != HostFW.EMPTY
             )
             flags['can_block'] = False
             flags['can_remove'] = True
-        case HostStatusContract.UNDER_REVIEW:
+        case HostStatus.UNDER_REVIEW:
             flags['can_update'] = False
             flags['can_register'] = False
             flags['can_scan'] = False
             flags['can_download_config'] = (
-                host.service_profile != HostServiceContract.EMPTY
-                and host.fw != HostFWContract.EMPTY
+                host.service_profile != HostServiceProfile.EMPTY
+                and host.fw != HostFW.EMPTY
             )
             flags['can_block'] = False
             flags['can_remove'] = False
-        case HostStatusContract.BLOCKED:
+        case HostStatus.BLOCKED:
             flags['can_update'] = True
             flags['can_register'] = (
-                host.service_profile != HostServiceContract.EMPTY
+                host.service_profile != HostServiceProfile.EMPTY
                 and is_public_ip(host.ipv4_addr)
             )
             flags['can_scan'] = True
             flags['can_download_config'] = (
-                host.service_profile != HostServiceContract.EMPTY
-                and host.fw != HostFWContract.EMPTY
+                host.service_profile != HostServiceProfile.EMPTY
+                and host.fw != HostFW.EMPTY
             )
             flags['can_block'] = False
             flags['can_remove'] = True
-        case HostStatusContract.ONLINE:
+        case HostStatus.ONLINE:
             flags['can_update'] = True
             flags['can_register'] = False
             flags['can_scan'] = True
             flags['can_download_config'] = (
-                host.service_profile != HostServiceContract.EMPTY
-                and host.fw != HostFWContract.EMPTY
+                host.service_profile != HostServiceProfile.EMPTY
+                and host.fw != HostFW.EMPTY
             )
             flags['can_block'] = True
             flags['can_remove'] = True
@@ -171,7 +171,7 @@ def set_host_offline(host_ipv4: str) -> bool:
                     return False
 
                 # update status in IPAM
-                host.status = HostStatusContract.BLOCKED
+                host.status = HostStatus.BLOCKED
                 if not ipam.update_host_info(host):
                     return False
     return True
@@ -226,7 +226,7 @@ def set_host_online(host_ipv4: str) -> bool:
                 host = ipam.get_host_info_from_ip(host_ipv4)
                 if (
                     not host.is_valid()
-                    or host.service_profile is HostServiceContract.EMPTY
+                    or host.service_profile is HostServiceProfile.EMPTY
                 ):
                     logger.error("Can not set host '%s' online.", str(host))
                     return False
@@ -260,7 +260,7 @@ def set_host_online(host_ipv4: str) -> bool:
                     return False
 
                 # update host info in IPAM
-                host.status = HostStatusContract.ONLINE
+                host.status = HostStatus.ONLINE
                 if not ipam.update_host_info(host):
                     logger.error("Couldn't update host information!")
                     return False

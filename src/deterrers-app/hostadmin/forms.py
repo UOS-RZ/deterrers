@@ -1,9 +1,9 @@
 from django import forms
 
-from .core.contracts import (HostBasedPolicySrcContract,
-                             HostBasedPolicyProtocolContract,
-                             HostServiceContract,
-                             HostFWContract)
+from .core.contracts import (HostBasedPolicySrc,
+                             HostBasedPolicyProtocol,
+                             HostServiceProfile,
+                             HostFW)
 
 
 class HostadminForm(forms.Form):
@@ -42,8 +42,8 @@ class ChangeHostDetailForm(forms.Form):
     # create lists of tuples in order to make use of the model validation of
     # django
     SERVICE_CHOICES = [(profile.value, profile.value)
-                       for profile in HostServiceContract]
-    FW_CHOICES = [(fw.value, fw.value) for fw in HostFWContract]
+                       for profile in HostServiceProfile]
+    FW_CHOICES = [(fw.value, fw.value) for fw in HostFW]
 
     service_profile = forms.ChoiceField(
         choices=SERVICE_CHOICES,
@@ -95,9 +95,9 @@ class AddHostRulesForm(forms.Form):
             return port_entries
 
     SUBNET_CHOICES = [(sub.name, sub.display())
-                      for sub in HostBasedPolicySrcContract]
+                      for sub in HostBasedPolicySrc]
     PROTOCOL_CHOICES = [(proto.value, proto.value)
-                        for proto in HostBasedPolicyProtocolContract]
+                        for proto in HostBasedPolicyProtocol]
 
     subnet = forms.ChoiceField(
         choices=SUBNET_CHOICES,
