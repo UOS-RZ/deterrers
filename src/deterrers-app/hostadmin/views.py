@@ -1010,7 +1010,7 @@ def remove_host(request, ipv4: str):
             return HttpResponse(status=500)
 
         # remove all admin tags
-        for admin_tag_name in host.admin_ids:
+        for admin_tag_name in host.admin_ids.copy():
             ipam.remove_admin_from_host(admin_tag_name, host)
         # check that no admins are left for this host
         if len(host.admin_ids) > 0:
