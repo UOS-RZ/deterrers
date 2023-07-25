@@ -1,9 +1,9 @@
 from rest_framework import serializers
 
 from hostadmin.core.rule_generator import HostBasedPolicy
-from hostadmin.core.contracts import (HostStatusContract,
-                                      HostServiceContract,
-                                      HostFWContract)
+from hostadmin.core.contracts import (HostStatus,
+                                      HostServiceProfile,
+                                      HostFW)
 
 
 class MyHostSerializer(serializers.Serializer):
@@ -33,12 +33,12 @@ class MyHostSerializer(serializers.Serializer):
         """
         Custom serializer field for HostStatusContract instances.
         """
-        def to_representation(self, value: HostStatusContract):
+        def to_representation(self, value: HostStatus):
             return value.value
 
         def to_internal_value(self, data: str):
             try:
-                return HostStatusContract(data)
+                return HostStatus(data)
             except Exception:
                 raise serializers.ValidationError(
                     f"Invalid host status value: {data}"
@@ -48,12 +48,12 @@ class MyHostSerializer(serializers.Serializer):
         """
         Custom serializer field for HostServiceContract instances.
         """
-        def to_representation(self, value: HostServiceContract):
+        def to_representation(self, value: HostServiceProfile):
             return value.value
 
         def to_internal_value(self, data: str):
             try:
-                return HostServiceContract(data)
+                return HostServiceProfile(data)
             except Exception:
                 raise serializers.ValidationError(
                     f"Invalid host service profile value: {data}"
@@ -63,12 +63,12 @@ class MyHostSerializer(serializers.Serializer):
         """
         Custom serializer field for HostFWContract instances.
         """
-        def to_representation(self, value: HostFWContract):
+        def to_representation(self, value: HostFW):
             return value.value
 
         def to_internal_value(self, data: str):
             try:
-                return HostFWContract(data)
+                return HostFW(data)
             except Exception:
                 raise serializers.ValidationError(
                     f"Invalid host-based firewall value: {data}"

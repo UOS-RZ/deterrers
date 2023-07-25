@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class HostBasedPolicySrcContract(Enum):
+class HostBasedPolicySrc(Enum):
     """
     Enumeration for grouping network segments into allow-sources in
     host-based FW policies.
@@ -50,7 +50,7 @@ class HostBasedPolicySrcContract(Enum):
         return f"{self.value['name']}"
 
 
-class HostBasedPolicyProtocolContract(Enum):
+class HostBasedPolicyProtocol(Enum):
     """
     Enumeration for supported protocols in host-based FW policies.
     """
@@ -58,7 +58,7 @@ class HostBasedPolicyProtocolContract(Enum):
     UDP = "udp"
 
 
-class HostStatusContract(Enum):
+class HostStatus(Enum):
     """
     Definition of possible states of hosts.
     """
@@ -68,7 +68,7 @@ class HostStatusContract(Enum):
     ONLINE = 'Online'
 
 
-class HostServiceContract(Enum):
+class HostServiceProfile(Enum):
     """
     Definition of possible service profiles of hosts.
     """
@@ -79,7 +79,7 @@ class HostServiceContract(Enum):
     EMPTY = ''
 
 
-class HostFWContract(Enum):
+class HostFW(Enum):
     """
     Definition of possible host-based FW tools of hosts.
     """
@@ -87,13 +87,3 @@ class HostFWContract(Enum):
     FIREWALLD = 'FirewallD'
     NFTABLES = 'nftables'
     EMPTY = ''
-
-
-class PaloAltoAddressGroup(Enum):
-    """
-    Enumeration of the different AddressGroup names which specify the service
-    profiles in the PaloAlto firewall configuration.
-    """
-    HTTP = "FWP1-WEB-DETERRERS"
-    SSH = "FWP2-SSH-DETERRERS"
-    OPEN = "FWP3-OPEN-DETERRERS"

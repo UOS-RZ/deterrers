@@ -2,8 +2,12 @@ import logging
 import requests
 from lxml import etree
 import time
+from enum import Enum
+import ipaddress
 
-from .contracts import HostStatusContract, PaloAltoAddressGroup
+from hostadmin.core.fw.fw_abstract import FWAbstract
+from hostadmin.core.contracts import (HostStatus,
+                                      HostServiceProfile)
 
 
 logger = logging.getLogger(__name__)
@@ -16,7 +20,33 @@ class PaloAltoAPIError(Exception):
     """
 
 
-class PaloAltoInterface():
+class AddressGroup(Enum):
+    """
+    Enumeration of the different AddressGroup names which specify the service
+    profiles in the PaloAlto firewall configuration.
+    """
+    HTTP = "FWP1-WEB-DETERRERS"
+    SSH = "FWP2-SSH-DETERRERS"
+    OPEN = "FWP3-OPEN-DETERRERS"
+
+    @classmethod
+    def get_addr_grps(cla, servc_prof: HostServiceProfile) -> set:
+        match servc_prof:
+            case HostServiceProfile.HTTP:
+                return {cla.HTTP, }
+            case HostServiceProfile.SSH:
+                return {cla.SSH, }
+            case HostServiceProfile.HTTP_SSH:
+                return {cla.HTTP, cla.SSH}
+            case HostServiceProfile.MULTIPURPOSE:
+                return {cla.OPEN, }
+            case HostServiceProfile.EMPTY:
+                return set()
+            case _:
+                raise NotImplementedError("Unknown service profile!")
+
+
+class PaloAltoWrapper(FWAbstract):
     """
     Interface to the Palo Alto Firewall's PAN-OS v10.1.
     Uses the REST API for object manipulation and XML API for configuration
@@ -205,8 +235,32 @@ class PaloAltoInterface():
 
         return obj_name
 
+    def __get_all_addr_obj_names(self) -> set[str]:
+        """
+        Queries all addr obj names at the firewall.
+
+        Returns:
+            set[str]: Returns a set of strings.
+        """
+
+        get_address_params = f"location={self.LOCATION}"
+        get_address_url = (self.rest_url
+                           + "Objects/Addresses?"
+                           + get_address_params)
+        response = requests.get(get_address_url, headers=self.header,
+                                timeout=self.TIMEOUT)
+        data = response.json()
+
+        if not (data.get('@status') == 'success'
+                and data.get('@code') == '19'):
+            return None
+
+        obj_names = {obj['@name'] for obj in data.get('result').get('entry')}
+
+        return obj_names
+
     def __get_addr_grp_properties(self,
-                                  addr_grp: PaloAltoAddressGroup) -> dict:
+                                  addr_grp: AddressGroup) -> dict:
         """
         Query the properties of an AddressGroup.
 
@@ -259,7 +313,22 @@ class PaloAltoInterface():
         pending = (response_xml.xpath("//response/result")[0].text == "yes")
         return pending
 
-    def commit_changes(self):
+    def __cancle_commit(self):
+        """
+        Try to cancle scheduled commits.
+
+        Raises:
+            PaloAltoAPIError: Raised when commit couldn't be canceled.
+        """
+        cancle_commit_url = (self.xml_url
+                             + "?type=op&cmd=<request><clear-commit-tasks>"
+                             + "</clear-commit-tasks></request>")
+        response = requests.get(cancle_commit_url, headers=self.header,
+                                timeout=self.TIMEOUT)
+        if response.status_code != 200:
+            raise PaloAltoAPIError("Could not cancel commit!")
+
+    def commit_changes(self) -> None:
         """
         Commit changes of current user.
 
@@ -288,47 +357,73 @@ class PaloAltoInterface():
 
         return True
 
-    def __cancle_commit(self):
+    def get_addrs_in_service_profile(
+        self,
+        service_profile: HostServiceProfile
+    ) -> set[ipaddress.IPv4Address | ipaddress.IPv6Address]:
         """
-        Try to cancle scheduled commits.
-
-        Raises:
-            PaloAltoAPIError: Raised when commit couldn't be canceled.
-        """
-        cancle_commit_url = (self.xml_url
-                             + "?type=op&cmd=<request><clear-commit-tasks>"
-                             + "</clear-commit-tasks></request>")
-        response = requests.get(cancle_commit_url, headers=self.header,
-                                timeout=self.TIMEOUT)
-        if response.status_code != 200:
-            raise PaloAltoAPIError("Could not cancle commit!")
-
-    def get_addr_objs_in_addr_grp(self,
-                                  addr_grp: PaloAltoAddressGroup) -> set:
-        """
-        Queries all the names of AddressObjects in a given AddressGroup.
+        Queries all IP addresses that are in some internet service profile
+        at the perimeter FW.
 
         Args:
-            addr_grp (PaloAltoAddressGroup): AddressGroup to get the
-            IP addresses of.
+            service_profile (HostServiceContract): Internet service profile
 
         Returns:
-            set: Returns a set of address object names.
+            set[ipaddress.IPv4Address | ipaddress.IPv6Address]: Returns set of
+            ipaddress-objects that are deployed in the given internet service
+            profile.
         """
         try:
-            # get all properties of the address group
-            addr_grp_obj = self.__get_addr_grp_properties(addr_grp)
-            addr_obj_names = addr_grp_obj['static']['member']
-            return set(addr_obj_names)
+            ip_addrs = set()
+            # map service profile to address groups in Palo Altoaddr_grp
+            srvc_prfl_addr_obj_names = self.__get_all_addr_obj_names()
+            in_addr_grps = AddressGroup.get_addr_grps(service_profile)
+            for addr_grp in in_addr_grps:
+                # get all IP addresses in the address group
+                addr_grp_addr_obj_names = set(self.__get_addr_grp_properties(
+                    addr_grp
+                )['static']['member'])
+                # remove all ip addrs that are not in the relevant addr grps
+                srvc_prfl_addr_obj_names.intersection_update(
+                    addr_grp_addr_obj_names
+                )
+
+            for addr_grp in set(AddressGroup).difference(in_addr_grps):
+                # get all IP addresses in the address group
+                addr_grp_addr_obj_names = set(self.__get_addr_grp_properties(
+                    addr_grp
+                )['static']['member'])
+                # remove all ip addrs that are in unrelevant addr grps
+                srvc_prfl_addr_obj_names.difference_update(
+                    addr_grp_addr_obj_names
+                )
+
+            # for all addr objs generate the IPv4/v6 address object if possible
+            for addr_obj_name in srvc_prfl_addr_obj_names:
+                try:
+                    ipv4 = ipaddress.IPv4Address(
+                        addr_obj_name.replace('-', '.')
+                    )
+                    ip_addrs.add(ipv4)
+                except Exception:
+                    try:
+                        ipv6 = ipaddress.IPv6Address(
+                            addr_obj_name.replace('-', ':')
+                        )
+                        ip_addrs.add(ipv6)
+                    except Exception:
+                        pass
+
+            return ip_addrs
         except (PaloAltoAPIError, requests.exceptions.JSONDecodeError):
             logger.exception("Couldn't get AddressObjects of AddressGroup %s",
                              addr_grp.value)
             return set()
 
-    def add_addr_objs_to_addr_grps(
+    def allow_service_profile_for_ips(
         self,
         ip_addrs: list[str],
-        addr_grps: set[PaloAltoAddressGroup]
+        service_profile: HostServiceProfile
     ) -> bool:
         """
         Creates AddressObjects for IP addresses if necessary and adds them
@@ -350,7 +445,7 @@ class PaloAltoInterface():
                     name = self.__create_addr_obj(ip)
                 addr_obj_names.append(name)
 
-            for addr_grp_name in addr_grps:
+            for addr_grp_name in AddressGroup.get_addr_grps(service_profile):
                 # get all properties of the address group
                 addr_grp_obj = self.__get_addr_grp_properties(addr_grp_name)
                 # put the new addr obj into the addr grp
@@ -386,18 +481,15 @@ class PaloAltoInterface():
 
         return True
 
-    def remove_addr_objs_from_addr_grps(
+    def block_ips(
         self,
-        ip_addrs: list[str],
-        addr_grps: set[PaloAltoAddressGroup]
+        ip_addrs: list[str]
     ) -> bool:
         """
-        Removes AddressObjects from some AddressGroups.
+        Removes AddressObjects from all AddressGroups.
 
         Args:
             ip_addr (list[str]): IP addresses of the AddressObjects.
-            addr_grps (set[AddressGroups]): AddressGroups from which the
-            AddressObject is removed.
 
         Returns:
             bool: Returns True on success and False if something went wrong.
@@ -408,7 +500,7 @@ class PaloAltoInterface():
                 name = self.__get_addr_obj(ip)
                 if name:
                     addr_obj_names.append(name)
-            for addr_grp_name in addr_grps:
+            for addr_grp_name in [addr_grp for addr_grp in AddressGroup]:
                 # get all properties of the address group
                 addr_grp_obj = self.__get_addr_grp_properties(addr_grp_name)
                 # remove addr obj from addr grp
@@ -447,7 +539,7 @@ class PaloAltoInterface():
 
         return True
 
-    def get_host_status(self, ip_addr: str) -> HostStatusContract:
+    def get_host_status(self, ip_addr: str) -> HostStatus:
         """
         Query the status of a host at the perimeter firewall.
 
@@ -463,16 +555,16 @@ class PaloAltoInterface():
             if not addr_obj_name:
                 # if addr_obj does not exist yet, the host has not been
                 # registered
-                return HostStatusContract.UNREGISTERED
+                return HostStatus.UNREGISTERED
 
-            for addr_grp in PaloAltoAddressGroup:
+            for addr_grp in AddressGroup:
                 # get all properties of the address group
                 addr_grp_obj = self.__get_addr_grp_properties(addr_grp)
                 if addr_obj_name in addr_grp_obj['static']['member']:
                     # if addr_obj is member of any addr_grp than it is online
-                    return HostStatusContract.ONLINE
+                    return HostStatus.ONLINE
             # if addr_obj is not member of any addr_grp than it is offline
-            return HostStatusContract.BLOCKED
+            return HostStatus.BLOCKED
 
         except (PaloAltoAPIError, requests.exceptions.JSONDecodeError):
             logger.exception("Couldn't remove AddressObject from AddressGroups!")

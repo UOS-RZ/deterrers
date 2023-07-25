@@ -3,9 +3,9 @@ import ipaddress
 from django.urls import reverse
 
 from .rule_generator import HostBasedPolicy
-from .contracts import (HostFWContract,
-                        HostServiceContract,
-                        HostStatusContract)
+from .contracts import (HostFW,
+                        HostServiceProfile,
+                        HostStatus)
 
 
 class MyHost():
@@ -20,11 +20,11 @@ class MyHost():
         ipv4_addr: str,
         mac_addr: str,
         admin_ids: set[str],
-        status: HostStatusContract,
+        status: HostStatus,
         name: str = '',
         dns_rcs: set[str] = set(),
-        service_profile: HostServiceContract = HostServiceContract.EMPTY,
-        fw: HostFWContract = HostFWContract.EMPTY,
+        service_profile: HostServiceProfile = HostServiceProfile.EMPTY,
+        fw: HostFW = HostFW.EMPTY,
         host_based_policies: list[HostBasedPolicy] = []
     ):
 
@@ -58,6 +58,9 @@ class MyHost():
     def __lt__(self, other):
         return (ipaddress.IPv4Address(self.ipv4_addr)
                 < ipaddress.IPv4Address(other.ipv4_addr))
+
+    def __hash__(self) -> int:
+        return int(self.ipv4_addr)
 
     def get_ipv4_escaped(self) -> str:
         return str(self.ipv4_addr).replace('.', '_')
@@ -126,13 +129,13 @@ class MyHost():
                 except ValueError:
                     return False
 
-        if self.status not in HostStatusContract:
+        if self.status not in HostStatus:
             return False
 
-        if self.service_profile not in HostServiceContract:
+        if self.service_profile not in HostServiceProfile:
             return False
 
-        if self.fw not in HostFWContract:
+        if self.fw not in HostFW:
             return False
 
         for policy in self.host_based_policies:

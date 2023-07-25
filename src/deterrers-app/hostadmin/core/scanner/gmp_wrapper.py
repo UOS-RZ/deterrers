@@ -15,6 +15,9 @@ from gvm.protocols.gmpv224 import (AlertCondition,
                                    AliveTest,
                                    HostsOrdering)
 
+from hostadmin.core.scanner.scanner_abstract import ScannerAbstract
+from hostadmin.core.risk_assessor import VulnerabilityScanResult
+
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +62,7 @@ class GmpAPIError(Exception):
      """
 
 
-class GmpVScannerInterface():
+class GmpScannerWrapper(ScannerAbstract):
     """
     Interface to the Greenbone Vulnerability Scanner via Greenbone Management
     Protocol (GMP) v22.4.
@@ -111,7 +114,7 @@ class GmpVScannerInterface():
             be forwarded.
 
         Returns:
-            GreenboneVScannerInterface: Returns self.
+            GmpScannerWrapper: Returns self.
         """
         logger.debug("Start session with vulnerability scanner.")
         try:
@@ -650,7 +653,56 @@ class GmpVScannerInterface():
                  + f"Status: {response_status}")
             )
 
-    def create_ordinary_scan(self, host_ip: str, deterrers_url: str):
+    def __get_report_xml(
+        self,
+        report_uuid: str,
+        min_qod: int = 70,
+        report_format_id: str = ReportFormat.XML_UUID.value
+    ):
+        """
+        Query the XML report for some report UUID.
+
+        Args:
+            report_uuid (str): UUID of the report.
+            min_qod (int): Minimum Quality of Detection value. Defaults to 70.
+            report_format_id (str): UUID of the XML report format in GVM.
+
+        Returns:
+            _type_: XML etree object of the report.
+        """
+        rep_filter = ("status=Done "
+                      + "apply_overrides=1 "
+                      + "rows=-1 "
+                      + f"min_qod={min_qod} "
+                      + "first=1 "
+                      + "sort-reverse=severity")
+        try:
+            response = self.gmp.get_report(
+                report_uuid,
+                filter_string=rep_filter,
+                report_format_id=report_format_id,
+                ignore_pagination=True,
+                details=True
+            )
+            response_status = int(response.xpath('@status')[0])
+            if response_status != 200:
+                raise GmpAPIError(f"Couldn't query report {report_uuid}!")
+            return response
+        except GvmError:
+            logger.exception(
+                "Couldn't fetch report with ID '%s' from GSM!",
+                report_uuid
+            )
+        except GmpAPIError:
+            logger.exception("Get report as XML failed.")
+
+        return None
+
+    def create_ordinary_scan(
+        self,
+        host_ip: str,
+        alert_dest_url: str
+    ) -> tuple[str, str, str, str]:
         """
         Creates and starts a scan for some host:
             1. Create a scan target.
@@ -705,7 +757,7 @@ class GmpVScannerInterface():
             report_uuid = self.__start_task(task_uuid, task_name)
 
             self.__modify_http_alert_data(host_ip,
-                                          deterrers_url,
+                                          alert_dest_url,
                                           target_uuid,
                                           task_uuid,
                                           report_uuid,
@@ -723,7 +775,11 @@ class GmpVScannerInterface():
 
         return None, None, None, None
 
-    def create_registration_scan(self, host_ip: str, deterrers_url: str):
+    def create_registration_scan(
+        self,
+        host_ip: str,
+        alert_dest_url: str
+    ) -> tuple[str, str, str, str]:
         """
         Creates and starts a scan for some host:
             1. Create a scan target.
@@ -787,7 +843,7 @@ class GmpVScannerInterface():
 
             # modify alert to hold relevant uuids
             self.__modify_http_alert_data(host_ip,
-                                          deterrers_url,
+                                          alert_dest_url,
                                           target_uuid,
                                           task_uuid,
                                           report_uuid,
@@ -810,9 +866,9 @@ class GmpVScannerInterface():
     def create_periodic_scan(
         self,
         host_ip: str,
-        deterrers_url: str,
+        alert_dest_url: str,
         schedule_freq: str = 'weekly'
-    ):
+    ) -> None:
         """
         Creates and starts a periodic scan with some host:
             1. Create a scan target.
@@ -826,6 +882,8 @@ class GmpVScannerInterface():
         Args:
             host_ip (str): Host IP address of the first host.
             deterrers_url (str): URL of the DETERRERS host.
+            schedule_freq (str): Frequency of periodic scan (e.g. 'daily',
+            'weekly', 'yearly' etc.). Defaults to 'weekly'.
         """
         logger.debug("Create periodic scan")
         target_uuid = self.__create_target(
@@ -859,7 +917,7 @@ class GmpVScannerInterface():
         # report_uuid = self.__start_task(task_uuid, self.PERIODIC_TASK_NAME)
         report_uuid = ""
         self.__modify_http_alert_data('',
-                                      deterrers_url,
+                                      alert_dest_url,
                                       '',
                                       task_uuid,
                                       report_uuid,
@@ -868,7 +926,7 @@ class GmpVScannerInterface():
     def add_host_to_periodic_scans(
         self,
         host_ip: str,
-        deterrers_url: str
+        alert_dest_url: str
     ) -> bool:
         """
         Add a host to the periodic scan task which scans all hosts that
@@ -879,7 +937,7 @@ class GmpVScannerInterface():
 
         Args:
             host_ip (str): IP address to add to the periodic scan task.
-            deterrers_url (str): URL to the DETERRERS server.
+            alert_dest_url (str): URL to the DETERRERS server.
 
         Returns:
             bool: Returns True on success and False if something went wrong.
@@ -896,7 +954,7 @@ class GmpVScannerInterface():
             if not task_uuid:
                 self.create_periodic_scan(
                     host_ip=host_ip,
-                    deterrers_url=deterrers_url
+                    alert_dest_url=alert_dest_url
                 )
 
                 # TODO: Creation of CVE task
@@ -1223,50 +1281,101 @@ class GmpVScannerInterface():
             )
             return None
 
-    def get_report_xml(
+    def extract_report_data(
         self,
         report_uuid: str,
-        min_qod: int = 70,
-        report_format_id: str = ReportFormat.XML_UUID.value
-    ):
+        min_qod: int = 70
+    ) -> tuple[str, str, dict]:
         """
-        Query the XML report for some report UUID.
+        Extract relevant result data from a report.
 
         Args:
             report_uuid (str): UUID of the report.
+            min_qod (int): Minimum Quality of Detection value. Defaults to 70.
 
         Returns:
-            _type_: XML etree object of the report.
+            tuple[str, str, dict]: Tuple consisting of the scan start and
+            end time, and a dictionary of vulnerabilities per IPv4 address.
+            On error, (None, None, None) is returned.
         """
-        rep_filter = ("status=Done "
-                      + "apply_overrides=1 "
-                      + "rows=-1 "
-                      + f"min_qod={min_qod} "
-                      + "first=1 "
-                      + "sort-reverse=severity")
         try:
-            response = self.gmp.get_report(
+            report = self.__get_report_xml(
                 report_uuid,
-                filter_string=rep_filter,
-                report_format_id=report_format_id,
-                ignore_pagination=True,
-                details=True
+                min_qod,
+                ReportFormat.XML_UUID.value
             )
-            response_status = int(response.xpath('@status')[0])
-            if response_status != 200:
-                raise GmpAPIError(f"Couldn't query report {report_uuid}!")
-            return response
-        except GvmError:
-            logger.exception(
-                "Couldn't fetch report with ID '%s' from GSM!",
-                report_uuid
-            )
-        except GmpAPIError:
-            logger.exception("Get report as XML failed.")
+            scan_start = report.xpath('//scan_start')[0].text
+            scan_end = report.xpath('report/report/scan_end')[0].text
 
-        return None
+            results_xml = report.xpath('report/report/results/result')
+            results = {}
 
-    def get_report_html(self, report_uuid: str, min_qod: int = 70):
+            for result_xml in results_xml:
+                try:
+                    result_uuid = result_xml.attrib['id']
+                    host_ip = result_xml.xpath('host')[0].text
+                    port_proto = result_xml.xpath('port')[0].text
+                    if port_proto and len(port_proto.split('/')) == 2:
+                        port = port_proto.split('/')[0]
+                        proto = port_proto.split('/')[1]
+                    else:
+                        port = str(port_proto)
+                        proto = ''
+                    hostname = result_xml.xpath('host/hostname')[0].text
+                    nvt_name = result_xml.xpath('nvt/name')[0].text
+                    nvt_oid = result_xml.xpath('nvt')[0].attrib['oid']
+                    qod = result_xml.xpath('qod/value')[0].text
+                    severities = result_xml.xpath('nvt/severities/severity')
+                except Exception:
+                    continue
+                cvss_severities = []
+                for severity in severities:
+                    cvss_severities.append(
+                        {
+                            'type': severity.attrib['type'],
+                            'base_score': float(severity.xpath('score')[0].text),
+                            'base_vector': severity.xpath('value')[0].text,
+                        }
+                    )
+                refs = [ref.attrib['id']
+                        for ref in result_xml.xpath('nvt/refs/ref')]
+
+                # get newest CVSS version
+                cvss_version, cvss_base_score, cvss_base_vector = -1, -1, ''
+                for version in range(2, 5, 1):
+                    for sev in cvss_severities:
+                        if sev.get('type') == f'cvss_base_v{version}':
+                            cvss_version = version
+                            cvss_base_score = float(sev.get('base_score', -1.0))
+                            cvss_base_vector = sev.get('base_vector', '')
+                            break
+
+                res = VulnerabilityScanResult(
+                    uuid=result_uuid,
+                    host_ip=host_ip,
+                    port=port,
+                    proto=proto,
+                    hostname=hostname,
+                    nvt_name=nvt_name,
+                    nvt_oid=nvt_oid,
+                    qod=int(qod),
+                    cvss_version=cvss_version,
+                    cvss_base_score=cvss_base_score,
+                    cvss_base_vector=cvss_base_vector,
+                    refs=refs,
+                )
+                if results.get(host_ip):
+                    results[host_ip].append(res)
+                else:
+                    results[host_ip] = [res, ]
+
+            return scan_start, scan_end, results
+        except Exception:
+            logger.exception("Couldn't extract data from report!")
+
+        return None, None, None
+
+    def get_report_html(self, report_uuid: str, min_qod: int = 70) -> str:
         """
         Query the HTML report for some report UUID.
 

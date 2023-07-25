@@ -20,29 +20,28 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.mail import EmailMessage
 
-from .util import (add_changelog,
-                   available_actions,
-                   registration_mail_body,
-                   scan_mail_body,
-                   periodic_mail_body,
-                   set_host_offline,
-                   set_host_online,
-                   extract_report_data)
+from hostadmin.util import (add_changelog,
+                            available_actions,
+                            registration_mail_body,
+                            scan_mail_body,
+                            periodic_mail_body,
+                            set_host_offline,
+                            set_host_online)
 
-from .forms import (ChangeHostDetailForm,
-                    AddHostRulesForm,
-                    HostadminForm,
-                    AddHostForm)
-from .core.ipam_api_interface import ProteusIPAMInterface
-from .core.v_scanner_interface import GmpVScannerInterface
-from .core.fw_interface import PaloAltoInterface
-from .core.risk_assessor import assess_host_risk
-from .core.rule_generator import generate_fw_config
-from .core.contracts import (HostBasedPolicySrcContract,
-                             HostBasedPolicyProtocolContract,
-                             HostStatusContract,
-                             HostServiceContract,
-                             HostFWContract,)
+from hostadmin.forms import (ChangeHostDetailForm,
+                             AddHostRulesForm,
+                             HostadminForm,
+                             AddHostForm)
+from hostadmin.core.data_logic.ipam_wrapper import ProteusIPAMWrapper
+from hostadmin.core.scanner.gmp_wrapper import GmpScannerWrapper
+from hostadmin.core.fw.pa_wrapper import PaloAltoWrapper
+from hostadmin.core.risk_assessor import assess_host_risk
+from hostadmin.core.rule_generator import generate_fw_config
+from hostadmin.core.contracts import (HostBasedPolicySrc,
+                                      HostBasedPolicyProtocol,
+                                      HostStatus,
+                                      HostServiceProfile,
+                                      HostFW,)
 
 
 from myuser.models import MyUser
@@ -147,7 +146,7 @@ def host_detail_view(request, ipv4: str):
                 ipv4, request.user.username)
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(
+    with ProteusIPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -173,7 +172,7 @@ def host_detail_view(request, ipv4: str):
         if request.method == 'POST':
             form = AddHostRulesForm(request.POST)
             if form.is_valid():
-                subnet = HostBasedPolicySrcContract[
+                subnet = HostBasedPolicySrc[
                     form.cleaned_data['subnet']
                 ].value
                 ports = form.cleaned_data['ports']
@@ -198,7 +197,7 @@ def host_detail_view(request, ipv4: str):
         'host_detail': host,
         'host_rules': [
             {
-                'allow_src': HostBasedPolicySrcContract(
+                'allow_src': HostBasedPolicySrc(
                     p.allow_srcs
                 ).display(),
                 'allow_ports': p.allow_ports,
@@ -240,7 +239,7 @@ def hosts_list_view(request):
     PAGINATE = 200
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(
+    with ProteusIPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -264,22 +263,34 @@ def hosts_list_view(request):
             form = AddHostForm(request.POST, choices=tag_choices)
             if form.is_valid():
                 tag_name = form.cleaned_data['admin_tag']
-                host_ip = form.cleaned_data['ipv4_addr']
-                code = ipam.add_tag_to_host(tag_name, host_ip)
-                # NOTE: return codes are not well defined by Proteus
-                # but any 2xx is fine
-                if code in range(200, 205, 1):
-                    return HttpResponseRedirect(reverse('hosts_list'))
-                elif code == 409:
+                host_ipv4 = form.cleaned_data['ipv4_addr']
+                host = ipam.get_host_info_from_ip(host_ipv4)
+                if not host:
                     form.add_error(
                         None,
-                        "Conflict while adding host! Has it been added before?"
+                        "Host not found!"
+                    )
+                elif not host.is_valid():
+                    form.add_error(
+                        None,
+                        "Host not valid!"
                     )
                 else:
-                    form.add_error(
-                        None,
-                        "Couldn't add host! Is information in IPAM correct?"
-                    )
+                    code = ipam.add_admin_to_host(tag_name, host)
+                    # NOTE: return codes are not well defined by Proteus
+                    # but any 2xx is fine
+                    if code in range(200, 205, 1):
+                        return HttpResponseRedirect(reverse('hosts_list'))
+                    elif code == 409:
+                        form.add_error(
+                            None,
+                            "Conflict while adding host!"
+                        )
+                    else:
+                        form.add_error(
+                            None,
+                            f"Couldn't add host! Code: {code}"
+                        )
         else:
             form = AddHostForm(choices=tag_choices)
 
@@ -321,7 +332,7 @@ def hostadmin_init_view(request):
     """
     logger.info("Request: Initialize hostadmin %s", request.user.username)
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
-    with ProteusIPAMInterface(
+    with ProteusIPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -336,12 +347,12 @@ def hostadmin_init_view(request):
         if ipam.is_admin(hostadmin.username):
             return HttpResponseRedirect(reverse('hosts_list'))
 
-        department_choices = ipam.get_department_tag_names()
+        department_choices = ipam.get_department_names()
         # do processing based on whether this is GET or POST request
         if request.method == 'POST':
             form = HostadminForm(request.POST, choices=department_choices)
             if form.is_valid():
-                if ipam.create_admin_tag(
+                if ipam.create_admin(
                     hostadmin.username,
                     form.cleaned_data['department']
                 ):
@@ -382,7 +393,7 @@ def update_host_detail(request, ipv4: str):
     )
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(
+    with ProteusIPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -415,15 +426,15 @@ def update_host_detail(request, ipv4: str):
                 # update the actual model instance
                 service_profile_change = (
                     host.service_profile
-                    != HostServiceContract(
+                    != HostServiceProfile(
                         form.cleaned_data['service_profile']
                     )
                 )
-                host.service_profile = HostServiceContract(
+                host.service_profile = HostServiceProfile(
                     form.cleaned_data['service_profile']
                 )
-                fw_change = host.fw != HostFWContract(form.cleaned_data['fw'])
-                host.fw = HostFWContract(form.cleaned_data['fw'])
+                fw_change = host.fw != HostFW(form.cleaned_data['fw'])
+                host.fw = HostFW(form.cleaned_data['fw'])
                 if not ipam.update_host_info(host):
                     form.add_error(
                         None,
@@ -448,8 +459,8 @@ def update_host_detail(request, ipv4: str):
                     )
                 elif service_profile_change:
                     # if host is already online, update the perimeter FW
-                    if host.status == HostStatusContract.ONLINE:
-                        if host.service_profile == HostServiceContract.EMPTY:
+                    if host.status == HostStatus.ONLINE:
+                        if host.service_profile == HostServiceProfile.EMPTY:
                             form.add_error(
                                 None,
                                 "Please make sure to choose a service profile."
@@ -480,45 +491,45 @@ def update_host_detail(request, ipv4: str):
 
                     # auto-add some host-based policies
                     match host.service_profile:
-                        case HostServiceContract.EMPTY:
+                        case HostServiceProfile.EMPTY:
                             pass
-                        case (HostServiceContract.SSH
-                              | HostServiceContract.HTTP
-                              | HostServiceContract.HTTP_SSH) as s_p:
+                        case (HostServiceProfile.SSH
+                              | HostServiceProfile.HTTP
+                              | HostServiceProfile.HTTP_SSH) as s_p:
                             # allow SSH standard port 22 over TCP if a service
                             # profile is specified
                             host.add_host_based_policy(
-                                HostBasedPolicySrcContract.ANY.value,
+                                HostBasedPolicySrc.ANY.value,
                                 ['22'],
-                                HostBasedPolicyProtocolContract.TCP.value
+                                HostBasedPolicyProtocol.TCP.value
                             )
                             match s_p:
-                                case HostServiceContract.SSH:
+                                case HostServiceProfile.SSH:
                                     # since SSH rules have already been added
                                     # do nothing else
                                     pass
-                                case (HostServiceContract.HTTP
-                                      | HostServiceContract.HTTP_SSH):
+                                case (HostServiceProfile.HTTP
+                                      | HostServiceProfile.HTTP_SSH):
                                     # allow HTTP and HTTPS standard ports
                                     # 80 and 443 over TCP
                                     host.add_host_based_policy(
-                                        HostBasedPolicySrcContract.ANY.value,
+                                        HostBasedPolicySrc.ANY.value,
                                         ['80'],
-                                        HostBasedPolicyProtocolContract.TCP.value
+                                        HostBasedPolicyProtocol.TCP.value
                                     )
                                     host.add_host_based_policy(
-                                        HostBasedPolicySrcContract.ANY.value,
+                                        HostBasedPolicySrc.ANY.value,
                                         ['443'],
-                                        HostBasedPolicyProtocolContract.TCP.value
+                                        HostBasedPolicyProtocol.TCP.value
                                     )
-                        case HostServiceContract.MULTIPURPOSE:
+                        case HostServiceProfile.MULTIPURPOSE:
                             # allow nothing else; users are expected to
                             # configure their own rules
                             messages.warning(
                                 request,
                                 ("Please make sure to configure custom rules "
                                  + "for your desired services when choosing "
-                                 + f"the {HostServiceContract.MULTIPURPOSE.value} "
+                                 + f"the {HostServiceProfile.MULTIPURPOSE.value} "
                                  + "profile!")
                             )
                         case _:
@@ -526,7 +537,11 @@ def update_host_detail(request, ipv4: str):
                                 "%s is not supported yet.",
                                 host.service_profile
                             )
-                    ipam.update_host_info(host)
+                    if not ipam.update_host_info(host):
+                        messages.error(
+                            request,
+                            ("Failed to update information!")
+                        )
 
                 # redirect to a new URL:
                 return HttpResponseRedirect(
@@ -579,14 +594,14 @@ def register_host(request, ipv4: str):
     )
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(
+    with ProteusIPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
     ) as ipam:
         if not ipam.enter_ok:
             return HttpResponse(status=500)
-        with GmpVScannerInterface(
+        with GmpScannerWrapper(
             settings.V_SCANNER_USERNAME,
             settings.V_SCANNER_SECRET_KEY,
             settings.V_SCANNER_URL
@@ -620,7 +635,7 @@ def register_host(request, ipv4: str):
                  alert_uuid) = scanner.create_registration_scan(ipv4, own_url)
                 if target_uuid and task_uuid and report_uuid and alert_uuid:
                     # update state in IPAM
-                    host.status = HostStatusContract.UNDER_REVIEW
+                    host.status = HostStatus.UNDER_REVIEW
                     if not ipam.update_host_info(host):
                         scanner.clean_up_scan_objects(
                             target_uuid, task_uuid,
@@ -672,14 +687,14 @@ def scan_host(request, ipv4: str):
     )
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(
+    with ProteusIPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
     ) as ipam:
         if not ipam.enter_ok:
             return HttpResponse(status=500)
-        with GmpVScannerInterface(
+        with GmpScannerWrapper(
             settings.V_SCANNER_USERNAME,
             settings.V_SCANNER_SECRET_KEY,
             settings.V_SCANNER_URL
@@ -713,7 +728,7 @@ def scan_host(request, ipv4: str):
                  alert_uuid) = scanner.create_ordinary_scan(ipv4, own_url)
                 if target_uuid and task_uuid and report_uuid and alert_uuid:
                     # update state in IPAM
-                    host.status = HostStatusContract.UNDER_REVIEW
+                    host.status = HostStatus.UNDER_REVIEW
                     if not ipam.update_host_info(host):
                         scanner.clean_up_scan_objects(
                             target_uuid,
@@ -766,7 +781,7 @@ def block_host(request, ipv4: str):
     )
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(
+    with ProteusIPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -827,7 +842,7 @@ def delete_host_rule(request, ipv4: str, rule_id: uuid.UUID):
     )
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(
+    with ProteusIPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -892,7 +907,7 @@ def get_fw_config(request, ipv4: str):
         request.user.username
     )
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
-    with ProteusIPAMInterface(
+    with ProteusIPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -954,7 +969,7 @@ def remove_host(request, ipv4: str):
     """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMInterface(
+    with ProteusIPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -982,23 +997,23 @@ def remove_host(request, ipv4: str):
             return HttpResponse(status=409)
 
         # block
-        if host.status == HostStatusContract.ONLINE:
+        if host.status == HostStatus.ONLINE:
             if not set_host_offline(str(host.ipv4_addr)):
                 return HttpResponse(status=500)
 
         # set all DETERRERS fields to blank
-        host.status = HostStatusContract.UNREGISTERED
-        host.service_profile = HostServiceContract.EMPTY
-        host.fw = HostFWContract.EMPTY
+        host.status = HostStatus.UNREGISTERED
+        host.service_profile = HostServiceProfile.EMPTY
+        host.fw = HostFW.EMPTY
         host.host_based_policies = []
         if not ipam.update_host_info(host):
             return HttpResponse(status=500)
 
         # remove all admin tags
         for admin_tag_name in host.admin_ids:
-            ipam.remove_tag_from_host(admin_tag_name, str(host.ipv4_addr))
+            ipam.remove_admin_from_host(admin_tag_name, host)
         # check that no admins are left for this host
-        if len(ipam.get_admins_of_host(host.entity_id)) > 0:
+        if len(host.admin_ids) > 0:
             logger.error(
                 "Couldn't remove all tags from host '%s'",
                 str(host.ipv4_addr)
@@ -1043,22 +1058,14 @@ def v_scanner_registration_alert(request):
             request (_type_): Request object.
         """
         try:
-            host_ipv4 = request.GET['host_ip']
-            # TODO: if task was manually restarted in Greenbone, this
-            # report_id will be outdated; better query it with help
-            # of task_uuid
-            report_uuid = request.GET['report_uuid']
-            task_uuid = request.GET['task_uuid']
-            target_uuid = request.GET['target_uuid']
-            alert_uuid = request.GET['alert_uuid']
-            with GmpVScannerInterface(
+            with GmpScannerWrapper(
                 settings.V_SCANNER_USERNAME,
                 settings.V_SCANNER_SECRET_KEY,
                 settings.V_SCANNER_URL
             ) as scanner:
                 if not scanner.enter_ok:
                     return
-                with ProteusIPAMInterface(
+                with ProteusIPAMWrapper(
                     settings.IPAM_USERNAME,
                     settings.IPAM_SECRET_KEY,
                     settings.IPAM_URL
@@ -1066,8 +1073,15 @@ def v_scanner_registration_alert(request):
                     if not ipam.enter_ok:
                         return
 
-                    report_xml = scanner.get_report_xml(report_uuid)
-                    _, scan_end, scan_results = extract_report_data(report_xml)
+                    host_ipv4 = request.GET['host_ip']
+                    task_uuid = request.GET['task_uuid']
+                    report_uuid = scanner.get_latest_report_uuid(task_uuid)
+                    target_uuid = request.GET['target_uuid']
+                    alert_uuid = request.GET['alert_uuid']
+
+                    _, scan_end, scan_results = scanner.extract_report_data(
+                        report_uuid
+                    )
                     if scan_results is None:
                         return
                     # Risk assessment
@@ -1113,7 +1127,7 @@ def v_scanner_registration_alert(request):
                         # get HTML report and send via e-mail to admin
                         report_html = scanner.get_report_html(report_uuid)
                         # get all department names for use below
-                        departments = ipam.get_department_tag_names()
+                        departments = ipam.get_department_names()
                         # deduce admin email addr and filter out departments
                         admin_addresses = [admin_id + "@uos.de"
                                            for admin_id in host.admin_ids
@@ -1190,14 +1204,14 @@ def v_scanner_scan_alert(request):
             task_uuid = request.GET['task_uuid']
             target_uuid = request.GET['target_uuid']
             alert_uuid = request.GET['alert_uuid']
-            with GmpVScannerInterface(
+            with GmpScannerWrapper(
                 settings.V_SCANNER_USERNAME,
                 settings.V_SCANNER_SECRET_KEY,
                 settings.V_SCANNER_URL
             ) as scanner:
                 if not scanner.enter_ok:
                     return
-                with ProteusIPAMInterface(
+                with ProteusIPAMWrapper(
                     settings.IPAM_USERNAME,
                     settings.IPAM_SECRET_KEY,
                     settings.IPAM_URL
@@ -1205,14 +1219,15 @@ def v_scanner_scan_alert(request):
                     if not ipam.enter_ok:
                         return
 
-                    report_xml = scanner.get_report_xml(report_uuid)
-                    _, scan_end, results = extract_report_data(report_xml)
+                    _, scan_end, results = scanner.extract_report_data(
+                        report_uuid
+                    )
                     if results is None:
                         return
 
                     # reset hosts status
                     host = ipam.get_host_info_from_ip(host_ipv4)
-                    with PaloAltoInterface(
+                    with PaloAltoWrapper(
                         settings.FIREWALL_USERNAME,
                         settings.FIREWALL_SECRET_KEY,
                         settings.FIREWALL_URL
@@ -1223,7 +1238,7 @@ def v_scanner_scan_alert(request):
                     if not ipam.update_host_info(host):
                         raise RuntimeError("Couldn't update host information!")
                     # get all department names for use below
-                    departments = ipam.get_department_tag_names()
+                    departments = ipam.get_department_names()
 
                 # get HTML report and send via e-mail to admin
                 report_html = scanner.get_report_html(report_uuid)
@@ -1285,14 +1300,14 @@ def v_scanner_periodic_alert(request):
         """
         try:
             task_uuid = request.GET['task_uuid']
-            with GmpVScannerInterface(
+            with GmpScannerWrapper(
                 settings.V_SCANNER_USERNAME,
                 settings.V_SCANNER_SECRET_KEY,
                 settings.V_SCANNER_URL
             ) as scanner:
                 if not scanner.enter_ok:
                     return
-                with ProteusIPAMInterface(
+                with ProteusIPAMWrapper(
                     settings.IPAM_USERNAME,
                     settings.IPAM_SECRET_KEY,
                     settings.IPAM_URL
@@ -1310,8 +1325,9 @@ def v_scanner_periodic_alert(request):
 
                     admin_mail_copy = ""
                     report_uuid = scanner.get_latest_report_uuid(task_uuid)
-                    report_xml = scanner.get_report_xml(report_uuid)
-                    _, _, scan_results = extract_report_data(report_xml)
+                    _, _, scan_results = scanner.extract_report_data(
+                        report_uuid
+                    )
                     if scan_results is None:
                         return
                     # Risk assessment
@@ -1342,7 +1358,7 @@ def v_scanner_periodic_alert(request):
                                 raise RuntimeError("Couldn't block host")
                             # deduce admin email addr and filter out
                             # departments
-                            departments = ipam.get_department_tag_names()
+                            departments = ipam.get_department_names()
                             admin_addrs = [admin_id + "@uos.de"
                                            for admin_id in host.admin_ids
                                            if admin_id not in departments]
@@ -1369,7 +1385,7 @@ def v_scanner_periodic_alert(request):
                             """
                         # only send mail if not block
                         elif len(notify_reasons) != 0:
-                            departments = ipam.get_department_tag_names()
+                            departments = ipam.get_department_names()
                             admin_addrs = [admin_id + "@uos.de"
                                            for admin_id in host.admin_ids
                                            if admin_id not in departments]
