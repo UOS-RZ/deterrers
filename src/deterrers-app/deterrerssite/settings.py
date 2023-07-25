@@ -269,7 +269,12 @@ MAINTENANCE_MODE_IGNORE_ADMIN_SITE = True
 MAINTENANCE_MODE_IGNORE_SUPERUSER = True
 # list of urls that will not be affected by the maintenance-mode
 # urls will be used to compile regular expressions objects
-MAINTENANCE_MODE_IGNORE_URLS = (LOGIN_URL, )
+MAINTENANCE_MODE_IGNORE_URLS = (
+    LOGIN_URL,
+    '/hostadmin/scanner/'
+)
+# retry after
+MAINTENANCE_MODE_RETRY_AFTER = 3600
 
 
 """ SETUP APP CONFIG """
