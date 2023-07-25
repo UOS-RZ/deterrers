@@ -1,5 +1,6 @@
 #!/bin/bash
 
+python manage.py check --deploy
 python manage.py makemigrations --noinput
 python manage.py makemigrations hostadmin --noinput
 python manage.py makemigrations myuser --noinput

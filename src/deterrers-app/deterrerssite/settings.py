@@ -31,6 +31,15 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'NON_SECRET_DEV_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DJANGO_DEBUG', '') == 'True'
 
+DEV_MODE = os.environ.get('DEV_MODE', '') == 'True'
+
+if not DEV_MODE:
+    SECURE_HSTS_SECONDS = 3600
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+
 # 'DJANGO_ALLOWED_HOSTS' should be a single string of hosts with a space
 # between each.
 # For example: 'DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]'
