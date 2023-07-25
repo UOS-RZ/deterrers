@@ -39,6 +39,7 @@ if not DEV_MODE:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 # 'DJANGO_ALLOWED_HOSTS' should be a single string of hosts with a space
 # between each.
