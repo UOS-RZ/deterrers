@@ -57,12 +57,12 @@ class PaloAltoWrapper(FWAbstract):
     VERSION = "v10.1"
     LOCATION = 'vsys&vsys=vsys1'
 
-    def __init__(self, username: str, password: str, fw_url: str):
+    def __init__(self, username: str, password: str, url: str):
         self.username = username
         self.__password = password
-        self.fw_url = fw_url
-        self.rest_url = f"https://{fw_url}/restapi/{self.VERSION}/"
-        self.xml_url = f"https://{fw_url}/api/"
+        self.fw_url = url
+        self.rest_url = f"https://{url}/restapi/{self.VERSION}/"
+        self.xml_url = f"https://{url}/api/"
         self.api_key = None
         self.header = {
             "Accept": "application/json",
