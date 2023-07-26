@@ -28,11 +28,11 @@ class ProteusIPAMWrapper(DataAbstract):
 
     TIMEOUT = 3*180
 
-    def __init__(self, username, password, ipam_url):
+    def __init__(self, username: str, password: str, url: str):
         self.username = username
         self.__password = password
-        self.ipam_url = ipam_url
-        self.main_url = "https://" + ipam_url + "/Services/REST/v1/"
+        self.ipam_url = url
+        self.main_url = "https://" + url + "/Services/REST/v1/"
         self.header = ''
         self.__tag_group_id = None
         self.__department_tags = None

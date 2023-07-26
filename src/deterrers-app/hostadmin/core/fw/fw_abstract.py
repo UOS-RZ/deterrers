@@ -9,6 +9,23 @@ class FWAbstract(ABC):
     """ Abstract class for implementation of perimeter firewall wrappers. """
 
     @abstractmethod
+    def __init__(
+        self,
+        username: str,
+        password: str,
+        url: str
+    ) -> None:
+        pass
+
+    @abstractmethod
+    def __enter__(self):
+        pass
+
+    @abstractmethod
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        pass
+
+    @abstractmethod
     def commit_changes(self) -> None:
         """
         Initiate commit if FW works with commits.

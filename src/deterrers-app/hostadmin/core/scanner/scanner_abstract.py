@@ -7,6 +7,24 @@ class ScannerAbstract(ABC):
     """
 
     @abstractmethod
+    def __init__(
+        self,
+        username,
+        password,
+        scanner_url,
+        scanner_port
+    ) -> None:
+        pass
+
+    @abstractmethod
+    def __enter__(self):
+        pass
+
+    @abstractmethod
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        pass
+
+    @abstractmethod
     def create_ordinary_scan(
         self,
         host_ip: str,

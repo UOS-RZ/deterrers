@@ -7,6 +7,18 @@ class DataAbstract(ABC):
     """ Abstract class for implementation of DB/IPAM wrappers."""
 
     @abstractmethod
+    def __init__(self, username: str, password: str, url: str) -> None:
+        pass
+
+    @abstractmethod
+    def __enter__(self):
+        pass
+
+    @abstractmethod
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        pass
+
+    @abstractmethod
     def get_host_info_from_ip(self, ipv4: str) -> MyHost | None:
         pass
 
