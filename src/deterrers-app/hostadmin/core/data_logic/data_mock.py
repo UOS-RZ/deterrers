@@ -22,29 +22,29 @@ class DataMockWrapper(DataAbstract):
     ) -> None:
         self.f_path = url
         # fill in default data
-        with open(self.f_path, "w") as f:
-            data = json.load(f)
-            if not data.get("departments"):
+        with open(self.f_path, "w+") as f:
+            try:
+                data = json.load(f)
+            except json.decoder.JSONDecodeError:
                 data["departments"] = {
-                    "Department 1": {"mmustermann", },
-                    "Department 2": set()
+                    "Department 1": ["mmustermann", ],
+                    "Department 2": []
                 }
-            if not data.get("hosts"):
                 data["hosts"] = {
                     int(ipaddress.IPv4Address("1.1.1.1")): {
                         "entity_id": int(ipaddress.IPv4Address("1.1.1.1")),
                         "ipv4_addr": "1.1.1.1",
                         "mac_addr": "",
-                        "admin_ids": {"mmustermann", },
+                        "admin_ids": ["mmustermann", ],
                         "status": HostStatus.UNREGISTERED.name,
                         "name": "1.1.1.1 Name",
-                        "dns_rcs": set(),
+                        "dns_rcs": [],
                         "service_profile": HostServiceProfile.EMPTY.name,
                         "fw": HostFW.EMPTY.name,
                         "host_based_policies": []
                     }
                 }
-            json.dump(data, f)
+                json.dump(data, f)
 
     def __enter__(self):
         return self
@@ -56,7 +56,7 @@ class DataMockWrapper(DataAbstract):
         self,
         ipv4: str
     ) -> MyHost | None:
-        with open(self.f_path, "w") as f:
+        with open(self.f_path, "r") as f:
             data = json.load(f)
             if not data["hosts"].get(int(ipaddress.IPv4Address(ipv4))):
                 return None
@@ -65,10 +65,10 @@ class DataMockWrapper(DataAbstract):
                 data["entity_id"],
                 data["ipv4_addr"],
                 data["mac_addr"],
-                data["admin_ids"],
+                set(data["admin_ids"]),
                 HostStatus[data["status"]],
                 data["name"],
-                data["dns_rcs"],
+                set(data["dns_rcs"]),
                 HostServiceProfile[data["service_profile"]],
                 HostFW[data["fw"]],
                 data["host_based_policies"]
@@ -79,7 +79,7 @@ class DataMockWrapper(DataAbstract):
         admin_name: str
     ) -> list[MyHost]:
         hosts = []
-        with open(self.f_path, "w") as f:
+        with open(self.f_path, "r") as f:
             data = json.load(f)
             for ipv4, host_data in data["hosts"]:
                 if admin_name in host_data["admin_ids"]:
@@ -87,10 +87,10 @@ class DataMockWrapper(DataAbstract):
                         host_data["entity_id"],
                         host_data["ipv4_addr"],
                         host_data["mac_addr"],
-                        host_data["admin_ids"],
+                        set(host_data["admin_ids"]),
                         HostStatus[host_data["status"]],
                         host_data["name"],
-                        host_data["dns_rcs"],
+                        set(host_data["dns_rcs"]),
                         HostServiceProfile[host_data["service_profile"]],
                         HostFW[host_data["fw"]],
                         host_data["host_based_policies"]
@@ -104,7 +104,7 @@ class DataMockWrapper(DataAbstract):
         return set()
 
     def get_department_names(self) -> list:
-        with open(self.f_path, "w") as f:
+        with open(self.f_path, "r") as f:
             data = json.load(f)
             return list(data["departments"].keys())
 
@@ -112,7 +112,7 @@ class DataMockWrapper(DataAbstract):
         self,
         admin_name: str
     ) -> str | None:
-        with open(self.f_path, "w") as f:
+        with open(self.f_path, "r") as f:
             data = json.load(f)
             for department, admins in data["departments"].items():
                 if admin_name in admins:
@@ -121,7 +121,7 @@ class DataMockWrapper(DataAbstract):
 
     def get_all_admin_names(self) -> set[str]:
         names = set()
-        with open(self.f_path, "w") as f:
+        with open(self.f_path, "r") as f:
             data = json.load(f)
             for department, admins in data["departments"].items():
                 names.update(admins)
@@ -132,9 +132,11 @@ class DataMockWrapper(DataAbstract):
         admin_name: str,
         department_name: str
     ) -> bool:
-        with open(self.f_path, "w") as f:
+        with open(self.f_path, "w+") as f:
             data = json.load(f)
-            data["departments"][department_name].add(admin_name)
+            data["departments"][department_name] = set(
+                data["departments"][department_name]
+            ).add(admin_name)
             json.dump(data, f)
         return True
 
@@ -166,16 +168,16 @@ class DataMockWrapper(DataAbstract):
         self,
         host: MyHost
     ) -> bool:
-        with open(self.f_path, "w") as f:
+        with open(self.f_path, "w+") as f:
             data = json.load(f)
             data["hosts"][host.entity_id] = {
                 "entity_id": host.entity_id,
                 "ipv4_addr": str(host.ipv4_addr),
                 "mac_addr": host.mac_addr,
-                "admin_ids": host.admin_ids,
+                "admin_ids": list(host.admin_ids),
                 "status": host.status.name,
                 "name": host.name,
-                "dns_rcs": host.dns_rcs,
+                "dns_rcs": list(host.dns_rcs),
                 "service_profile": host.service_profile.name,
                 "fw": host.fw.name,
                 "host_based_policies": host.host_based_policies
