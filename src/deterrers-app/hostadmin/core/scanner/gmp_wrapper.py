@@ -78,7 +78,13 @@ class GmpScannerWrapper(ScannerAbstract):
         "DETERRERS - Stash target for periodic task"
     )
 
-    def __init__(self, username, password, scanner_url, scanner_port=22):
+    def __init__(
+        self,
+        username: str,
+        password: str,
+        scanner_url: str,
+        scanner_port: int = 22
+    ):
         """
         Create a Gmp instance based on a TLS connection.
         """
@@ -715,7 +721,7 @@ class GmpScannerWrapper(ScannerAbstract):
 
         Args:
             host_ip (str): Host IP address of the scanned host.
-            deterrers_url (str): URL of the DETERRERS host.
+            alert_dest_url (str): URL of the DETERRERS host.
 
         Returns:
             (str, str, str, str): Returns a tuple of (target ID, task ID,
@@ -792,7 +798,7 @@ class GmpScannerWrapper(ScannerAbstract):
 
         Args:
             host_ip (str): Host IP address of the scanned host.
-            deterrers_url (str): URL of the DETERRERS host.
+            alert_dest_url (str): URL of the DETERRERS host.
 
         Returns:
             (str, str, str, str): Returns a tuple of (target ID, task ID,
@@ -870,7 +876,7 @@ class GmpScannerWrapper(ScannerAbstract):
         schedule_freq: str = 'weekly'
     ) -> None:
         """
-        Creates and starts a periodic scan with some host:
+        Creates and schedules a periodic scan with some host:
             1. Create a scan target.
             2. Create a schedule.
             3. Create a scan alert.
@@ -881,7 +887,7 @@ class GmpScannerWrapper(ScannerAbstract):
 
         Args:
             host_ip (str): Host IP address of the first host.
-            deterrers_url (str): URL of the DETERRERS host.
+            alert_dest_url (str): URL of the DETERRERS host.
             schedule_freq (str): Frequency of periodic scan (e.g. 'daily',
             'weekly', 'yearly' etc.). Defaults to 'weekly'.
         """

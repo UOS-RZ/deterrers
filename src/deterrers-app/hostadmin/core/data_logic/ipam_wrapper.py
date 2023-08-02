@@ -437,6 +437,9 @@ class ProteusIPAMWrapper(DataAbstract):
              service,
              fw,
              rules) = self.__parse_ipam_host_entity(data)
+            if type(host_id) is not int:
+                logger.error("Couldn't get data for host %s", ipv4)
+                return None
             # get all tagged admins
             tagged_admins = self.__get_admins_of_host(host_id)
             # get dns records
@@ -554,6 +557,9 @@ class ProteusIPAMWrapper(DataAbstract):
                  service,
                  fw,
                  rules) = self.__parse_ipam_host_entity(host_e)
+                if type(host_id) is not int:
+                    logger.error("Couldn't get data for host %s", str(ip))
+                    return None
                 # get all tagged admins
                 tagged_admins = self.__get_admins_of_host(host_id)
                 # get dns records

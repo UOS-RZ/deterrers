@@ -120,6 +120,9 @@ class Command(BaseCommand):
                         if not scanner.enter_ok:
                             continue
 
+                        # TODO: move logic to corresponding wrappers to
+                        # generalize it
+
                         """ GET DATA """
 
                         # get all hosts in IPAM
