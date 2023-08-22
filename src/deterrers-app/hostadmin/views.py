@@ -5,7 +5,8 @@ from threading import Thread
 import os
 import markdown
 import pathlib
-
+import pickle
+import time
 
 from django.contrib.auth.decorators import login_required
 from django.http import (Http404,
@@ -77,6 +78,7 @@ def __send_report_email(
     if report_html:
         email.attach("report.html", report_html, "text/html")
     try:
+        logger.info("Send e-mail '%s' to %s.", subject, str(to))
         email.send()
     except Exception:
         logger.exception("Couldn't send e-mail!")
@@ -1330,6 +1332,18 @@ def v_scanner_periodic_alert(request):
                     )
                     if scan_results is None:
                         return
+                    # save scan results for evaluation purposes
+                    try:
+                        with open(
+                            os.path.join(
+                                settings.BASE_DIR,
+                                f"logs/scan_results_{time.time_ns()}.pickle"
+                            ),
+                            "wb"
+                        ) as f:
+                            pickle.dump(scan_results, f)
+                    except Exception:
+                        pass
                     # Risk assessment
                     for host_ipv4, vulnerabilities in scan_results.items():
                         host = ipam.get_host_info_from_ip(host_ipv4)
