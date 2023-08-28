@@ -9,10 +9,15 @@ from hostadmin.core.host import MyHost
 from hostadmin.core.contracts import (HostStatus,
                                       HostServiceProfile,
                                       HostFW)
-from hostadmin.core.data_logic.ipam_wrapper import ProteusIPAMWrapper
-from hostadmin.core.scanner.gmp_wrapper import GmpScannerWrapper
-from hostadmin.core.fw.pa_wrapper import PaloAltoWrapper
 from hostadmin.core.risk_assessor import VulnerabilityScanResult
+if settings.DEV_MODE:
+    from hostadmin.core.data_logic.data_mock import DataMockWrapper as IPAMWrapper
+    from hostadmin.core.scanner.scanner_mock import ScannerMock as ScannerWrapper
+    from hostadmin.core.fw.fw_mock import FWMock as FWWrapper
+else:
+    from hostadmin.core.data_logic.ipam_wrapper import ProteusIPAMWrapper as IPAMWrapper
+    from hostadmin.core.scanner.gmp_wrapper import GmpScannerWrapper as ScannerWrapper
+    from hostadmin.core.fw.pa_wrapper import PaloAltoWrapper as FWWrapper
 
 
 logger = logging.getLogger(__name__)
@@ -134,21 +139,21 @@ def set_host_offline(host_ipv4: str) -> bool:
     Returns:
         bool: Returns True on success and False if something went wrong.
     """
-    with ProteusIPAMWrapper(
+    with IPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
     ) as ipam:
         if not ipam.enter_ok:
             return False
-        with GmpScannerWrapper(
+        with ScannerWrapper(
             settings.V_SCANNER_USERNAME,
             settings.V_SCANNER_SECRET_KEY,
             settings.V_SCANNER_URL
         ) as scanner:
             if not scanner.enter_ok:
                 return False
-            with PaloAltoWrapper(
+            with FWWrapper(
                 settings.FIREWALL_USERNAME,
                 settings.FIREWALL_SECRET_KEY,
                 settings.FIREWALL_URL
@@ -201,21 +206,21 @@ def set_host_online(host_ipv4: str) -> bool:
     """
     logger.info("Set host %s online.", host_ipv4)
 
-    with ProteusIPAMWrapper(
+    with IPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
     ) as ipam:
         if not ipam.enter_ok:
             return False
-        with GmpScannerWrapper(
+        with ScannerWrapper(
             settings.V_SCANNER_USERNAME,
             settings.V_SCANNER_SECRET_KEY,
             settings.V_SCANNER_URL
         ) as scanner:
             if not scanner.enter_ok:
                 return False
-            with PaloAltoWrapper(
+            with FWWrapper(
                 settings.FIREWALL_USERNAME,
                 settings.FIREWALL_SECRET_KEY,
                 settings.FIREWALL_URL

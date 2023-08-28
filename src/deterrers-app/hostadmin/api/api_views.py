@@ -17,14 +17,20 @@ from hostadmin.util import (available_actions,
                             set_host_bulk_offline,
                             set_host_online,
                             set_host_offline)
-from hostadmin.core.data_logic.ipam_wrapper import ProteusIPAMWrapper
-from hostadmin.core.scanner.gmp_wrapper import GmpScannerWrapper
 from hostadmin.core.host import MyHost
 from hostadmin.core.contracts import (HostStatus,
                                       HostServiceProfile,
                                       HostBasedPolicySrc,
                                       HostBasedPolicyProtocol,
                                       HostFW)
+if settings.DEV_MODE:
+    from hostadmin.core.data_logic.data_mock import DataMockWrapper as IPAMWrapper
+    from hostadmin.core.scanner.scanner_mock import ScannerMock as ScannerWrapper
+    from hostadmin.core.fw.fw_mock import FWMock as FWWrapper
+else:
+    from hostadmin.core.data_logic.ipam_wrapper import ProteusIPAMWrapper as IPAMWrapper
+    from hostadmin.core.scanner.gmp_wrapper import GmpScannerWrapper as ScannerWrapper
+    from hostadmin.core.fw.pa_wrapper import PaloAltoWrapper as FWWrapper
 from .serializers import MyHostSerializer, HostActionSerializer
 
 logger = logging.getLogger(__name__)
@@ -54,7 +60,7 @@ def __get_host(request) -> Response:
     """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMWrapper(
+    with IPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -96,7 +102,7 @@ def __add_host(request) -> Response:
     """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMWrapper(
+    with IPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -154,7 +160,7 @@ def __remove_host(request) -> Response:
     """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMWrapper(
+    with IPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -209,14 +215,14 @@ def __remove_host(request) -> Response:
     return Response()
 
 
-def __update_host_logic(ipam: ProteusIPAMWrapper,
+def __update_host_logic(ipam: IPAMWrapper,
                         host: MyHost,
                         host_update_data: dict):
     """
     Utility function that does the actual update logic.
 
     Args:
-        ipam (ProteusIPAMWrapper): Instantiated ProteusIPAMWrapper object
+        ipam (IPAMWrapper): Instantiated IPAMWrapper object
         for communication.
         host (MyHost): Host to update.
         host_update_data (dict): Dict holding the update data.
@@ -307,7 +313,7 @@ def __update_host(request) -> Response:
     """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMWrapper(
+    with IPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -380,7 +386,7 @@ def hosts(request):
     logger.info("API Request: Get all hosts for user %s",
                 request.user.username)
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
-    with ProteusIPAMWrapper(
+    with IPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -457,14 +463,14 @@ def register_bulk(hostadmin: MyUser, ipv4_addrs: set[str]):
         ipv4_addrs (set[str]): Set of unique IPv4 addresses.
     """
     ipv4_addrs = set(ipv4_addrs)
-    with ProteusIPAMWrapper(
+    with IPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
     ) as ipam:
         if not ipam.enter_ok:
             raise Http500()
-        with GmpScannerWrapper(
+        with ScannerWrapper(
             settings.V_SCANNER_USERNAME,
             settings.V_SCANNER_SECRET_KEY,
             settings.V_SCANNER_URL
@@ -528,7 +534,7 @@ def block_bulk(hostadmin: MyUser, ipv4_addrs: set[str]):
     """
     ipv4_addrs = set(ipv4_addrs)
 
-    with ProteusIPAMWrapper(
+    with IPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
