@@ -144,6 +144,7 @@ class Command(BaseCommand):
                             sp: set()
                             for sp in HostServiceProfile
                         }
+                        ipam_ip_addrs_allowed_total = set()
                         admin_tag_names = ipam.get_all_admin_names()
                         for a_tag_name in admin_tag_names:
                             hosts = ipam.get_hosts_of_admin(
@@ -153,25 +154,57 @@ class Command(BaseCommand):
                                 ipam_hosts_total[host.service_profile].add(
                                     host
                                 )
+                                if host.status in (
+                                    HostStatus.ONLINE, HostStatus.UNDER_REVIEW
+                                ):
+                                    ipam_ip_addrs_allowed_total.add(
+                                        str(host.ipv4_addr)
+                                    )
+                                    ipam_ip_addrs_allowed_total.update(
+                                        ipam.get_IP6Addresses(host)
+                                    )
+
+                        # get addresses from firewall that are in some
+                        # allowing service profile
+                        fw_ip_addrs_allowed_total = set()
+                        for out_sp in set(HostServiceProfile).difference(
+                            {HostServiceProfile.EMPTY, }
+                        ):
+                            for ip in fw.get_addrs_in_service_profile(out_sp):
+                                if type(ip) is ipaddress.IPv4Address:
+                                    fw_ip_addrs_allowed_total.add(str(ip))
+                                if type(ip) is ipaddress.IPv6Address:
+                                    fw_ip_addrs_allowed_total.add(ip.exploded)
 
                         """ SYNC DATA """
 
+                        # block IPs that are still allowed at FW even though
+                        # they are not in IPAM
+                        ips_to_block = fw_ip_addrs_allowed_total.difference(
+                                    ipam_ip_addrs_allowed_total
+                        )
+                        if ips_to_block:
+                            logger.warning(
+                                ("IPs %s were still allowed at FW but not " +
+                                 "defined in IPAM!"),
+                                str(ips_to_block)
+                            )
+                            if self.sync:
+                                fw.block_ips(
+                                    list(
+                                        fw_ip_addrs_allowed_total.difference(
+                                            ipam_ip_addrs_allowed_total
+                                        )
+                                    )
+                                )
+
+                        # sync hosts that are defined in IPAM
                         for service_profile, hosts in ipam_hosts_total.items():
                             # get addresses from firewall that are in the
                             # service profile
                             fw_ip_addrs_allowed_sp = fw.get_addrs_in_service_profile(
                                 service_profile
                             )
-
-                            # get addresses from firewall are in some allowing
-                            # service profile
-                            fw_ip_addrs_allowed_total = set()
-                            for out_sp in set(HostServiceProfile).difference(
-                                {HostServiceProfile.EMPTY, }
-                            ):
-                                fw_ip_addrs_allowed_total.update(
-                                    fw.get_addrs_in_service_profile(out_sp)
-                                )
 
                             # iterate through all hosts and sync them according
                             # to their status
