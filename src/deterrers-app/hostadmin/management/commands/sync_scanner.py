@@ -128,6 +128,7 @@ class Command(BaseCommand):
                         # get all hosts in IPAM
                         logger.info("Get assets from IPAM!")
                         ipam_hosts_total = {}
+                        ipam_ip_addrs_allowed_total = set()
                         admin_tag_names = ipam.get_all_admin_names()
                         for a_tag_name in admin_tag_names:
                             hosts = ipam.get_hosts_of_admin(
@@ -135,6 +136,15 @@ class Command(BaseCommand):
                             )
                             for host in hosts:
                                 ipam_hosts_total[str(host.ipv4_addr)] = host
+                                if host.status in (
+                                    HostStatus.ONLINE, HostStatus.UNDER_REVIEW
+                                ):
+                                    ipam_ip_addrs_allowed_total.add(
+                                        str(host.ipv4_addr)
+                                    )
+                                    ipam_ip_addrs_allowed_total.update(
+                                        ipam.get_IP6Addresses(host)
+                                    )
 
                         logger.info('Get assets in periodic scan!')
                         try:
@@ -178,6 +188,20 @@ class Command(BaseCommand):
 
                         """ SYNC DATA """
 
+                        # remove IPs from scan if corresponding hosts are not
+                        # defined in IPAM anymore
+                        for ip in v_scanner_hosts.difference(
+                            ipam_ip_addrs_allowed_total
+                        ):
+                            logger.warning(
+                                ("IP %s is still in scan target but not " +
+                                 "defined in IPAM anymore!"),
+                                ip
+                            )
+                            if self.sync:
+                                scanner.remove_host_from_periodic_scans(ip)
+
+                        # sync hosts that are defined in IPAM
                         for ipv4, host in ipam_hosts_total.items():
 
                             match host.status:
