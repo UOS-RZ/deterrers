@@ -29,7 +29,11 @@ services:
       - ./.env.dev
     volumes:
       - .:/microservice:rw # map data and files from parent directory in host to microservice directory in docker containe
-      - ./logs:/home/app/microservice/logs
+      - ./dev-logs:/home/app/microservice/logs
+    restart: "on-failure"
+
+  dev-ldap:
+    image: rroemhild/test-openldap
     restart: "on-failure"
 
 volumes:
