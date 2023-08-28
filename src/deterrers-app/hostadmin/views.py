@@ -33,9 +33,6 @@ from hostadmin.forms import (ChangeHostDetailForm,
                              AddHostRulesForm,
                              HostadminForm,
                              AddHostForm)
-from hostadmin.core.data_logic.ipam_wrapper import ProteusIPAMWrapper
-from hostadmin.core.scanner.gmp_wrapper import GmpScannerWrapper
-from hostadmin.core.fw.pa_wrapper import PaloAltoWrapper
 from hostadmin.core.risk_assessor import assess_host_risk
 from hostadmin.core.rule_generator import generate_fw_config
 from hostadmin.core.contracts import (HostBasedPolicySrc,
@@ -43,6 +40,14 @@ from hostadmin.core.contracts import (HostBasedPolicySrc,
                                       HostStatus,
                                       HostServiceProfile,
                                       HostFW,)
+if settings.DEV_MODE:
+    from hostadmin.core.data_logic.data_mock import DataMockWrapper as IPAMWrapper
+    from hostadmin.core.scanner.scanner_mock import ScannerMock as ScannerWrapper
+    from hostadmin.core.fw.fw_mock import FWMock as FWWrapper
+else:
+    from hostadmin.core.data_logic.ipam_wrapper import ProteusIPAMWrapper as IPAMWrapper
+    from hostadmin.core.scanner.gmp_wrapper import GmpScannerWrapper as ScannerWrapper
+    from hostadmin.core.fw.pa_wrapper import PaloAltoWrapper as FWWrapper
 
 
 from myuser.models import MyUser
@@ -148,7 +153,7 @@ def host_detail_view(request, ipv4: str):
                 ipv4, request.user.username)
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMWrapper(
+    with IPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -241,7 +246,7 @@ def hosts_list_view(request):
     PAGINATE = 200
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMWrapper(
+    with IPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -334,7 +339,7 @@ def hostadmin_init_view(request):
     """
     logger.info("Request: Initialize hostadmin %s", request.user.username)
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
-    with ProteusIPAMWrapper(
+    with IPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -395,7 +400,7 @@ def update_host_detail(request, ipv4: str):
     )
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMWrapper(
+    with IPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -596,14 +601,14 @@ def register_host(request, ipv4: str):
     )
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMWrapper(
+    with IPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
     ) as ipam:
         if not ipam.enter_ok:
             return HttpResponse(status=500)
-        with GmpScannerWrapper(
+        with ScannerWrapper(
             settings.V_SCANNER_USERNAME,
             settings.V_SCANNER_SECRET_KEY,
             settings.V_SCANNER_URL
@@ -689,14 +694,14 @@ def scan_host(request, ipv4: str):
     )
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMWrapper(
+    with IPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
     ) as ipam:
         if not ipam.enter_ok:
             return HttpResponse(status=500)
-        with GmpScannerWrapper(
+        with ScannerWrapper(
             settings.V_SCANNER_USERNAME,
             settings.V_SCANNER_SECRET_KEY,
             settings.V_SCANNER_URL
@@ -783,7 +788,7 @@ def block_host(request, ipv4: str):
     )
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMWrapper(
+    with IPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -844,7 +849,7 @@ def delete_host_rule(request, ipv4: str, rule_id: uuid.UUID):
     )
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMWrapper(
+    with IPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -909,7 +914,7 @@ def get_fw_config(request, ipv4: str):
         request.user.username
     )
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
-    with ProteusIPAMWrapper(
+    with IPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -971,7 +976,7 @@ def remove_host(request, ipv4: str):
     """
     hostadmin = get_object_or_404(MyUser, username=request.user.username)
 
-    with ProteusIPAMWrapper(
+    with IPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
         settings.IPAM_URL
@@ -1060,14 +1065,14 @@ def v_scanner_registration_alert(request):
             request (_type_): Request object.
         """
         try:
-            with GmpScannerWrapper(
+            with ScannerWrapper(
                 settings.V_SCANNER_USERNAME,
                 settings.V_SCANNER_SECRET_KEY,
                 settings.V_SCANNER_URL
             ) as scanner:
                 if not scanner.enter_ok:
                     return
-                with ProteusIPAMWrapper(
+                with IPAMWrapper(
                     settings.IPAM_USERNAME,
                     settings.IPAM_SECRET_KEY,
                     settings.IPAM_URL
@@ -1206,14 +1211,14 @@ def v_scanner_scan_alert(request):
             task_uuid = request.GET['task_uuid']
             target_uuid = request.GET['target_uuid']
             alert_uuid = request.GET['alert_uuid']
-            with GmpScannerWrapper(
+            with ScannerWrapper(
                 settings.V_SCANNER_USERNAME,
                 settings.V_SCANNER_SECRET_KEY,
                 settings.V_SCANNER_URL
             ) as scanner:
                 if not scanner.enter_ok:
                     return
-                with ProteusIPAMWrapper(
+                with IPAMWrapper(
                     settings.IPAM_USERNAME,
                     settings.IPAM_SECRET_KEY,
                     settings.IPAM_URL
@@ -1229,7 +1234,7 @@ def v_scanner_scan_alert(request):
 
                     # reset hosts status
                     host = ipam.get_host_info_from_ip(host_ipv4)
-                    with PaloAltoWrapper(
+                    with FWWrapper(
                         settings.FIREWALL_USERNAME,
                         settings.FIREWALL_SECRET_KEY,
                         settings.FIREWALL_URL
@@ -1302,14 +1307,14 @@ def v_scanner_periodic_alert(request):
         """
         try:
             task_uuid = request.GET['task_uuid']
-            with GmpScannerWrapper(
+            with ScannerWrapper(
                 settings.V_SCANNER_USERNAME,
                 settings.V_SCANNER_SECRET_KEY,
                 settings.V_SCANNER_URL
             ) as scanner:
                 if not scanner.enter_ok:
                     return
-                with ProteusIPAMWrapper(
+                with IPAMWrapper(
                     settings.IPAM_USERNAME,
                     settings.IPAM_SECRET_KEY,
                     settings.IPAM_URL
