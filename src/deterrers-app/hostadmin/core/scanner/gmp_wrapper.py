@@ -188,8 +188,8 @@ class GmpScannerWrapper(ScannerAbstract):
         alterable: bool = False,
         schedule_uuid: str | None = None,
         hosts_ordering: HostsOrdering | None = HostsOrdering.RANDOM,
-        max_conc_nvts: int | None = 64,
-        max_conc_hosts: int | None = 20
+        max_conc_nvts: int | None = 16,
+        max_conc_hosts: int | None = 10
     ) -> str:
         """
         Create a scan task with given configurations.
@@ -908,8 +908,8 @@ class GmpScannerWrapper(ScannerAbstract):
             True,
             schedule_uuid,
             hosts_ordering=HostsOrdering.RANDOM,
-            max_conc_nvts=32,
-            max_conc_hosts=40
+            max_conc_nvts=16,
+            max_conc_hosts=5
         )
         self.__modify_http_alert_data('',
                                       alert_dest_url,
