@@ -1319,11 +1319,10 @@ def v_scanner_periodic_alert(request):
 
                     # update periodic scan target because might have been
                     # changes since it started
-                    if not scanner.update_periodic_scan_target():
+                    if not scanner.update_periodic_scan_target(task_uuid):
                         logger.warning(
                             "Couldn't update target of periodic scan!"
                         )
-                        return
 
                     admin_mail_copy = ""
                     report_uuid = scanner.get_latest_report_uuid(task_uuid)
@@ -1337,7 +1336,7 @@ def v_scanner_periodic_alert(request):
                         with open(
                             os.path.join(
                                 settings.BASE_DIR,
-                                f"logs/scan_results_{time.time_ns()}.pickle"
+                                f"logs/scan-results_{task_uuid}_{time.time_ns()}.pickle"
                             ),
                             "wb"
                         ) as f:

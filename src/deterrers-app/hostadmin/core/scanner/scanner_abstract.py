@@ -23,9 +23,10 @@ class ScannerAbstract(ABC):
         pass
 
     @abstractmethod
-    def create_periodic_scan(
+    def create_periodic_scans(
         self,
-        host_ip: str,
+        task_name: str,
+        first_target_ip: str,
         alert_dest_url: str,
         schedule_freq: str
     ) -> None:
@@ -48,7 +49,8 @@ class ScannerAbstract(ABC):
 
     @abstractmethod
     def update_periodic_scan_target(
-        self
+        self,
+        task_uuid: str
     ) -> bool:
         pass
 
@@ -83,4 +85,10 @@ class ScannerAbstract(ABC):
         report_uuid: str,
         min_qod: int
     ) -> str:
+        pass
+
+    @abstractmethod
+    def get_periodic_scanned_hosts(
+        self
+    ) -> set[str]:
         pass
