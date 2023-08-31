@@ -65,9 +65,10 @@ class ScannerAbstract(ABC):
         pass
 
     @abstractmethod
-    def create_periodic_scan(
+    def create_periodic_scans(
         self,
-        host_ip: str,
+        task_name: str,
+        first_target_ip: str,
         alert_dest_url: str,
         schedule_freq: str
     ) -> None:
@@ -120,7 +121,8 @@ class ScannerAbstract(ABC):
 
     @abstractmethod
     def update_periodic_scan_target(
-        self
+        self,
+        task_uuid: str
     ) -> bool:
         """
         Update the scan target of the periodic scan task.
@@ -200,4 +202,10 @@ class ScannerAbstract(ABC):
         Returns:
             str: HTML string.
         """
+        pass
+
+    @abstractmethod
+    def get_periodic_scanned_hosts(
+        self
+    ) -> set[str]:
         pass
