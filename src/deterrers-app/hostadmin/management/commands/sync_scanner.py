@@ -147,44 +147,7 @@ class Command(BaseCommand):
                                     )
 
                         logger.info('Get assets in periodic scan!')
-                        try:
-                            v_scanner_hosts = set()
-                            # get periodic task info, get target info,
-                            # get hosts
-                            filter_str = (
-                                f'"{scanner.PERIODIC_TASK_NAME}" '
-                                + 'rows=-1 first=1'
-                            )
-                            response = scanner.gmp.get_tasks(
-                                filter_string=filter_str
-                            )
-                            response_status = int(response.xpath('@status')[0])
-                            if response_status != 200:
-                                raise RuntimeError(
-                                    ("Couldn't get tasks! "
-                                     + f"Status: {response_status}")
-                                )
-
-                            # if stash target exists use it, else use
-                            # default target
-                            target_uuid = scanner._GmpScannerWrapper__get_target_id(
-                                scanner.PERIODIC_TASK_STASH_TARGET_NAME
-                            )
-                            if not target_uuid:
-                                target_uuid = response.xpath('//target/@id')[0]
-
-                            response = scanner.gmp.get_target(target_uuid)
-                            response_status = int(response.xpath('@status')[0])
-                            if response_status != 200:
-                                raise RuntimeError(
-                                    ("Couldn't get target! "
-                                     + f"Status: {response_status}")
-                                )
-                            hosts_str = response.xpath('//hosts')[0].text
-                            v_scanner_hosts = {h.strip()
-                                               for h in hosts_str.split(',')}
-                        except Exception:
-                            logger.exception("")
+                        v_scanner_hosts = scanner.get_periodic_scanned_hosts()
 
                         """ SYNC DATA """
 
@@ -198,8 +161,7 @@ class Command(BaseCommand):
                                  "defined in IPAM anymore!"),
                                 ip
                             )
-                            if self.sync:
-                                scanner.remove_host_from_periodic_scans(ip)
+                            self.__rmv_ip(scanner, ip)
 
                         # sync hosts that are defined in IPAM
                         for ipv4, host in ipam_hosts_total.items():
