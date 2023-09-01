@@ -184,6 +184,8 @@ class DataMockWrapper(DataAbstract):
         host.admin_ids.add(admin_name)
         self.update_host_info(host)
 
+        return 200
+
     def remove_admin_from_host(
         self,
         admin_name: str,
@@ -191,6 +193,8 @@ class DataMockWrapper(DataAbstract):
     ) -> int:
         host.admin_ids.remove(admin_name)
         self.update_host_info(host)
+
+        return 200
 
     def update_host_info(
         self,
