@@ -45,7 +45,7 @@ class ScannerMock(ScannerAbstract):
     ) -> tuple[str, str, str, str]:
         def dummy_task(url, host_ip, target_id, task_id, report_id, alert_id):
             time.sleep(5.0)
-            response = requests.get(
+            requests.get(
                 url=url,
                 params={
                     "target_uuid": target_id,
@@ -55,22 +55,21 @@ class ScannerMock(ScannerAbstract):
                     "host_ip": host_ip
                 }
             )
-            logger.info("%s", str(response))
 
         t = threading.Thread(
             target=dummy_task,
             kwargs={
                 "url": "http://localhost:80/hostadmin/scanner/alert/scan/",
                 "host_ip": host_ip,
-                "target_id": "1",
-                "task_id": "2",
-                "report_id": "3",
-                "alert_id": "4"
+                "target_id": host_ip,
+                "task_id": host_ip,
+                "report_id": host_ip,
+                "alert_id": host_ip
             }
         )
         t.start()
 
-        return ("1", "2", "3", "4")
+        return (host_ip, host_ip, host_ip, host_ip)
 
     def create_registration_scan(
         self,
@@ -79,7 +78,7 @@ class ScannerMock(ScannerAbstract):
     ) -> tuple[str, str, str, str]:
         def dummy_task(url, host_ip, target_id, task_id, report_id, alert_id):
             time.sleep(5.0)
-            response = requests.get(
+            requests.get(
                 url=url,
                 params={
                     "target_uuid": target_id,
@@ -89,22 +88,21 @@ class ScannerMock(ScannerAbstract):
                     "host_ip": host_ip
                 }
             )
-            logger.info("%s", str(response))
 
         t = threading.Thread(
             target=dummy_task,
             kwargs={
                 "url": "http://localhost:80/hostadmin/scanner/alert/registration/",
                 "host_ip": host_ip,
-                "target_id": "1",
-                "task_id": "2",
-                "report_id": "3",
-                "alert_id": "4"
+                "target_id": host_ip,
+                "task_id": host_ip,
+                "report_id": host_ip,
+                "alert_id": host_ip
             }
         )
         t.start()
 
-        return ("1", "2", "3", "4")
+        return (host_ip, host_ip, host_ip, host_ip)
 
     def create_periodic_scans(
         self,
@@ -173,7 +171,7 @@ class ScannerMock(ScannerAbstract):
         start_t = str(datetime.datetime(1970, 1, 1, 0, 0, 0))
         end_t = str(datetime.datetime.now())
 
-        return (start_t, end_t, {})
+        return (start_t, end_t, {report_uuid: []})
 
     def get_report_html(
         self,
