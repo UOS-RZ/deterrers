@@ -22,7 +22,7 @@ class ScannerMock(ScannerAbstract):
             try:
                 data = json.load(f)
             except json.decoder.JSONDecodeError:
-                data = set()
+                data = []
                 json.dump(data, f)
 
     def __enter__(self):
@@ -103,29 +103,35 @@ class ScannerMock(ScannerAbstract):
         alert_dest_url: str,
         schedule_freq: str
     ) -> None:
-        with open(self.f_path, "w+") as f:
-            data = json.load(f)
+        with open(self.f_path, "r+") as f:
+            data = set(json.load(f))
+            f.seek(0)
             data.add(host_ip)
-            json.dump(data, f)
+            json.dump(list(data), f)
+            f.truncate()
 
     def add_host_to_periodic_scans(
         self,
         host_ip: str,
         alert_dest_url: str
     ) -> bool:
-        with open(self.f_path, "w+") as f:
-            data = json.load(f)
+        with open(self.f_path, "r+") as f:
+            data = set(json.load(f))
+            f.seek(0)
             data.add(host_ip)
-            json.dump(data, f)
+            json.dump(list(data), f)
+            f.truncate()
 
     def remove_host_from_periodic_scans(
         self,
         host_ip: str
     ) -> bool:
-        with open(self.f_path, "w+") as f:
-            data = json.load(f)
+        with open(self.f_path, "r+") as f:
+            data = set(json.load(f))
+            f.seek(0)
             data.remove(host_ip)
-            json.dump(data, f)
+            json.dump(list(data), f)
+            f.truncate()
 
     def update_periodic_scan_target(
         self
@@ -165,3 +171,9 @@ class ScannerMock(ScannerAbstract):
         min_qod: int
     ) -> str:
         return "<html><body>Dummy HTML report</body></html>"
+
+    def get_periodic_scanned_hosts(
+        self
+    ) -> set[str]:
+        with open(self.f_path, "r") as f:
+            return set(json.load(f))

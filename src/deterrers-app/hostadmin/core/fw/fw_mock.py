@@ -55,20 +55,23 @@ class FWMock(FWAbstract):
         ip_addrs: list[str],
         service_profile: HostServiceProfile
     ) -> bool:
-        with open(self.f_path, "w+") as f:
+        with open(self.f_path, "r+") as f:
             data = json.load(f)
+            f.seek(0)
             data[service_profile.value] = list(set(
                 data[service_profile.value].extend(ip_addrs)
             ))
             json.dump(data, f)
+            f.truncate()
         return True
 
     def block_ips(
         self,
         ip_addrs: list[str]
     ) -> bool:
-        with open(self.f_path, "w+") as f:
+        with open(self.f_path, "r+") as f:
             data = json.load(f)
+            f.seek(0)
             for sp_value, addrs in data.items():
                 for rv_ip in ip_addrs:
                     try:
@@ -76,6 +79,7 @@ class FWMock(FWAbstract):
                     except ValueError:
                         pass
             json.dump(data, f)
+            f.truncate()
         return True
 
     def get_host_status(self, ip_addr: str) -> HostStatus:
