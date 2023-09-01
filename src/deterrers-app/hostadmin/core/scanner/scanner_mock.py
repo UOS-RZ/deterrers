@@ -60,7 +60,7 @@ class ScannerMock(ScannerAbstract):
         t = threading.Thread(
             target=dummy_task,
             kwargs={
-                "url": f"http://{alert_dest_url}",
+                "url": "http://localhost:80/hostadmin/scanner/alert/scan/",
                 "host_ip": host_ip,
                 "target_id": "1",
                 "task_id": "2",
