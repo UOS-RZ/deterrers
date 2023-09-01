@@ -106,14 +106,15 @@ class ScannerMock(ScannerAbstract):
 
     def create_periodic_scan(
         self,
-        host_ip: str,
+        task_name: str,
+        first_target_ip: str,
         alert_dest_url: str,
         schedule_freq: str
     ) -> None:
         with open(self.f_path, "r+") as f:
             data = set(json.load(f))
             f.seek(0)
-            data.add(host_ip)
+            data.add(first_target_ip)
             json.dump(list(data), f)
             f.truncate()
 
