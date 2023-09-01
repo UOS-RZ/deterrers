@@ -26,6 +26,7 @@ class DataMockWrapper(DataAbstract):
             try:
                 data = json.load(f)
             except json.decoder.JSONDecodeError:
+                data = dict()
                 data["departments"] = {
                     "Department 1": ["mmustermann", ],
                     "Department 2": []
