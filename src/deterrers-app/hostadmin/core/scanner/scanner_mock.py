@@ -131,6 +131,8 @@ class ScannerMock(ScannerAbstract):
 
         with open(self.f_path, "w") as f:
             json.dump(list(data), f)
+        
+        return True
 
     def remove_host_from_periodic_scans(
         self,
@@ -143,6 +145,8 @@ class ScannerMock(ScannerAbstract):
 
         with open(self.f_path, "w") as f:
             json.dump(list(data), f)
+
+        return True
 
     def update_periodic_scan_target(
         self
