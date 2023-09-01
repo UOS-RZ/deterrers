@@ -12,9 +12,9 @@ class FWMock(FWAbstract):
         self,
         username: str,
         password: str,
-        url: str = "./fw_mock_data.json"
+        url: str = ""
     ) -> None:
-        self.f_path = url
+        self.f_path = "./fw_mock_data.json"
         with open(self.f_path, "w+") as f:
             try:
                 data = json.load(f)

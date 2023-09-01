@@ -13,10 +13,10 @@ class ScannerMock(ScannerAbstract):
         self,
         username: str,
         password: str,
-        scanner_url: str = "./mock_scanner_data.json",
+        scanner_url: str = "",
         scanner_port: int = -1
     ) -> None:
-        self.f_path = scanner_url
+        self.f_path = "./mock_scanner_data.json"
         with open(self.f_path, "w+") as f:
             try:
                 data = json.load(f)
