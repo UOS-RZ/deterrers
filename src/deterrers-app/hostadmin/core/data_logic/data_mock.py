@@ -1,6 +1,7 @@
 import json
 import ipaddress
 import logging
+import os
 
 from hostadmin.core.data_logic.data_abstract import DataAbstract
 from hostadmin.core.host import MyHost
@@ -26,6 +27,9 @@ class DataMockWrapper(DataAbstract):
         super().__init__(username, password, url)
         self.f_path = "./mock_data.json"
         # fill in default data
+        if not os.path.exists(self.f_path):
+            with open(self.f_path, "x") as f:
+                pass
         with open(self.f_path, "r+") as f:
             try:
                 data = json.load(f)
