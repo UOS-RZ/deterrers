@@ -6,9 +6,9 @@ services:
     build: 
       context: ./deterrers-app
       dockerfile: Dockerfile
-    command: python manage.py runserver 0.0.0.0:89
+    command: python manage.py runserver 0.0.0.0:80
     ports:
-      - 89:89
+      - 80:80
     env_file:
       - ./.env.dev
     image: deterrers-application
