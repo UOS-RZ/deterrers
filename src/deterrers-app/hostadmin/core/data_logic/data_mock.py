@@ -137,16 +137,17 @@ class DataMockWrapper(DataAbstract):
         admin_name: str,
         department_name: str
     ) -> bool:
-        with open(self.f_path, "r+") as f:
+        with open(self.f_path, "r") as f:
             data = json.load(f)
-            f.seek(0)
-            data["departments"][department_name] = list(
-                set(
-                    data["departments"][department_name] + [admin_name]
-                )
+
+        data["departments"][department_name] = list(
+            set(
+                data["departments"][department_name] + [admin_name]
             )
+        )
+
+        with open(self.f_path, "w") as f:
             json.dump(data, f)
-            f.truncate()
         return True
 
     def is_admin(
@@ -177,23 +178,24 @@ class DataMockWrapper(DataAbstract):
         self,
         host: MyHost
     ) -> bool:
-        with open(self.f_path, "r+") as f:
+        with open(self.f_path, "r") as f:
             data = json.load(f)
-            f.seek(0)
-            data["hosts"][host.entity_id] = {
-                "entity_id": host.entity_id,
-                "ipv4_addr": str(host.ipv4_addr),
-                "mac_addr": host.mac_addr,
-                "admin_ids": list(host.admin_ids),
-                "status": host.status.name,
-                "name": host.name,
-                "dns_rcs": list(host.dns_rcs),
-                "service_profile": host.service_profile.name,
-                "fw": host.fw.name,
-                "host_based_policies": host.host_based_policies
-            }
+
+        data["hosts"][host.entity_id] = {
+            "entity_id": host.entity_id,
+            "ipv4_addr": str(host.ipv4_addr),
+            "mac_addr": host.mac_addr,
+            "admin_ids": list(host.admin_ids),
+            "status": host.status.name,
+            "name": host.name,
+            "dns_rcs": list(host.dns_rcs),
+            "service_profile": host.service_profile.name,
+            "fw": host.fw.name,
+            "host_based_policies": host.host_based_policies
+        }
+
+        with open(self.f_path, "w") as f:
             json.dump(data, f)
-            f.truncate()
         return True
 
     def user_exists(
