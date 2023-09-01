@@ -111,35 +111,38 @@ class ScannerMock(ScannerAbstract):
         alert_dest_url: str,
         schedule_freq: str
     ) -> None:
-        with open(self.f_path, "r+") as f:
+        with open(self.f_path, "r") as f:
             data = set(json.load(f))
-            f.seek(0)
-            data.add(first_target_ip)
+
+        data.add(first_target_ip)
+
+        with open(self.f_path, "w") as f:
             json.dump(list(data), f)
-            f.truncate()
 
     def add_host_to_periodic_scans(
         self,
         host_ip: str,
         alert_dest_url: str
     ) -> bool:
-        with open(self.f_path, "r+") as f:
+        with open(self.f_path, "r") as f:
             data = set(json.load(f))
-            f.seek(0)
-            data.add(host_ip)
+
+        data.add(host_ip)
+
+        with open(self.f_path, "w") as f:
             json.dump(list(data), f)
-            f.truncate()
 
     def remove_host_from_periodic_scans(
         self,
         host_ip: str
     ) -> bool:
-        with open(self.f_path, "r+") as f:
+        with open(self.f_path, "r") as f:
             data = set(json.load(f))
-            f.seek(0)
-            data.remove(host_ip)
+
+        data.remove(host_ip)
+
+        with open(self.f_path, "w") as f:
             json.dump(list(data), f)
-            f.truncate()
 
     def update_periodic_scan_target(
         self
