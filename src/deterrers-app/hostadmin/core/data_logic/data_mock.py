@@ -1,11 +1,14 @@
 import json
 import ipaddress
+import logging
 
 from hostadmin.core.data_logic.data_abstract import DataAbstract
 from hostadmin.core.host import MyHost
 from hostadmin.core.contracts import (HostStatus,
                                       HostServiceProfile,
                                       HostFW)
+
+logger = logging.getLogger(__name__)
 
 
 class DataMockWrapper(DataAbstract):
