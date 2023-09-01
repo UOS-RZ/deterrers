@@ -8,6 +8,7 @@ from hostadmin.core.host import MyHost
 from hostadmin.core.contracts import (HostStatus,
                                       HostServiceProfile,
                                       HostFW)
+from hostadmin.core.rule_generator import HostBasedPolicy
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +92,8 @@ class DataMockWrapper(DataAbstract):
                 set(data["dns_rcs"]),
                 HostServiceProfile[data["service_profile"]],
                 HostFW[data["fw"]],
-                data["host_based_policies"]
+                [HostBasedPolicy.from_string(pol)
+                 for pol in data["host_based_policies"]]
             )
 
     def get_hosts_of_admin(
@@ -113,7 +115,8 @@ class DataMockWrapper(DataAbstract):
                         set(host_data["dns_rcs"]),
                         HostServiceProfile[host_data["service_profile"]],
                         HostFW[host_data["fw"]],
-                        host_data["host_based_policies"]
+                        [HostBasedPolicy.from_string(pol)
+                         for pol in host_data["host_based_policies"]]
                     ))
         return hosts
 
@@ -206,7 +209,8 @@ class DataMockWrapper(DataAbstract):
             "dns_rcs": list(host.dns_rcs),
             "service_profile": host.service_profile.name,
             "fw": host.fw.name,
-            "host_based_policies": host.host_based_policies
+            "host_based_policies": [pol.to_string()
+                                    for pol in host.host_based_policies]
         }
 
         with open(self.f_path, "w") as f:
