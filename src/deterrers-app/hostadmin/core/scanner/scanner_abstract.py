@@ -175,7 +175,7 @@ class ScannerAbstract(ABC):
     def extract_report_data(
         self,
         report_uuid: str,
-        min_qod: int
+        min_qod: int = -1
     ) -> tuple[str, str, dict]:
         """
         Extract relevant result data from a scan report.
@@ -194,7 +194,7 @@ class ScannerAbstract(ABC):
     def get_report_html(
         self,
         report_uuid: str,
-        min_qod: int
+        min_qod: int = -1
     ) -> str:
         """
         Query a HTML report by report ID.
