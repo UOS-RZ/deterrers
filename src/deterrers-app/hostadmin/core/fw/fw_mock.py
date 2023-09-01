@@ -14,6 +14,8 @@ class FWMock(FWAbstract):
         password: str,
         url: str = ""
     ) -> None:
+        super().__init__(username, password, url)
+
         self.f_path = "./fw_mock_data.json"
         with open(self.f_path, "w+") as f:
             try:

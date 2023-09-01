@@ -15,7 +15,9 @@ class FWAbstract(ABC):
         password: str,
         url: str
     ) -> None:
-        pass
+        self.username = username
+        self.__password = password
+        self.enter_ok = True
 
     @abstractmethod
     def __enter__(self):

@@ -20,6 +20,7 @@ class DataMockWrapper(DataAbstract):
         password: str = "",
         url: str = ""
     ) -> None:
+        super().__init__(username, password, url)
         self.f_path = "./mock_data.json"
         # fill in default data
         with open(self.f_path, "w+") as f:
