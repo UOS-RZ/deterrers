@@ -23,10 +23,11 @@ class DataMockWrapper(DataAbstract):
         super().__init__(username, password, url)
         self.f_path = "./mock_data.json"
         # fill in default data
-        with open(self.f_path, "w+") as f:
-            try:
+        try:
+            with open(self.f_path, "r") as f:
                 data = json.load(f)
-            except json.decoder.JSONDecodeError:
+        except json.decoder.JSONDecodeError:
+            with open(self.f_path, "w") as f:
                 data = dict()
                 data["departments"] = {
                     "Department 1": ["mmustermann", ],
@@ -134,12 +135,14 @@ class DataMockWrapper(DataAbstract):
         admin_name: str,
         department_name: str
     ) -> bool:
-        with open(self.f_path, "w+") as f:
+        with open(self.f_path, "r+") as f:
             data = json.load(f)
+            f.seek(0)
             data["departments"][department_name] = set(
                 data["departments"][department_name]
             ).add(admin_name)
             json.dump(data, f)
+            f.truncate()
         return True
 
     def is_admin(
@@ -170,8 +173,9 @@ class DataMockWrapper(DataAbstract):
         self,
         host: MyHost
     ) -> bool:
-        with open(self.f_path, "w+") as f:
+        with open(self.f_path, "r+") as f:
             data = json.load(f)
+            f.seek(0)
             data["hosts"][host.entity_id] = {
                 "entity_id": host.entity_id,
                 "ipv4_addr": str(host.ipv4_addr),
@@ -185,6 +189,7 @@ class DataMockWrapper(DataAbstract):
                 "host_based_policies": host.host_based_policies
             }
             json.dump(data, f)
+            f.truncate()
         return True
 
     def user_exists(
