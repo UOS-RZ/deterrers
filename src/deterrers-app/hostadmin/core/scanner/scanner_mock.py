@@ -3,8 +3,11 @@ import requests
 import time
 import datetime
 import json
+import logging
 
 from hostadmin.core.scanner.scanner_abstract import ScannerAbstract
+
+logger = logging.getLogger(__name__)
 
 
 class ScannerMock(ScannerAbstract):

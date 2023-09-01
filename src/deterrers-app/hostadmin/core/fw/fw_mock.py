@@ -1,9 +1,12 @@
 import ipaddress
 import json
+import logging
 
 from hostadmin.core.fw.fw_abstract import FWAbstract
 from hostadmin.core.contracts import (HostStatus,
                                       HostServiceProfile)
+
+logger = logging.getLogger(__name__)
 
 
 class FWMock(FWAbstract):
