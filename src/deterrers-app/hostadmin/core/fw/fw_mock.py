@@ -20,7 +20,7 @@ class FWMock(FWAbstract):
         super().__init__(username, password, url)
 
         self.f_path = "./fw_mock_data.json"
-        with open(self.f_path, "w+") as f:
+        with open(self.f_path, "r+") as f:
             try:
                 data = json.load(f)
             except json.decoder.JSONDecodeError:
