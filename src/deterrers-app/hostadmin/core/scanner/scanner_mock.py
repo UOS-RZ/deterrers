@@ -104,7 +104,7 @@ class ScannerMock(ScannerAbstract):
 
         return ("1", "2", "3", "4")
 
-    def create_periodic_scan(
+    def create_periodic_scans(
         self,
         task_name: str,
         first_target_ip: str,
