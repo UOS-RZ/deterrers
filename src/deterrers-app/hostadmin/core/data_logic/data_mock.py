@@ -40,7 +40,7 @@ class DataMockWrapper(DataAbstract):
                     "Department 2": []
                 }
                 data["hosts"] = {
-                    int(ipaddress.IPv4Address("1.1.1.1")): {
+                    "1.1.1.1": {
                         "entity_id": int(ipaddress.IPv4Address("1.1.1.1")),
                         "ipv4_addr": "1.1.1.1",
                         "mac_addr": "",
@@ -67,9 +67,20 @@ class DataMockWrapper(DataAbstract):
     ) -> MyHost | None:
         with open(self.f_path, "r") as f:
             data = json.load(f)
-            if not data["hosts"].get(int(ipaddress.IPv4Address(ipv4))):
-                return None
-            data = data["hosts"][int(ipaddress.IPv4Address(ipv4))]
+            if not data["hosts"].get(ipv4):
+                return MyHost(
+                    int(ipaddress.IPv4Address(ipv4)),
+                    ipv4,
+                    "",
+                    set(),
+                    HostStatus.UNREGISTERED,
+                    f"{ipv4} Name",
+                    set(),
+                    HostServiceProfile.EMPTY,
+                    HostFW.EMPTY,
+                    []
+                )
+            data = data["hosts"][ipv4]
             return MyHost(
                 data["entity_id"],
                 data["ipv4_addr"],
@@ -185,7 +196,7 @@ class DataMockWrapper(DataAbstract):
         with open(self.f_path, "r") as f:
             data = json.load(f)
 
-        data["hosts"][host.entity_id] = {
+        data["hosts"][str(host.ipv4_addr)] = {
             "entity_id": host.entity_id,
             "ipv4_addr": str(host.ipv4_addr),
             "mac_addr": host.mac_addr,
