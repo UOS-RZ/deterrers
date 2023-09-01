@@ -94,7 +94,7 @@ class ScannerMock(ScannerAbstract):
         t = threading.Thread(
             target=dummy_task,
             kwargs={
-                "url": f"http://{alert_dest_url}",
+                "url": "http://localhost:80/hostadmin/scanner/alert/registration/",
                 "host_ip": host_ip,
                 "target_id": "1",
                 "task_id": "2",
@@ -168,7 +168,7 @@ class ScannerMock(ScannerAbstract):
     def extract_report_data(
         self,
         report_uuid: str,
-        min_qod: int
+        min_qod: int = 0
     ) -> tuple[str, str, dict]:
         start_t = str(datetime.datetime(1970, 1, 1, 0, 0, 0))
         end_t = str(datetime.datetime.now())
