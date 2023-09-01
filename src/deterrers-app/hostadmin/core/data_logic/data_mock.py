@@ -139,7 +139,7 @@ class DataMockWrapper(DataAbstract):
             f.seek(0)
             data["departments"][department_name] = list(
                 set(
-                    data["departments"][department_name].append(admin_name)
+                    data["departments"][department_name] + [admin_name]
                 )
             )
             json.dump(data, f)
