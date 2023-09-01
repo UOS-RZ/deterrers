@@ -178,7 +178,7 @@ class ScannerMock(ScannerAbstract):
     def get_report_html(
         self,
         report_uuid: str,
-        min_qod: int
+        min_qod: int = 0
     ) -> str:
         return "<html><body>Dummy HTML report</body></html>"
 
