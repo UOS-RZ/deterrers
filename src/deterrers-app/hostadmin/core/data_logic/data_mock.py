@@ -86,7 +86,7 @@ class DataMockWrapper(DataAbstract):
         hosts = []
         with open(self.f_path, "r") as f:
             data = json.load(f)
-            for ipv4, host_data in data["hosts"]:
+            for ipv4, host_data in data["hosts"].items():
                 if admin_name in host_data["admin_ids"]:
                     hosts.append(MyHost(
                         host_data["entity_id"],
