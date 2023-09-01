@@ -161,7 +161,8 @@ class ScannerMock(ScannerAbstract):
         self,
         task_uuid: str
     ) -> str | None:
-        return ""
+        # hacky: just always use the ipv4 as id for everything
+        return task_uuid
 
     def extract_report_data(
         self,
