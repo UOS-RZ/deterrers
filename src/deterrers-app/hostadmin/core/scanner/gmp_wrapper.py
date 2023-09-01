@@ -76,7 +76,6 @@ class GmpScannerWrapper(ScannerAbstract):
     PERIODIC_CVE_TASK_SUFFIX = " (CVE Scan only)"
     PERIODIC_STASH_SUFFIX = " (Stash)"
 
-
     __PERIODIC_TARGET_BUCKETS = 10
 
     def __init__(
@@ -89,10 +88,7 @@ class GmpScannerWrapper(ScannerAbstract):
         """
         Create a Gmp instance based on a TLS connection.
         """
-        self.username = username
-        self.__password = password
-        self.scanner_url = scanner_url
-        self.scanner_port = scanner_port
+        super().__init__(username, password, scanner_url, scanner_port)
 
         if os.environ.get('MICRO_SERVICE', None):
             known_hosts_path = (os.environ.get('MICRO_SERVICE', '')
@@ -110,7 +106,6 @@ class GmpScannerWrapper(ScannerAbstract):
             known_hosts_file=known_hosts_path
         )
         self.gmp = Gmp(connection=connection, transform=transform)
-        self.enter_ok = True
 
     def __enter__(self):
         """

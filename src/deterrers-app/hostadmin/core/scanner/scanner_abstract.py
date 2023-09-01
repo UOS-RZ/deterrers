@@ -14,7 +14,11 @@ class ScannerAbstract(ABC):
         scanner_url: str,
         scanner_port: int
     ) -> None:
-        pass
+        self.username = username
+        self.__password = password
+        self.scanner_url = scanner_url
+        self.scanner_port = scanner_port
+        self.enter_ok = True
 
     @abstractmethod
     def __enter__(self):
