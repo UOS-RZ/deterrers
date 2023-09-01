@@ -137,9 +137,11 @@ class DataMockWrapper(DataAbstract):
         with open(self.f_path, "r+") as f:
             data = json.load(f)
             f.seek(0)
-            data["departments"][department_name] = set(
-                data["departments"][department_name]
-            ).add(admin_name)
+            data["departments"][department_name] = list(
+                set(
+                    data["departments"][department_name]
+                ).add(admin_name)
+            )
             json.dump(data, f)
             f.truncate()
         return True
