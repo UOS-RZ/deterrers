@@ -4,6 +4,7 @@ import time
 import datetime
 import json
 import logging
+import os
 
 from hostadmin.core.scanner.scanner_abstract import ScannerAbstract
 
@@ -21,6 +22,9 @@ class ScannerMock(ScannerAbstract):
     ) -> None:
         super().__init__(username, password, scanner_url, scanner_port)
         self.f_path = "./mock_scanner_data.json"
+        if not os.path.exists(self.f_path):
+            with open(self.f_path, "x") as f:
+                pass
         with open(self.f_path, "r+") as f:
             try:
                 data = json.load(f)

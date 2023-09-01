@@ -1,6 +1,7 @@
 import ipaddress
 import json
 import logging
+import os
 
 from hostadmin.core.fw.fw_abstract import FWAbstract
 from hostadmin.core.contracts import (HostStatus,
@@ -20,6 +21,9 @@ class FWMock(FWAbstract):
         super().__init__(username, password, url)
 
         self.f_path = "./fw_mock_data.json"
+        if not os.path.exists(self.f_path):
+            with open(self.f_path, "x") as f:
+                pass
         with open(self.f_path, "r+") as f:
             try:
                 data = json.load(f)
