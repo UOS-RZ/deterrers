@@ -23,11 +23,10 @@ class DataMockWrapper(DataAbstract):
         super().__init__(username, password, url)
         self.f_path = "./mock_data.json"
         # fill in default data
-        try:
-            with open(self.f_path, "r") as f:
+        with open(self.f_path, "w+") as f:
+            try:
                 data = json.load(f)
-        except json.decoder.JSONDecodeError:
-            with open(self.f_path, "w") as f:
+            except json.decoder.JSONDecodeError:
                 data = dict()
                 data["departments"] = {
                     "Department 1": ["mmustermann", ],
