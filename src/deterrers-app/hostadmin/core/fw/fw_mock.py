@@ -65,8 +65,9 @@ class FWMock(FWAbstract):
         with open(self.f_path, "r") as f:
             data = json.load(f)
 
+        data[service_profile.value].extend(ip_addrs)
         data[service_profile.value] = list(set(
-            data[service_profile.value].extend(ip_addrs)
+            data[service_profile.value]
         ))
 
         with open(self.f_path, "w") as f:
