@@ -44,8 +44,8 @@ class ScannerMock(ScannerAbstract):
         alert_dest_url: str
     ) -> tuple[str, str, str, str]:
         def dummy_task(url, host_ip, target_id, task_id, report_id, alert_id):
-            time.sleep(10.0)
-            requests.get(
+            time.sleep(5.0)
+            response = requests.get(
                 url=url,
                 params={
                     "target_uuid": target_id,
@@ -55,6 +55,7 @@ class ScannerMock(ScannerAbstract):
                     "host_ip": host_ip
                 }
             )
+            logger.info("%s", str(response))
 
         t = threading.Thread(
             target=dummy_task,
@@ -77,8 +78,8 @@ class ScannerMock(ScannerAbstract):
         alert_dest_url: str
     ) -> tuple[str, str, str, str]:
         def dummy_task(url, host_ip, target_id, task_id, report_id, alert_id):
-            time.sleep(10.0)
-            requests.get(
+            time.sleep(5.0)
+            response = requests.get(
                 url=url,
                 params={
                     "target_uuid": target_id,
@@ -88,6 +89,7 @@ class ScannerMock(ScannerAbstract):
                     "host_ip": host_ip
                 }
             )
+            logger.info("%s", str(response))
 
         t = threading.Thread(
             target=dummy_task,
