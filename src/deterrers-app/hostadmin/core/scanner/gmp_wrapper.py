@@ -124,7 +124,7 @@ class GmpScannerWrapper(ScannerAbstract):
             try:
                 # further initialization need to be enclosed here
                 response = self.gmp.authenticate(self.username,
-                                                 self.__password)
+                                                 self._password)
                 if int(response.xpath('@status')[0]) != 200:
                     logger.error(
                         "Authentication with Scanner failed! Status: %s",
@@ -1265,25 +1265,25 @@ class GmpScannerWrapper(ScannerAbstract):
                     self.gmp.stop_task(task_id=task_uuid)
             except GvmError as err:
                 logger.warning("Couldn't stop task! Error: %s", str(err))
-                self.gmp.authenticate(self.username, self.__password)
+                self.gmp.authenticate(self.username, self._password)
         if report_uuid:
             try:
                 self.gmp.delete_report(report_uuid)
             except GvmError as err:
                 logger.warning("Couldn't delete report! Error: %s", str(err))
-                self.gmp.authenticate(self.username, self.__password)
+                self.gmp.authenticate(self.username, self._password)
         if task_uuid:
             try:
                 self.gmp.delete_task(task_uuid, ultimate=True)
             except GvmError as err:
                 logger.warning("Couldn't delete task! Error: %s", str(err))
-                self.gmp.authenticate(self.username, self.__password)
+                self.gmp.authenticate(self.username, self._password)
         if target_uuid:
             try:
                 self.gmp.delete_target(target_id=target_uuid, ultimate=True)
             except GvmError as err:
                 logger.warning("Couldn't delete target! Error: %s", str(err))
-                self.gmp.authenticate(self.username, self.__password)
+                self.gmp.authenticate(self.username, self._password)
         if alert_uuid:
             try:
                 if type(alert_uuid) is str:
@@ -1293,7 +1293,7 @@ class GmpScannerWrapper(ScannerAbstract):
                         self.gmp.delete_alert(a_uuid, ultimate=True)
             except GvmError as err:
                 logger.warning("Couldn't delete alert! Error: %s", str(err))
-                self.gmp.authenticate(self.username, self.__password)
+                self.gmp.authenticate(self.username, self._password)
 
     def get_latest_report_uuid(self, task_uuid: str) -> str | None:
         """

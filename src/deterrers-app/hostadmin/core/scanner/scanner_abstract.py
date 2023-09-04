@@ -15,7 +15,7 @@ class ScannerAbstract(ABC):
         scanner_port: int
     ) -> None:
         self.username = username
-        self.__password = password
+        self._password = password
         self.scanner_url = scanner_url
         self.scanner_port = scanner_port
         self.enter_ok = True

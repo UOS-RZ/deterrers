@@ -41,7 +41,7 @@ class ProteusIPAMWrapper(DataAbstract):
                      + "login?username="
                      + self.username
                      + "&password="
-                     + self.__password)
+                     + self._password)
         try:
             # login to BlueCat
             response = requests.get(login_url, timeout=self.TIMEOUT)
