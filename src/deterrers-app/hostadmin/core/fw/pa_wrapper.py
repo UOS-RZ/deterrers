@@ -57,17 +57,15 @@ class PaloAltoWrapper(FWAbstract):
     VERSION = "v10.1"
     LOCATION = 'vsys&vsys=vsys1'
 
-    def __init__(self, username: str, password: str, fw_url: str):
-        self.username = username
-        self.__password = password
-        self.fw_url = fw_url
-        self.rest_url = f"https://{fw_url}/restapi/{self.VERSION}/"
-        self.xml_url = f"https://{fw_url}/api/"
+    def __init__(self, username: str, password: str, url: str):
+        super().__init__(username, password, url)
+
+        self.rest_url = f"https://{url}/restapi/{self.VERSION}/"
+        self.xml_url = f"https://{url}/api/"
         self.api_key = None
         self.header = {
             "Accept": "application/json",
         }
-        self.enter_ok = True
 
     def __enter__(self):
         logger.debug("Start firewall interface session.")
@@ -91,7 +89,7 @@ class PaloAltoWrapper(FWAbstract):
 
             self.__acquire_config_lock()
         except (requests.ConnectionError, requests.ConnectTimeout):
-            logger.exception("Connection to %s failed!", self.fw_url)
+            logger.exception("Connection to %s failed!", self.url)
             self.enter_ok = False
         except (etree.XMLSyntaxError):
             logger.exception("Unexpected response!")

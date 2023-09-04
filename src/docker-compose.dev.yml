@@ -6,9 +6,9 @@ services:
     build: 
       context: ./deterrers-app
       dockerfile: Dockerfile
-    command: python manage.py runserver 0.0.0.0:89
+    command: python manage.py runserver 0.0.0.0:80
     ports:
-      - 89:89
+      - 80:80
     env_file:
       - ./.env.dev
     image: deterrers-application
@@ -19,17 +19,21 @@ services:
       - ./dev-logs:/home/app/microservice/logs
     restart: "on-failure"
 
-  dev-supercronic:
-    depends_on:
-      - dev-web
-    build: 
-      context: ./deterrers-app
-      dockerfile: Dockerfile-supercronic
-    env_file:
-      - ./.env.dev
-    volumes:
-      - .:/microservice:rw # map data and files from parent directory in host to microservice directory in docker containe
-      - ./logs:/home/app/microservice/logs
+  # dev-supercronic:
+  #   depends_on:
+  #     - dev-web
+  #   build: 
+  #     context: ./deterrers-app
+  #     dockerfile: Dockerfile-supercronic
+  #   env_file:
+  #     - ./.env.dev
+  #   volumes:
+  #     - .:/microservice:rw # map data and files from parent directory in host to microservice directory in docker containe
+  #     - ./dev-logs:/home/app/microservice/logs
+  #   restart: "on-failure"
+
+  dev-ldap:
+    image: rroemhild/test-openldap
     restart: "on-failure"
 
 volumes:

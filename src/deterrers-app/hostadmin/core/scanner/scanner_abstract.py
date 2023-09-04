@@ -7,11 +7,45 @@ class ScannerAbstract(ABC):
     """
 
     @abstractmethod
+    def __init__(
+        self,
+        username: str,
+        password: str,
+        scanner_url: str,
+        scanner_port: int
+    ) -> None:
+        self.username = username
+        self.__password = password
+        self.scanner_url = scanner_url
+        self.scanner_port = scanner_port
+        self.enter_ok = True
+
+    @abstractmethod
+    def __enter__(self):
+        pass
+
+    @abstractmethod
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        pass
+
+    @abstractmethod
     def create_ordinary_scan(
         self,
         host_ip: str,
         alert_dest_url: str
     ) -> tuple[str, str, str, str]:
+        """
+        Create and start a vulnerability scan for some host.
+
+        Args:
+            host_ip (str): IP address of the scanned host.
+            alert_dest_url (str): URL to which an alert is send when scan
+            is finished.
+
+        Returns:
+            tuple[str, str, str, str]: Tuple of
+            (target_id, task_id, report_id, alert_id).
+        """
         pass
 
     @abstractmethod
@@ -20,6 +54,18 @@ class ScannerAbstract(ABC):
         host_ip: str,
         alert_dest_url: str
     ) -> tuple[str, str, str, str]:
+        """
+        Creates and starts a registration process for some host.
+
+        Args:
+            host_ip (str): IP address of the host.
+            alert_dest_url (str): URL to which an alert is send when scan
+            is finished.
+
+        Returns:
+            tuple[str, str, str, str]: Tuple of
+            (target_id, task_id, report_id, alert_id).
+        """
         pass
 
     @abstractmethod
@@ -30,6 +76,16 @@ class ScannerAbstract(ABC):
         alert_dest_url: str,
         schedule_freq: str
     ) -> None:
+        """
+        Creates and schedules a periodic scan.
+
+        Args:
+            host_ip (str): IP address of the first host in periodic scan.
+            alert_dest_url (str): URL to which an alert is send when scan
+            is finished.
+            schedule_freq (str): Frequency at which the periodic scan should
+            be performed.
+        """
         pass
 
     @abstractmethod
@@ -38,6 +94,17 @@ class ScannerAbstract(ABC):
         host_ip: str,
         alert_dest_url: str
     ) -> bool:
+        """
+        Add host to the periodic scan task.
+
+        Args:
+            host_ip (str): IP address of the host that is added to scan.
+            alert_dest_url (str): URL to which an alert is send when scan
+            is finished.
+
+        Returns:
+            bool: True on success and False on error.
+        """
         pass
 
     @abstractmethod
@@ -45,6 +112,15 @@ class ScannerAbstract(ABC):
         self,
         host_ip: str
     ) -> bool:
+        """
+        Remove host from periodic scan task.
+
+        Args:
+            host_ip (str): IP address of the host that is removed.
+
+        Returns:
+            bool: True on success and False on error.
+        """
         pass
 
     @abstractmethod
@@ -52,6 +128,12 @@ class ScannerAbstract(ABC):
         self,
         task_uuid: str
     ) -> bool:
+        """
+        Update the scan target of the periodic scan task.
+
+        Returns:
+            bool: True on success and False on error.
+        """
         pass
 
     @abstractmethod
@@ -62,6 +144,15 @@ class ScannerAbstract(ABC):
         report_uuid: str,
         alert_uuid: str | list[str]
     ):
+        """
+        Delete objects at the scanner.
+
+        Args:
+            target_uuid (str): Target ID.
+            task_uuid (str): Task ID.
+            report_uuid (str): Report ID.
+            alert_uuid (str | list[str]): Alert ID(s).
+        """
         pass
 
     @abstractmethod
@@ -69,22 +160,52 @@ class ScannerAbstract(ABC):
         self,
         task_uuid: str
     ) -> str | None:
+        """
+        Get the ID of the latest scan report of some scan task.
+
+        Args:
+            task_uuid (str): Task ID.
+
+        Returns:
+            str | None: ID on success and None error.
+        """
         pass
 
     @abstractmethod
     def extract_report_data(
         self,
         report_uuid: str,
-        min_qod: int
+        min_qod: int = -1
     ) -> tuple[str, str, dict]:
+        """
+        Extract relevant result data from a scan report.
+
+        Args:
+            report_uuid (str): Report ID.
+            min_qod (int): Minimum Quality of Detection value.
+
+        Returns:
+            tuple[str, str, dict]: Tuple consisting of (scan start, scan end,
+            dict of vulnerabilities per IPv4).
+        """
         pass
 
     @abstractmethod
     def get_report_html(
         self,
         report_uuid: str,
-        min_qod: int
+        min_qod: int = -1
     ) -> str:
+        """
+        Query a HTML report by report ID.
+
+        Args:
+            report_uuid (str): Report ID.
+            min_qod (int): Minimum Quality of Detection value.
+
+        Returns:
+            str: HTML string.
+        """
         pass
 
     @abstractmethod
