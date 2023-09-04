@@ -130,17 +130,20 @@ MIDDLEWARE = [
 ]
 
 # e-mail configuration
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-DEFAULT_FROM_EMAIL = os.environ.get(
-    'DEFAULT_EMAIL_FROM',
-    'no-reply@example.de'
-)
-EMAIL_HOST = os.environ.get('SMTP_URL', 'localhost')
-EMAIL_PORT = os.environ.get('SMTP_PORT', 25)
-EMAIL_HOST_USER = os.environ.get('SMTP_USERNAME', '')
-EMAIL_HOST_PASSWORD = os.environ.get('SMTP_PASSWORD', '')
-# EMAIL_USE_SSL = False
-EMAIL_USE_TLS = True
+if DEV_MODE:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    DEFAULT_FROM_EMAIL = os.environ.get(
+        'DEFAULT_EMAIL_FROM',
+        'no-reply@example.de'
+    )
+    EMAIL_HOST = os.environ.get('SMTP_URL', 'localhost')
+    EMAIL_PORT = os.environ.get('SMTP_PORT', 25)
+    EMAIL_HOST_USER = os.environ.get('SMTP_USERNAME', '')
+    EMAIL_HOST_PASSWORD = os.environ.get('SMTP_PASSWORD', '')
+    # EMAIL_USE_SSL = False
+    EMAIL_USE_TLS = True
 
 
 ROOT_URLCONF = 'deterrerssite.urls'

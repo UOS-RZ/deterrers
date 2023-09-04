@@ -133,6 +133,9 @@ class Command(BaseCommand):
                         if not fw.enter_ok:
                             continue
 
+                        # TODO: move logic to corresponding wrappers to
+                        # generalize it
+
                         """ GET DATA """
 
                         # get all hosts in IPAM

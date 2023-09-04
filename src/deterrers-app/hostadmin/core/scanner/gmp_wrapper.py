@@ -78,14 +78,17 @@ class GmpScannerWrapper(ScannerAbstract):
 
     __PERIODIC_TARGET_BUCKETS = 10
 
-    def __init__(self, username, password, scanner_url, scanner_port=22):
+    def __init__(
+        self,
+        username: str,
+        password: str,
+        scanner_url: str,
+        scanner_port: int = 22
+    ):
         """
         Create a Gmp instance based on a TLS connection.
         """
-        self.username = username
-        self.__password = password
-        self.scanner_url = scanner_url
-        self.scanner_port = scanner_port
+        super().__init__(username, password, scanner_url, scanner_port)
 
         if os.environ.get('MICRO_SERVICE', None):
             known_hosts_path = (os.environ.get('MICRO_SERVICE', '')
@@ -103,7 +106,6 @@ class GmpScannerWrapper(ScannerAbstract):
             known_hosts_file=known_hosts_path
         )
         self.gmp = Gmp(connection=connection, transform=transform)
-        self.enter_ok = True
 
     def __enter__(self):
         """
@@ -711,7 +713,7 @@ class GmpScannerWrapper(ScannerAbstract):
 
         Args:
             host_ip (str): Host IP address of the scanned host.
-            deterrers_url (str): URL of the DETERRERS host.
+            alert_dest_url (str): URL of the DETERRERS host.
 
         Returns:
             (str, str, str, str): Returns a tuple of (target ID, task ID,
@@ -788,7 +790,7 @@ class GmpScannerWrapper(ScannerAbstract):
 
         Args:
             host_ip (str): Host IP address of the scanned host.
-            deterrers_url (str): URL of the DETERRERS host.
+            alert_dest_url (str): URL of the DETERRERS host.
 
         Returns:
             (str, str, str, str): Returns a tuple of (target ID, task ID,
@@ -867,7 +869,7 @@ class GmpScannerWrapper(ScannerAbstract):
         schedule_freq: str = 'weekly'
     ) -> None:
         """
-        Creates and starts a periodic scan with some host:
+        Creates and schedules a periodic scan with some host:
             1. Create a scan target.
             2. Create a schedule.
             3. Create a scan alert.
