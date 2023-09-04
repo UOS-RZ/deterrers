@@ -1348,6 +1348,9 @@ def v_scanner_periodic_alert(request):
                             pickle.dump(scan_results, f)
                     except Exception:
                         pass
+
+                    return
+
                     # Risk assessment
                     for host_ipv4, vulnerabilities in scan_results.items():
                         host = ipam.get_host_info_from_ip(host_ipv4)
