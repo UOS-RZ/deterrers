@@ -908,7 +908,7 @@ class GmpScannerWrapper(ScannerAbstract):
             True,
             schedule_uuid,
             hosts_ordering=HostsOrdering.RANDOM,
-            max_conc_nvts=16,
+            max_conc_nvts=32,
             max_conc_hosts=5
         )
         self.__modify_http_alert_data('',
