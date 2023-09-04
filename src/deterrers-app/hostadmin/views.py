@@ -1326,7 +1326,7 @@ def v_scanner_periodic_alert(request):
 
                     admin_mail_copy = ""
                     report_uuid = scanner.get_latest_report_uuid(task_uuid)
-                    _, _, scan_results = scanner.extract_report_data(
+                    _, scan_end, scan_results = scanner.extract_report_data(
                         report_uuid
                     )
                     if scan_results is None:
@@ -1336,7 +1336,7 @@ def v_scanner_periodic_alert(request):
                         with open(
                             os.path.join(
                                 settings.BASE_DIR,
-                                f"logs/scan-results_{task_uuid}_{time.time_ns()}.pickle"
+                                f"logs/scan-results_{task_uuid}_{scan_end}.pickle"
                             ),
                             "wb"
                         ) as f:
