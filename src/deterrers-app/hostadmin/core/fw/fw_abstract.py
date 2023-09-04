@@ -16,7 +16,7 @@ class FWAbstract(ABC):
         url: str
     ) -> None:
         self.username = username
-        self.__password = password
+        self._password = password
         self.enter_ok = True
 
     @abstractmethod

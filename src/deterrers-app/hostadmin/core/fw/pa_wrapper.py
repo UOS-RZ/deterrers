@@ -72,7 +72,7 @@ class PaloAltoWrapper(FWAbstract):
         try:
             # get api key for this session
             req_url = (f"{self.xml_url}?type=keygen&user={self.username}"
-                       + f"&password={self.__password}")
+                       + f"&password={self._password}")
             response = requests.get(req_url, timeout=self.TIMEOUT)
             response_xml = etree.XML(response.content)
             status_code = response.status_code

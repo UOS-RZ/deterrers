@@ -9,7 +9,7 @@ class DataAbstract(ABC):
     @abstractmethod
     def __init__(self, username: str, password: str, url: str) -> None:
         self.username = username
-        self.__password = password
+        self._password = password
         self.url = url
         self.enter_ok = True
 
