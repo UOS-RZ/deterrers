@@ -6,7 +6,6 @@ import os
 import markdown
 import pathlib
 import pickle
-import time
 
 from django.contrib.auth.decorators import login_required
 from django.http import (Http404,
@@ -1349,8 +1348,6 @@ def v_scanner_periodic_alert(request):
                     except Exception:
                         pass
 
-                    return
-
                     # Risk assessment
                     for host_ipv4, vulnerabilities in scan_results.items():
                         host = ipam.get_host_info_from_ip(host_ipv4)
@@ -1437,7 +1434,7 @@ def v_scanner_periodic_alert(request):
                 admin_addrs = [settings.DJANGO_SUPERUSER_USERNAME+"@uos.de"]
                 __send_report_email(
                     report_html,
-                    "DETERRERS - Periodic vulnerability scan report",
+                    f"DETERRERS - Admin report [{task_uuid}]",
                     f"""
 Complete report of the periodic scan!
 You find the report of the vulnerability scan attached to this e-mail.
