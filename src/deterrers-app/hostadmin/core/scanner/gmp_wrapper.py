@@ -1119,7 +1119,7 @@ class GmpScannerWrapper(ScannerAbstract):
                     else:
                         self.__modify_target(
                             new_target_uuid,
-                            task_name,
+                            None,
                             hosts
                         )
                     # 3. modify task so that it uses new target
@@ -1128,6 +1128,12 @@ class GmpScannerWrapper(ScannerAbstract):
                     # 4. delete old target
                     response = self.gmp.delete_target(old_target_uuid,
                                                       ultimate=True)
+                    # 5. rename new target
+                    self.__modify_target(
+                        new_target_uuid,
+                        task_name,
+                        None
+                    )
                     response_status = int(response.xpath('@status')[0])
                     if response_status != 200:
                         raise GmpAPIError(
