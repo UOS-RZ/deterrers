@@ -1330,9 +1330,11 @@ def v_scanner_periodic_alert(request):
 
                     admin_mail_copy = ""
                     report_uuid = scanner.get_latest_report_uuid(task_uuid)
+                    if not report_uuid:
+                        return
                     _, scan_end, scan_results = scanner.extract_report_data(
                         report_uuid,
-                        0
+                        50
                     )
                     if scan_results is None:
                         return
