@@ -14,25 +14,32 @@ import os
 from pathlib import Path
 import ssl
 
+# domain name of machine that runs the service
 DOMAIN_NAME = os.environ.get('DOMAIN_NAME', 'localhost')
-
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
 # second parameter is a default key which is only for development
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'NON_SECRET_DEV_KEY')
+SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DJANGO_DEBUG', '') == 'True'
 
 DEV_MODE = os.environ.get('DEV_MODE', '') == 'True'
 
+WSGI_APPLICATION = 'deterrerssite.wsgi.application'
+
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/4.1/howto/static-files/
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, "static")
+
+
+""" SETUP HTTP SECURITY CONFIGS """
+
+# security configurations for productive deployment
 if not DEV_MODE:
     SECURE_HSTS_SECONDS = 3600
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
@@ -53,7 +60,9 @@ CSRF_TRUSTED_ORIGINS = os.environ.get(
     "CSRF_TRUSTED_ORIGINS", "https://*.127.0.0.1 http://*.127.0.0.1"
 ).split(' ')
 
-# more extensive logging
+
+""" SETUP LOGGING """
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -98,7 +107,7 @@ LOGGING = {
 }
 
 
-# Application definition
+""" SETUP APPLICATION DEFINITION """
 
 INSTALLED_APPS = [
     'django.contrib.admin',                 # useful
@@ -145,7 +154,6 @@ else:
     # EMAIL_USE_SSL = False
     EMAIL_USE_TLS = True
 
-
 ROOT_URLCONF = 'deterrerssite.urls'
 
 TEMPLATES = [
@@ -164,28 +172,8 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'deterrerssite.wsgi.application'
-
-
-# Database
-# https://docs.djangoproject.com/en/4.1/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(
-            os.environ.get(
-                'MICRO_SERVICE',
-                BASE_DIR
-            ), 'db/db.sqlite3'
-        ),
-    }
-}
-
-
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -201,39 +189,35 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'Europe/Berlin'
-
 USE_I18N = True
-
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.1/howto/static-files/
+""" SETUP DATABASE """
 
-STATIC_URL = '/static/'
-
-STATIC_ROOT = os.path.join(BASE_DIR, "static")
+# https://docs.djangoproject.com/en/4.1/ref/settings/#databases
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(
+            os.environ.get(
+                'MICRO_SERVICE',
+                BASE_DIR
+            ), 'db/db.sqlite3'
+        ),
+    }
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-# Redirect to home URL after login (Default redirects to /accounts/profile/)
-LOGIN_REDIRECT_URL = '/'
-
-AUTH_USER_MODEL = 'myuser.MyUser'
-
-
-""" Setup for LDAP Authentication """
+""" SETUP LDAP AUTHENTICATION """
 
 AUTHENTICATION_BACKENDS = [
     "django_python3_ldap.auth.LDAPBackend",
@@ -261,6 +245,11 @@ LDAP_AUTH_CONNECTION_PASSWORD = None
 LDAP_AUTH_CONNECT_TIMEOUT = None
 LDAP_AUTH_RECEIVE_TIMEOUT = None
 LOGIN_URL = '/login/'
+
+# Redirect to home URL after login
+LOGIN_REDIRECT_URL = '/'
+
+AUTH_USER_MODEL = 'myuser.MyUser'
 
 
 """ CONFIGS FOR MAINTENANCE MODE """
