@@ -288,9 +288,9 @@ IPAM_URL = os.environ.get('IPAM_URL', '')
 IPAM_USERNAME = os.environ.get('IPAM_USERNAME', '')
 IPAM_SECRET_KEY = os.environ.get('IPAM_SECRET_KEY', '')
 
-V_SCANNER_URL = os.environ.get('V_SCANNER_URL', '')
-V_SCANNER_USERNAME = os.environ.get('V_SCANNER_USERNAME', '')
-V_SCANNER_SECRET_KEY = os.environ.get('V_SCANNER_SECRET_KEY', '')
+SCANNER_HOSTNAME = os.environ.get('SCANNER_HOSTNAME', '')
+SCANNER_USERNAME = os.environ.get('SCANNER_USERNAME', '')
+SCANNER_SECRET_KEY = os.environ.get('SCANNER_SECRET_KEY', '')
 
 FIREWALL_URL = os.environ.get('FIREWALL_URL', '')
 FIREWALL_USERNAME = os.environ.get('FIREWALL_USERNAME', '')

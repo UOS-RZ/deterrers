@@ -60,8 +60,8 @@ class PaloAltoWrapper(FWAbstract):
     def __init__(self, username: str, password: str, url: str):
         super().__init__(username, password, url)
 
-        self.rest_url = f"https://{url}/restapi/{self.VERSION}/"
-        self.xml_url = f"https://{url}/api/"
+        self.rest_url = f"{url}/restapi/{self.VERSION}/"
+        self.xml_url = f"{url}/api/"
         self.api_key = None
         self.header = {
             "Accept": "application/json",

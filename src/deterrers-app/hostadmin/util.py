@@ -157,9 +157,9 @@ def set_host_offline(host_ipv4: str) -> bool:
         if not ipam.enter_ok:
             return False
         with ScannerWrapper(
-            settings.V_SCANNER_USERNAME,
-            settings.V_SCANNER_SECRET_KEY,
-            settings.V_SCANNER_URL
+            settings.SCANNER_USERNAME,
+            settings.SCANNER_SECRET_KEY,
+            settings.SCANNER_HOSTNAME
         ) as scanner:
             if not scanner.enter_ok:
                 return False
@@ -224,9 +224,9 @@ def set_host_online(host_ipv4: str) -> bool:
         if not ipam.enter_ok:
             return False
         with ScannerWrapper(
-            settings.V_SCANNER_USERNAME,
-            settings.V_SCANNER_SECRET_KEY,
-            settings.V_SCANNER_URL
+            settings.SCANNER_USERNAME,
+            settings.SCANNER_SECRET_KEY,
+            settings.SCANNER_HOSTNAME
         ) as scanner:
             if not scanner.enter_ok:
                 return False
@@ -248,7 +248,7 @@ def set_host_online(host_ipv4: str) -> bool:
 
                 # add only the IPv4 address to periodic vulnerability scan
                 response_url = (settings.DOMAIN_NAME
-                                + reverse('v_scanner_periodic_alert'))
+                                + reverse('scanner_periodic_alert'))
                 if not scanner.add_host_to_periodic_scans(
                     host_ip=host_ipv4,
                     alert_dest_url=response_url

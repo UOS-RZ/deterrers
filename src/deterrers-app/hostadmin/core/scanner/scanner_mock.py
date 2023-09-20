@@ -17,10 +17,10 @@ class ScannerMock(ScannerAbstract):
         self,
         username: str,
         password: str,
-        scanner_url: str = "",
+        scanner_hostname: str = "",
         scanner_port: int = -1
     ) -> None:
-        super().__init__(username, password, scanner_url, scanner_port)
+        super().__init__(username, password, scanner_hostname, scanner_port)
         self.f_path = "./mock_scanner_data.json"
         if not os.path.exists(self.f_path):
             with open(self.f_path, "x") as f:

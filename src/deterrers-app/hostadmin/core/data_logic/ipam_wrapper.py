@@ -31,7 +31,7 @@ class ProteusIPAMWrapper(DataAbstract):
     def __init__(self, username: str, password: str, url: str):
         super().__init__(username, password, url)
 
-        self.main_url = "https://" + url + "/Services/REST/v1/"
+        self.main_url = url + "/Services/REST/v1/"
         self.header = ''
         self.__tag_group_id = None
         self.__department_tags = None

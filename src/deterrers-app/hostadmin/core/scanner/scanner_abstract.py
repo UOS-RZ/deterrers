@@ -11,12 +11,12 @@ class ScannerAbstract(ABC):
         self,
         username: str,
         password: str,
-        scanner_url: str,
+        scanner_hostname: str,
         scanner_port: int
     ) -> None:
         self.username = username
         self._password = password
-        self.scanner_url = scanner_url
+        self.scanner_hostname = scanner_hostname
         self.scanner_port = scanner_port
         self.enter_ok = True
 
