@@ -5,10 +5,20 @@ import logging
 
 from django.conf import settings
 
-from hostadmin.core.data_logic.ipam_wrapper import ProteusIPAMWrapper
-from hostadmin.core.scanner.gmp_wrapper import GmpScannerWrapper
 from hostadmin.core.contracts import HostStatus, HostServiceProfile
 from hostadmin.core.host import MyHost
+if settings.IPAM_DUMMY:
+    from hostadmin.core.data_logic.data_mock \
+        import DataMockWrapper as IPAMWrapper
+else:
+    from hostadmin.core.data_logic.ipam_wrapper \
+        import ProteusIPAMWrapper as IPAMWrapper
+if settings.SCANNER_DUMMY:
+    from hostadmin.core.scanner.scanner_mock \
+        import ScannerMock as ScannerWrapper
+else:
+    from hostadmin.core.scanner.gmp_wrapper \
+        import GmpScannerWrapper as ScannerWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -26,12 +36,12 @@ class Command(BaseCommand):
             help='Indicates whether to actually update the scanner config'
         )
 
-    def __add_ip(self, scanner: GmpScannerWrapper, ipv4: str):
+    def __add_ip(self, scanner: ScannerWrapper, ipv4: str):
         logger.warning("IP %s is missing in scanner", str(ipv4))
         if self.sync:
             scanner.add_host_to_periodic_scans(ipv4, '')
 
-    def __rmv_ip(self, scanner: GmpScannerWrapper, ipv4: str):
+    def __rmv_ip(self, scanner: ScannerWrapper, ipv4: str):
         logger.warning("IP %s is wrongfully present in scanner", str(ipv4))
         if self.sync:
             scanner.remove_host_from_periodic_scans(ipv4)
@@ -39,8 +49,8 @@ class Command(BaseCommand):
     def __sync_host_online(
         self,
         host:  MyHost,
-        ipam: ProteusIPAMWrapper,
-        scanner: GmpScannerWrapper,
+        ipam: IPAMWrapper,
+        scanner: ScannerWrapper,
         v_scanner_hosts: set
     ):
         ipv4 = str(host.ipv4_addr)
@@ -50,8 +60,8 @@ class Command(BaseCommand):
     def __sync_host_blocked(
         self,
         host:  MyHost,
-        ipam: ProteusIPAMWrapper,
-        scanner: GmpScannerWrapper,
+        ipam: IPAMWrapper,
+        scanner: ScannerWrapper,
         v_scanner_hosts: set
     ):
         ipv4 = str(host.ipv4_addr)
@@ -89,7 +99,7 @@ class Command(BaseCommand):
                 ipam_username = os.environ.get('IPAM_USERNAME')
                 ipam_password = os.environ.get('IPAM_SECRET_KEY',)
                 ipam_url = os.environ.get('IPAM_URL')
-            with ProteusIPAMWrapper(
+            with IPAMWrapper(
                 ipam_username,
                 ipam_password,
                 ipam_url
@@ -112,7 +122,7 @@ class Command(BaseCommand):
                         v_scanner_url = os.environ.get(
                             'V_SCANNER_URL'
                         )
-                    with GmpScannerWrapper(
+                    with ScannerWrapper(
                         v_scanner_username,
                         v_scanner_password,
                         v_scanner_url

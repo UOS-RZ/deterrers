@@ -27,7 +27,13 @@ SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DJANGO_DEBUG', '') == 'True'
 
+# parse dev flags
 DEV_MODE = os.environ.get('DEV_MODE', '') == 'True'
+IPAM_DUMMY = os.environ.get('IPAM_DUMMY', '') == 'True'
+SCANNER_DUMMY = os.environ.get('SCANNER_DUMMY', '') == 'True'
+FIREWALL_DUMMY = os.environ.get('FIREWALL_DUMMY', '') == 'True'
+SMTP_DUMMY = os.environ.get('SMTP_DUMMY', '') == 'True'
+USE_LDAP = os.environ.get('USE_LDAP', '') == 'True'
 
 WSGI_APPLICATION = 'deterrerssite.wsgi.application'
 
@@ -139,7 +145,7 @@ MIDDLEWARE = [
 ]
 
 # e-mail configuration
-if DEV_MODE:
+if SMTP_DUMMY:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -219,7 +225,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 """ SETUP LDAP AUTHENTICATION """
 
-if not DEV_MODE:
+if USE_LDAP:
     AUTHENTICATION_BACKENDS = [
         "django_python3_ldap.auth.LDAPBackend",
         'django.contrib.auth.backends.ModelBackend',
@@ -278,17 +284,17 @@ MAINTENANCE_MODE_RETRY_AFTER = 3600
 """ SETUP APP CONFIG """
 
 # get all secret keys for APIs etc.
-IPAM_URL = os.environ.get('IPAM_URL')
-IPAM_USERNAME = os.environ.get('IPAM_USERNAME')
+IPAM_URL = os.environ.get('IPAM_URL', '')
+IPAM_USERNAME = os.environ.get('IPAM_USERNAME', '')
 IPAM_SECRET_KEY = os.environ.get('IPAM_SECRET_KEY', '')
 
-V_SCANNER_URL = os.environ.get('V_SCANNER_URL')
-V_SCANNER_USERNAME = os.environ.get('V_SCANNER_USERNAME')
+V_SCANNER_URL = os.environ.get('V_SCANNER_URL', '')
+V_SCANNER_USERNAME = os.environ.get('V_SCANNER_USERNAME', '')
 V_SCANNER_SECRET_KEY = os.environ.get('V_SCANNER_SECRET_KEY', '')
 
-FIREWALL_URL = os.environ.get('FIREWALL_URL')
-FIREWALL_USERNAME = os.environ.get('FIREWALL_USERNAME')
-FIREWALL_SECRET_KEY = os.environ.get('FIREWALL_SECRET_KEY')
+FIREWALL_URL = os.environ.get('FIREWALL_URL', '')
+FIREWALL_USERNAME = os.environ.get('FIREWALL_USERNAME', '')
+FIREWALL_SECRET_KEY = os.environ.get('FIREWALL_SECRET_KEY', '')
 
 DJANGO_SUPERUSER_USERNAME = os.environ.get('DJANGO_SUPERUSER_USERNAME', '')
 

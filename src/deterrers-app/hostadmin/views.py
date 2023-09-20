@@ -27,7 +27,6 @@ from hostadmin.util import (add_changelog,
                             periodic_mail_body,
                             set_host_offline,
                             set_host_online)
-
 from hostadmin.forms import (ChangeHostDetailForm,
                              AddHostRulesForm,
                              HostadminForm,
@@ -39,14 +38,24 @@ from hostadmin.core.contracts import (HostBasedPolicySrc,
                                       HostStatus,
                                       HostServiceProfile,
                                       HostFW,)
-if settings.DEV_MODE:
-    from hostadmin.core.data_logic.data_mock import DataMockWrapper as IPAMWrapper
-    from hostadmin.core.scanner.scanner_mock import ScannerMock as ScannerWrapper
-    from hostadmin.core.fw.fw_mock import FWMock as FWWrapper
+if settings.IPAM_DUMMY:
+    from hostadmin.core.data_logic.data_mock \
+        import DataMockWrapper as IPAMWrapper
 else:
-    from hostadmin.core.data_logic.ipam_wrapper import ProteusIPAMWrapper as IPAMWrapper
-    from hostadmin.core.scanner.gmp_wrapper import GmpScannerWrapper as ScannerWrapper
-    from hostadmin.core.fw.pa_wrapper import PaloAltoWrapper as FWWrapper
+    from hostadmin.core.data_logic.ipam_wrapper \
+        import ProteusIPAMWrapper as IPAMWrapper
+if settings.SCANNER_DUMMY:
+    from hostadmin.core.scanner.scanner_mock \
+        import ScannerMock as ScannerWrapper
+else:
+    from hostadmin.core.scanner.gmp_wrapper \
+        import GmpScannerWrapper as ScannerWrapper
+if settings.FIREWALL_DUMMY:
+    from hostadmin.core.fw.fw_mock \
+        import FWMock as FWWrapper
+else:
+    from hostadmin.core.fw.pa_wrapper \
+        import PaloAltoWrapper as FWWrapper
 
 
 from myuser.models import MyUser

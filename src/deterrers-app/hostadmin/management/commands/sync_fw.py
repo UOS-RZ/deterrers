@@ -6,10 +6,20 @@ import logging
 
 from django.conf import settings
 
-from hostadmin.core.data_logic.ipam_wrapper import ProteusIPAMWrapper
-from hostadmin.core.fw.pa_wrapper import PaloAltoWrapper
 from hostadmin.core.contracts import HostStatus, HostServiceProfile
 from hostadmin.core.host import MyHost
+if settings.IPAM_DUMMY:
+    from hostadmin.core.data_logic.data_mock \
+        import DataMockWrapper as IPAMWrapper
+else:
+    from hostadmin.core.data_logic.ipam_wrapper \
+        import ProteusIPAMWrapper as IPAMWrapper
+if settings.FIREWALL_DUMMY:
+    from hostadmin.core.fw.fw_mock \
+        import FWMock as FWWrapper
+else:
+    from hostadmin.core.fw.pa_wrapper \
+        import PaloAltoWrapper as FWWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +40,8 @@ class Command(BaseCommand):
     def __sync_host_online(
         self,
         host: MyHost,
-        ipam: ProteusIPAMWrapper,
-        fw: PaloAltoWrapper,
+        ipam: IPAMWrapper,
+        fw: FWWrapper,
         fw_ip_addrs_allowed_sp: set
     ):
 
@@ -57,8 +67,8 @@ class Command(BaseCommand):
     def __sync_host_blocked(
         self,
         host:  MyHost,
-        ipam: ProteusIPAMWrapper,
-        fw: PaloAltoWrapper,
+        ipam: IPAMWrapper,
+        fw: FWWrapper,
         fw_ip_addrs_allowed_total: set
     ):
 
@@ -108,7 +118,7 @@ class Command(BaseCommand):
                 ipam_username = os.environ.get('IPAM_USERNAME')
                 ipam_password = os.environ.get('IPAM_SECRET_KEY',)
                 ipam_url = os.environ.get('IPAM_URL')
-            with ProteusIPAMWrapper(
+            with IPAMWrapper(
                 ipam_username,
                 ipam_password,
                 ipam_url
@@ -125,7 +135,7 @@ class Command(BaseCommand):
                         fw_username = os.environ.get('FIREWALL_USERNAME')
                         fw_password = os.environ.get('FIREWALL_SECRET_KEY')
                         fw_url = os.environ.get('FIREWALL_URL')
-                    with PaloAltoWrapper(
+                    with FWWrapper(
                         fw_username,
                         fw_password,
                         fw_url
