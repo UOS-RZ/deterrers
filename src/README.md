@@ -2,12 +2,21 @@
 
         src/                                                % main python package that holds all source code
             deterrers-app/                                  % django project folder that will hold all the custom apps for the website executed in one docker container
-                deterressite/                               % django project configurations
+                deterrerssite/                               % django project configurations
                     ...
                 hostadmin/                                  % main app that holds the DETERRERS website logic
-                    core/
-                        ...
+                    api/                                    % API views for programmatic access to DETERRERS
+                    core/                                   % modules that implement main logic
+                        data_logic/                         % data-backend interfaces
+                        fw/                                 % perimeter firewall interfaces
+                        scanner/                            % vulnerability scanner interfaces
+                        contracts.py                        % deployment specific conventions and policies
+                        host.py                             % host object schema
+                        risk_assessor.py                    % risk assessment module
+                        rule_generator.py                   % host-based firewall rule generation module
                     management/                             % holds django commands
+                        ...
+                    static/                                 % static website content
                         ...
                     templates/                              % holds HTML templates of the DETERRERS website
                         ...
@@ -30,6 +39,7 @@
                 Dockerfile                                  % dockerfile for the nginx container
                 nginx.conf
             .env.dev                                        % environment variables for the development docker compose
+            .env.prod.template                              % template for the production configuration file
             docker-compose.dev.yml                          % development docker compose config
             docker-compose.prod.yml                         % production docker compose config
 
