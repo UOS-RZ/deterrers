@@ -219,31 +219,37 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 """ SETUP LDAP AUTHENTICATION """
 
-AUTHENTICATION_BACKENDS = [
-    "django_python3_ldap.auth.LDAPBackend",
-    'django.contrib.auth.backends.ModelBackend',
-]
-LDAP_AUTH_URL = os.environ.get("LDAP_AUTH_URL", " ").split(' ')
-LDAP_AUTH_USE_TLS = True
-LDAP_AUTH_TLS_VERSION = ssl.PROTOCOL_TLSv1_2
-LDAP_AUTH_SEARCH_BASE = os.environ.get("LDAP_AUTH_SEARCH_BASE", "")
-LDAP_AUTH_USER_FIELDS = {
-    "username": "uid",
-    "first_name": "givenName",
-    "last_name": "sn",
-    "email": "mail",
-}
-LDAP_AUTH_USER_LOOKUP_FIELDS = ("username",)
-# The LDAP username and password of a user for querying the LDAP database for
-# user details. If None, then the authenticated user will be used for
-# querying, and the `ldap_sync_users`, `ldap_clean_users` commands will
-# perform an anonymous query.
-LDAP_AUTH_CONNECTION_USERNAME = None
-LDAP_AUTH_CONNECTION_PASSWORD = None
-# Set connection/receive timeouts (in seconds) on the underlying `ldap3`
-# library.
-LDAP_AUTH_CONNECT_TIMEOUT = None
-LDAP_AUTH_RECEIVE_TIMEOUT = None
+if not DEV_MODE:
+    AUTHENTICATION_BACKENDS = [
+        "django_python3_ldap.auth.LDAPBackend",
+        'django.contrib.auth.backends.ModelBackend',
+    ]
+    LDAP_AUTH_URL = os.environ.get("LDAP_AUTH_URL", " ").split(' ')
+    LDAP_AUTH_USE_TLS = True
+    LDAP_AUTH_TLS_VERSION = ssl.PROTOCOL_TLSv1_2
+    LDAP_AUTH_SEARCH_BASE = os.environ.get("LDAP_AUTH_SEARCH_BASE", "")
+    LDAP_AUTH_USER_FIELDS = {
+        "username": "uid",
+        "first_name": "givenName",
+        "last_name": "sn",
+        "email": "mail",
+    }
+    LDAP_AUTH_USER_LOOKUP_FIELDS = ("username",)
+    # The LDAP username and password of a user for querying the LDAP database for
+    # user details. If None, then the authenticated user will be used for
+    # querying, and the `ldap_sync_users`, `ldap_clean_users` commands will
+    # perform an anonymous query.
+    LDAP_AUTH_CONNECTION_USERNAME = None
+    LDAP_AUTH_CONNECTION_PASSWORD = None
+    # Set connection/receive timeouts (in seconds) on the underlying `ldap3`
+    # library.
+    LDAP_AUTH_CONNECT_TIMEOUT = None
+    LDAP_AUTH_RECEIVE_TIMEOUT = None
+else:
+    AUTHENTICATION_BACKENDS = [
+        'django.contrib.auth.backends.ModelBackend',
+    ]
+
 LOGIN_URL = '/login/'
 
 # Redirect to home URL after login
@@ -252,7 +258,7 @@ LOGIN_REDIRECT_URL = '/'
 AUTH_USER_MODEL = 'myuser.MyUser'
 
 
-""" CONFIGS FOR MAINTENANCE MODE """
+""" SETUP MAINTENANCE MODE """
 
 MAINTENANCE_MODE = os.environ.get('MAINTENANCE_MODE', '') == 'True'
 # if True admin site will not be affected by the maintenance-mode page
