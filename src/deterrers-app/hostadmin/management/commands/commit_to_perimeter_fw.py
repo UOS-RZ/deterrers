@@ -4,7 +4,12 @@ import logging
 
 from django.conf import settings
 
-from hostadmin.core.fw.pa_wrapper import PaloAltoWrapper
+if settings.FIREWALL_DUMMY:
+    from hostadmin.core.fw.fw_mock \
+        import FWMock as FWWrapper
+else:
+    from hostadmin.core.fw.pa_wrapper \
+        import FWWrapper as FWWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +24,7 @@ class Command(BaseCommand):
         fw_username = settings.FIREWALL_USERNAME
         fw_password = settings.FIREWALL_SECRET_KEY
         fw_url = settings.FIREWALL_URL
-        with PaloAltoWrapper(fw_username, fw_password, fw_url) as fw:
+        with FWWrapper(fw_username, fw_password, fw_url) as fw:
             if not fw.enter_ok:
                 logger.error("Couldn't start session with perimeter FW!")
                 return
