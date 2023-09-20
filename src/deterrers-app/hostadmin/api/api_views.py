@@ -475,9 +475,9 @@ def register_bulk(hostadmin: MyUser, ipv4_addrs: set[str]):
         if not ipam.enter_ok:
             raise Http500()
         with ScannerWrapper(
-            settings.V_SCANNER_USERNAME,
-            settings.V_SCANNER_SECRET_KEY,
-            settings.V_SCANNER_URL
+            settings.SCANNER_USERNAME,
+            settings.SCANNER_SECRET_KEY,
+            settings.SCANNER_HOSTNAME
         ) as scanner:
             if not scanner.enter_ok:
                 raise Http500()
@@ -506,7 +506,7 @@ def register_bulk(hostadmin: MyUser, ipv4_addrs: set[str]):
 
             # perform actual registration of hosts
             response_url = (settings.DOMAIN_NAME
-                            + reverse('v_scanner_registration_alert'))
+                            + reverse('scanner_registration_alert'))
             for host in hosts:
                 target_uuid, task_uuid, report_uuid, alert_uuid = \
                     scanner.create_registration_scan(str(host.ipv4_addr),

@@ -617,9 +617,9 @@ def register_host(request, ipv4: str):
         if not ipam.enter_ok:
             return HttpResponse(status=500)
         with ScannerWrapper(
-            settings.V_SCANNER_USERNAME,
-            settings.V_SCANNER_SECRET_KEY,
-            settings.V_SCANNER_URL
+            settings.SCANNER_USERNAME,
+            settings.SCANNER_SECRET_KEY,
+            settings.SCANNER_HOSTNAME
         ) as scanner:
             if not scanner.enter_ok:
                 return HttpResponse(status=500)
@@ -643,7 +643,7 @@ def register_host(request, ipv4: str):
             else:
                 # create an initial scan of the host
                 own_url = (request.get_host()
-                           + reverse('v_scanner_registration_alert'))
+                           + reverse('scanner_registration_alert'))
                 (target_uuid,
                  task_uuid,
                  report_uuid,
@@ -710,9 +710,9 @@ def scan_host(request, ipv4: str):
         if not ipam.enter_ok:
             return HttpResponse(status=500)
         with ScannerWrapper(
-            settings.V_SCANNER_USERNAME,
-            settings.V_SCANNER_SECRET_KEY,
-            settings.V_SCANNER_URL
+            settings.SCANNER_USERNAME,
+            settings.SCANNER_SECRET_KEY,
+            settings.SCANNER_HOSTNAME
         ) as scanner:
             if not scanner.enter_ok:
                 return HttpResponse(status=500)
@@ -736,7 +736,7 @@ def scan_host(request, ipv4: str):
                 messages.error(request, "Host is not valid!")
             else:
                 # create an initial scan of the host
-                own_url = request.get_host() + reverse('v_scanner_scan_alert')
+                own_url = request.get_host() + reverse('scanner_scan_alert')
                 (target_uuid,
                  task_uuid,
                  report_uuid,
@@ -1042,7 +1042,7 @@ def remove_host(request, ipv4: str):
 
 
 @require_http_methods(['GET', ])
-def v_scanner_registration_alert(request):
+def scanner_registration_alert(request):
     """
     Processes the alert send by the v-scanner when a registration scan has
     completed. The scan report will be assessed and an HTML report will be
@@ -1074,9 +1074,9 @@ def v_scanner_registration_alert(request):
         """
         try:
             with ScannerWrapper(
-                settings.V_SCANNER_USERNAME,
-                settings.V_SCANNER_SECRET_KEY,
-                settings.V_SCANNER_URL
+                settings.SCANNER_USERNAME,
+                settings.SCANNER_SECRET_KEY,
+                settings.SCANNER_HOSTNAME
             ) as scanner:
                 if not scanner.enter_ok:
                     return
@@ -1177,7 +1177,7 @@ def v_scanner_registration_alert(request):
         except Exception:
             logger.exception("Processing registration alert failed!")
 
-    # run as daemon because v_scanner needs a response before scan objects
+    # run as daemon because scanner needs a response before scan objects
     # can be cleaned up
     t = Thread(target=proc_registration_alert, args=[request], daemon=True)
     t.start()
@@ -1186,7 +1186,7 @@ def v_scanner_registration_alert(request):
 
 
 @require_http_methods(['GET', ])
-def v_scanner_scan_alert(request):
+def scanner_scan_alert(request):
     """
     Processes the alert send by the v-scanner when an ordinary scan
     has completed. The scan report will be assessed and an HTML report
@@ -1220,9 +1220,9 @@ def v_scanner_scan_alert(request):
             target_uuid = request.GET['target_uuid']
             alert_uuid = request.GET['alert_uuid']
             with ScannerWrapper(
-                settings.V_SCANNER_USERNAME,
-                settings.V_SCANNER_SECRET_KEY,
-                settings.V_SCANNER_URL
+                settings.SCANNER_USERNAME,
+                settings.SCANNER_SECRET_KEY,
+                settings.SCANNER_HOSTNAME
             ) as scanner:
                 if not scanner.enter_ok:
                     return
@@ -1278,7 +1278,7 @@ def v_scanner_scan_alert(request):
         except Exception:
             logger.exception("Processing scan alert failed!")
 
-    # run as daemon because v_scanner needs a response before scan objects
+    # run as daemon because scanner needs a response before scan objects
     # can be cleaned up
     t = Thread(target=proc_scan_alert, args=[request], daemon=True)
     t.start()
@@ -1287,7 +1287,7 @@ def v_scanner_scan_alert(request):
 
 
 @require_http_methods(['GET', ])
-def v_scanner_periodic_alert(request):
+def scanner_periodic_alert(request):
     """
     Processes the alert send by the v-scanner when an periodic scan has
     completed. The scan report will be assessed and admins notified.
@@ -1316,9 +1316,9 @@ def v_scanner_periodic_alert(request):
         try:
             task_uuid = request.GET['task_uuid']
             with ScannerWrapper(
-                settings.V_SCANNER_USERNAME,
-                settings.V_SCANNER_SECRET_KEY,
-                settings.V_SCANNER_URL
+                settings.SCANNER_USERNAME,
+                settings.SCANNER_SECRET_KEY,
+                settings.SCANNER_HOSTNAME
             ) as scanner:
                 if not scanner.enter_ok:
                     return
@@ -1460,7 +1460,7 @@ Admin copy:
         except Exception:
             logger.exception("Processing periodic alert failed!")
 
-    # run as daemon because v_scanner needs a response before scan objects
+    # run as daemon because scanner needs a response before scan objects
     # can be cleaned up
     t = Thread(target=proc_periodic_alert, args=[request], daemon=True)
     t.start()

@@ -82,13 +82,13 @@ class GmpScannerWrapper(ScannerAbstract):
         self,
         username: str,
         password: str,
-        scanner_url: str,
+        scanner_hostname: str,
         scanner_port: int = 22
     ):
         """
         Create a Gmp instance based on a TLS connection.
         """
-        super().__init__(username, password, scanner_url, scanner_port)
+        super().__init__(username, password, scanner_hostname, scanner_port)
 
         if os.environ.get('MICRO_SERVICE', None):
             known_hosts_path = (os.environ.get('MICRO_SERVICE', '')
@@ -98,7 +98,7 @@ class GmpScannerWrapper(ScannerAbstract):
 
         transform = EtreeCheckCommandTransform()
         connection = SSHConnection(
-            hostname=self.scanner_url,
+            hostname=self.scanner_hostname,
             port=self.scanner_port,
             timeout=self.TIMEOUT,
             # vulnerability scanner must have been added to a known_hosts-file

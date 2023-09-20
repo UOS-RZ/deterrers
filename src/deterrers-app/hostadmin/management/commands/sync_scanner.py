@@ -51,10 +51,10 @@ class Command(BaseCommand):
         host:  MyHost,
         ipam: IPAMWrapper,
         scanner: ScannerWrapper,
-        v_scanner_hosts: set
+        scanner_hosts: set
     ):
         ipv4 = str(host.ipv4_addr)
-        if ipv4 not in v_scanner_hosts:
+        if ipv4 not in scanner_hosts:
             self.__add_ip(scanner, ipv4)
 
     def __sync_host_blocked(
@@ -62,10 +62,10 @@ class Command(BaseCommand):
         host:  MyHost,
         ipam: IPAMWrapper,
         scanner: ScannerWrapper,
-        v_scanner_hosts: set
+        scanner_hosts: set
     ):
         ipv4 = str(host.ipv4_addr)
-        if ipv4 in v_scanner_hosts:
+        if ipv4 in scanner_hosts:
             self.__rmv_ip(scanner, ipv4)
 
     def __sync_host_under_review(self, host: MyHost):
@@ -109,23 +109,23 @@ class Command(BaseCommand):
 
                 while True:
                     try:
-                        v_scanner_username = settings.V_SCANNER_USERNAME
-                        v_scanner_password = settings.V_SCANNER_SECRET_KEY
-                        v_scanner_url = settings.V_SCANNER_URL
+                        scanner_username = settings.SCANNER_USERNAME
+                        scanner_password = settings.SCANNER_SECRET_KEY
+                        scanner_url = settings.SCANNER_HOSTNAME
                     except Exception:
-                        v_scanner_username = os.environ.get(
-                            'V_SCANNER_USERNAME'
+                        scanner_username = os.environ.get(
+                            'SCANNER_USERNAME'
                         )
-                        v_scanner_password = os.environ.get(
-                            'V_SCANNER_SECRET_KEY'
+                        scanner_password = os.environ.get(
+                            'SCANNER_SECRET_KEY'
                         )
-                        v_scanner_url = os.environ.get(
-                            'V_SCANNER_URL'
+                        scanner_url = os.environ.get(
+                            'SCANNER_HOSTNAME'
                         )
                     with ScannerWrapper(
-                        v_scanner_username,
-                        v_scanner_password,
-                        v_scanner_url
+                        scanner_username,
+                        scanner_password,
+                        scanner_url
                     ) as scanner:
                         if not scanner.enter_ok:
                             continue
@@ -157,13 +157,13 @@ class Command(BaseCommand):
                                     )
 
                         logger.info('Get assets in periodic scan!')
-                        v_scanner_hosts = scanner.get_periodic_scanned_hosts()
+                        scanner_hosts = scanner.get_periodic_scanned_hosts()
 
                         """ SYNC DATA """
 
                         # remove IPs from scan if corresponding hosts are not
                         # defined in IPAM anymore
-                        for ip in v_scanner_hosts.difference(
+                        for ip in scanner_hosts.difference(
                             ipam_ip_addrs_allowed_total
                         ):
                             logger.warning(
@@ -182,7 +182,7 @@ class Command(BaseCommand):
                                         host,
                                         ipam,
                                         scanner,
-                                        v_scanner_hosts
+                                        scanner_hosts
                                     )
                                 case HostStatus.UNDER_REVIEW:
                                     self.__sync_host_under_review(host)
@@ -192,7 +192,7 @@ class Command(BaseCommand):
                                         host,
                                         ipam,
                                         scanner,
-                                        v_scanner_hosts
+                                        scanner_hosts
                                     )
                                 case _:
                                     logger.warning("Invalid host status: %s",
