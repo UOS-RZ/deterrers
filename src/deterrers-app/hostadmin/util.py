@@ -315,7 +315,7 @@ Following vulnerabilities resulted in the blocking:
             email_body += f"""
     Network Vulnerability Test Name:    {vul.nvt_name}
     Network Vulnerability Test ID:      {vul.nvt_oid}
-    CVSS Base Score:                    {vul.cvss_base_score} ({vul.cvss_base_vector})
+    CVSS Base Score:                    {vul.cvss_base_score} ({vul.cvss_base_vector})  # noqa: E501
     Quality of Detection:               {vul.qod}
     Hostname:                           {vul.hostname}
     Port:                               {vul.port}/{vul.proto}
@@ -362,12 +362,12 @@ Internet Service Profile: {host.service_profile.value}
 **************************************************
 
 Following vulnerabilities resulted in the blocking:
-"""
+"""     # noqa: E501
         for vul in block_reasons:
             email_body += f"""
     Network Vulnerability Test Name:    {vul.nvt_name}
     Network Vulnerability Test ID:      {vul.nvt_oid}
-    CVSS Base Score:                    {vul.cvss_base_score} ({vul.cvss_base_vector})
+    CVSS Base Score:                    {vul.cvss_base_score} ({vul.cvss_base_vector})  # noqa: E501
     Quality of Detection:               {vul.qod}
     Hostname:                           {vul.hostname}
     Port:                               {vul.port}/{vul.proto}
@@ -379,7 +379,7 @@ Following vulnerabilities resulted in the blocking:
             email_body += """
 Additionally, following vulnerabilities were found but do not result in blocking.
 They are either not exposed to the internet, affect only the availability or are not severe enough to legitimize blocking the host:
-"""
+"""     # noqa: E501
             for vul in notify_reasons:
                 email_body += f"""
     Network Vulnerability Test Name:    {vul.nvt_name}
@@ -390,7 +390,7 @@ They are either not exposed to the internet, affect only the availability or are
     Port:                               {vul.port}/{vul.proto}
     Vulnerability References:           {", ".join(vul.refs)}
 
-"""
+"""     # noqa: E501
 
         email_body += """
 Please remediate the security risks and re-register the host in DETERRERS!"""
@@ -411,12 +411,12 @@ Internet Service Profile: {host.service_profile.value}
 
 Following vulnerabilities were found but do not result in blocking.
 They are either not exposed to the internet, affect only the availability or are not severe enough to legitimize blocking the host:
-"""
+"""     # noqa: E501
         for vul in notify_reasons:
             email_body += f"""
     Network Vulnerability Test Name:    {vul.nvt_name}
     Network Vulnerability Test ID:      {vul.nvt_oid}
-    CVSS Base Score:                    {vul.cvss_base_score} ({vul.cvss_base_vector})
+    CVSS Base Score:                    {vul.cvss_base_score} ({vul.cvss_base_vector})  # noqa: E501
     Quality of Detection:               {vul.qod}
     Hostname:                           {vul.hostname}
     Port:                               {vul.port}/{vul.proto}
@@ -425,7 +425,7 @@ They are either not exposed to the internet, affect only the availability or are
 """
         email_body += """
 Remediation of these vulnerabilities will still increase the security level of the whole campus network.
-"""
+"""     # noqa: E501
 
     # if no block reasons and no notify reasons
     else:

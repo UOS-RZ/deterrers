@@ -53,3 +53,10 @@ A deployment is currently only possible in conjunction with the following compon
     Perimeter Firewall: Palo Alto with REST and XML API version v10.1
 
     User/Access Management: LDAP directory
+
+
+## Development
+
+### Linter:
+
+- flake8

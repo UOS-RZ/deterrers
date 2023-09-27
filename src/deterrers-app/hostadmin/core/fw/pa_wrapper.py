@@ -469,7 +469,7 @@ class PaloAltoWrapper(FWAbstract):
                 if (response.status_code != 200
                         or data.get('@status') != 'success'):
                     raise PaloAltoAPIError(
-                        f"Could not update Address Group {addr_grp_name.value}. "
+                        f"Could not update Address Group {addr_grp_name.value}. "   # noqa: E501
                         + f"Status code: {response.status_code}. "
                         + f"Status: {data.get('@status')}")
 
@@ -526,7 +526,7 @@ class PaloAltoWrapper(FWAbstract):
                 if (response.status_code != 200
                         or data.get('@status') != 'success'):
                     raise PaloAltoAPIError(
-                        f"Could not update Address Group {addr_grp_name.value}. "
+                        f"Could not update Address Group {addr_grp_name.value}. "   # noqa: E501
                         + f"Status code: {response.status_code}. "
                         + f"Status: {data.get('@status')}")
 
@@ -565,5 +565,7 @@ class PaloAltoWrapper(FWAbstract):
             return HostStatus.BLOCKED
 
         except (PaloAltoAPIError, requests.exceptions.JSONDecodeError):
-            logger.exception("Couldn't remove AddressObject from AddressGroups!")
+            logger.exception(
+                "Couldn't remove AddressObject from AddressGroups!"
+            )
             return None

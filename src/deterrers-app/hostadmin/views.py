@@ -544,7 +544,7 @@ def update_host_detail(request, ipv4: str):
                                 request,
                                 ("Please make sure to configure custom rules "
                                  + "for your desired services when choosing "
-                                 + f"the {HostServiceProfile.MULTIPURPOSE.value} "
+                                 + f"the {HostServiceProfile.MULTIPURPOSE.value} "  # noqa: E501
                                  + "profile!")
                             )
                         case _:
@@ -1353,7 +1353,7 @@ def scanner_periodic_alert(request):
                         with open(
                             os.path.join(
                                 settings.BASE_DIR,
-                                f"logs/scan-results_{task_uuid}_{scan_end}.pickle"
+                                f"logs/scan-results_{task_uuid}_{scan_end}.pickle"  # noqa: E501
                             ),
                             "wb"
                         ) as f:

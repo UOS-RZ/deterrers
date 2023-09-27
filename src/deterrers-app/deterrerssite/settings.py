@@ -182,16 +182,16 @@ TEMPLATES = [
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',     # noqa: E501
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',   # noqa: E501
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',  # noqa: E501
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',     # noqa: E501
     },
 ]
 
@@ -241,8 +241,8 @@ if USE_LDAP:
         "email": "mail",
     }
     LDAP_AUTH_USER_LOOKUP_FIELDS = ("username",)
-    # The LDAP username and password of a user for querying the LDAP database for
-    # user details. If None, then the authenticated user will be used for
+    # The LDAP username and password of a user for querying the LDAP database
+    # for user details. If None, then the authenticated user will be used for
     # querying, and the `ldap_sync_users`, `ldap_clean_users` commands will
     # perform an anonymous query.
     LDAP_AUTH_CONNECTION_USERNAME = None
