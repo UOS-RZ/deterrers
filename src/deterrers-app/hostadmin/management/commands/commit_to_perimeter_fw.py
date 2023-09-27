@@ -9,7 +9,7 @@ if settings.FIREWALL_DUMMY:
         import FWMock as FWWrapper
 else:
     from hostadmin.core.fw.pa_wrapper \
-        import FWWrapper as FWWrapper
+        import PaloAltoWrapper as FWWrapper
 
 logger = logging.getLogger(__name__)
 
