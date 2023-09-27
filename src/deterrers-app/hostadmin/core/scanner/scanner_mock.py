@@ -92,7 +92,7 @@ class ScannerMock(ScannerAbstract):
         t = threading.Thread(
             target=dummy_task,
             kwargs={
-                "url": "http://localhost:80/hostadmin/scanner/alert/registration/",
+                "url": "http://localhost:80/hostadmin/scanner/alert/registration/",  # noqa: E501
                 "host_ip": host_ip,
                 "target_id": host_ip,
                 "task_id": host_ip,
@@ -131,7 +131,7 @@ class ScannerMock(ScannerAbstract):
 
         with open(self.f_path, "w") as f:
             json.dump(list(data), f)
-        
+
         return True
 
     def remove_host_from_periodic_scans(

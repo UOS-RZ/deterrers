@@ -212,7 +212,7 @@ class Command(BaseCommand):
                         for service_profile, hosts in ipam_hosts_total.items():
                             # get addresses from firewall that are in the
                             # service profile
-                            fw_ip_addrs_allowed_sp = fw.get_addrs_in_service_profile(
+                            fw_ip_addrs_allowed_sp = fw.get_addrs_in_service_profile(   # noqa: E501
                                 service_profile
                             )
 

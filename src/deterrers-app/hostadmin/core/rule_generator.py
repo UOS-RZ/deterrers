@@ -173,7 +173,7 @@ if [ ${{continue}} != y ]
 then
     exit 0
 fi
-"""
+"""  # noqa: E501
 
 
 def __generate_ufw__script(custom_policies: list[HostBasedPolicy]) -> str:
@@ -218,7 +218,7 @@ ufw default allow outgoing
 
         for src in allow_srcs['range']:
             policy_config += f"""
-ufw allow proto {allow_proto} from {src} to any port {','.join(allow_ports)} comment 'Custom DETERRERS rule no. {n}' """
+ufw allow proto {allow_proto} from {src} to any port {','.join(allow_ports)} comment 'Custom DETERRERS rule no. {n}' """  # noqa: E501
 
     # postamble is the same for every service profile
     POSTAMBLE = """
@@ -254,7 +254,7 @@ systemctl start firewalld
 
 # fw configurations are saved in /etc/firewalld/zones; delete all files in the directory and do a complete reset
 su - root -c "rm -rf /etc/firewalld/zones/*"
-firewall-cmd --complete-reload"""
+firewall-cmd --complete-reload"""  # noqa: E501
 
     # create new zone and make it default
     policy_config += f"""
@@ -286,7 +286,7 @@ firewall-cmd --reload
                 # firewalld uses 'x-y'-notation for port ranges
                 port = port.replace(':', '-')
                 policy_config += f"""
-firewall-cmd --zone={CUSTOM_ZONE} --add-rich-rule='rule family={allow_family} source address={src} port port={port} protocol={allow_proto}  accept' """
+firewall-cmd --zone={CUSTOM_ZONE} --add-rich-rule='rule family={allow_family} source address={src} port port={port} protocol={allow_proto}  accept' """  # noqa: E501
 
     POSTAMBLE = f"""
 
@@ -357,7 +357,7 @@ table inet filter {{
         ct state {{ established, related }} accept
         # drop all packets that do not match a rule in this chain
         type filter hook input priority 0; policy drop;
-"""
+"""  # noqa: E501
 
     # construct the custom rules
     for n, c_policy in enumerate(custom_policy):
@@ -374,13 +374,13 @@ table inet filter {{
                                          ipaddress.IPv4Network)]
         if len(allow_srcs_ipv4) > 0:
             policy_config += f"""
-        ip saddr {{ {','.join(allow_srcs_ipv4)} }} {allow_proto} dport {{ {','.join(allow_ports)} }} accept"""
+        ip saddr {{ {','.join(allow_srcs_ipv4)} }} {allow_proto} dport {{ {','.join(allow_ports)} }} accept"""  # noqa: E501
         allow_srcs_ipv6 = [src for src in allow_srcs
                            if isinstance(ipaddress.ip_network(src),
                                          ipaddress.IPv6Network)]
         if len(allow_srcs_ipv6) > 0:
             policy_config += f"""
-        ip6 saddr {{ {','.join(allow_srcs_ipv6)} }} {allow_proto} dport {{ {','.join(allow_ports)} }} accept"""
+        ip6 saddr {{ {','.join(allow_srcs_ipv6)} }} {allow_proto} dport {{ {','.join(allow_ports)} }} accept"""  # noqa: E501
 
     POST_AMBLE = """
     }
