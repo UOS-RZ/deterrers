@@ -1214,11 +1214,6 @@ def scanner_scan_alert(request):
             request (_type_): Request object.
         """
         try:
-            host_ipv4 = request.GET['host_ip']
-            report_uuid = request.GET['report_uuid']
-            task_uuid = request.GET['task_uuid']
-            target_uuid = request.GET['target_uuid']
-            alert_uuid = request.GET['alert_uuid']
             with ScannerWrapper(
                 settings.SCANNER_USERNAME,
                 settings.SCANNER_SECRET_KEY,
@@ -1233,6 +1228,12 @@ def scanner_scan_alert(request):
                 ) as ipam:
                     if not ipam.enter_ok:
                         return
+
+                    host_ipv4 = request.GET['host_ip']
+                    task_uuid = request.GET['task_uuid']
+                    report_uuid = scanner.get_latest_report_uuid(task_uuid)
+                    target_uuid = request.GET['target_uuid']
+                    alert_uuid = request.GET['alert_uuid']
 
                     _, scan_end, results = scanner.extract_report_data(
                         report_uuid
