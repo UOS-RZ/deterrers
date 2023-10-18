@@ -37,21 +37,21 @@
         {% if can_update %}
             <form action="{{request.path}}update/" method="get">
                 {% csrf_token %}
-                {% bootstrap_button name="update_btn" button_type="submit" content="Edit Details" button_class="btn btn-primary" title="Edit details, e.g., internet service profile or host-based firewall tool." %}
+                {% bootstrap_button name="update_btn" button_type="submit" content="Edit Details" button_class="btn btn-primary" title="Edit host details, e.g. internet service profile or host-based firewall tool." %}
             </form>
         {% endif %}
 
         {% if can_register %}
             <form action="{{request.path}}register/" method="post">
                 {% csrf_token %}
-                {% bootstrap_button name="register_btn" button_type="submit" content="Register" button_class="btn btn-primary" title="Start vulnerability scan and unblock it from internet on success." %}
+                {% bootstrap_button name="register_btn" button_type="submit" content="Register" button_class="btn btn-primary" title="Start vulnerability scan and unblock it from internet on success. During the scan, the host can not be edited or removed from DETERRERS." %}
             </form>
         {% endif %}
 
         {% if can_block %}
             <form action="{{request.path}}block/" method="post">
                 {% csrf_token %}
-                {% bootstrap_button name="block_btn" button_type="submit" content="Block" button_class="btn btn-primary" title="Block host from the internet." %}
+                {% bootstrap_button name="block_btn" button_type="submit" content="Block" button_class="btn btn-primary" title="Block host from the internet. After the host is blocked, it can be registered again." %}
             </form>
         {% endif %}
 
