@@ -853,13 +853,14 @@ class ProteusIPAMWrapper(DataAbstract):
                     return 200
                 child_tags = self.__get_child_tags(tag_id)
                 for child_tag in child_tags:
-                    if child_tag.get('id') == tag_id:
+                    if self.__host_is_tagged(host_id, child_tag.get('id')):
                         # admin of this department is already tagged, so
                         # untag them and tag the department instead later
-                        self.remove_admin_from_host(
+                        if self.remove_admin_from_host(
                             child_tag.get('name'),
                             host
-                        )
+                        ) != 200:
+                            raise Exception()
                         break
             else:
                 # tag is admin tag
