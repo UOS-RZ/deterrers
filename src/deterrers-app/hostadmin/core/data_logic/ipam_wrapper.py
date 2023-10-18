@@ -361,21 +361,17 @@ class ProteusIPAMWrapper(DataAbstract):
 
     def __host_is_tagged(self, host_id: str | int,  tag_id: str | int) -> bool:
         """
-        Checks if tag is already linked to host or if tag is admin tag and
-        corresponding department tag is linked.
+        Checks if tag is already linked to host.
 
         Args:
             host_id (str | int): Proteus entity ID of IPv4Address object.
             tag_id (str | int): Proteus entity ID of Tag object.
 
         Returns:
-            bool: Returns True if tag or parent tag is linked to host.
+            bool: Returns True if tag is linked to host.
             False otherwise.
         """
         try:
-            # get parent tag
-            parent_tag = self.__get_parent_tag(tag_id)
-
             # query tags that are linked to host
             linkedentities_parameters = ("count=-1"
                                          + f"&entityId={host_id}"
@@ -388,13 +384,11 @@ class ProteusIPAMWrapper(DataAbstract):
                                     headers=self.header,
                                     timeout=self.TIMEOUT)
             data = response.json()
-            # check for each tag of host if it is the given tag or the parent
-            # of the given tag
+
+            # check for each tag of host if it is the given tag
             for t_entity in data:
                 t_id = t_entity['id']
                 if int(t_id) == int(tag_id):
-                    return True
-                if int(t_id) == int(parent_tag.get('id')):
                     return True
         except Exception:
             logger.exception("Couldn't query if host is already tagged!")
@@ -848,10 +842,34 @@ class ProteusIPAMWrapper(DataAbstract):
 
             # get tag object
             tag_id = self.__get_tag_id(admin_name)
+            parent_tag = self.__get_parent_tag(tag_id)
 
-            # host is already tagged, we are done
-            if self.__host_is_tagged(host_id, tag_id):
-                return 200
+            # check if admin or their department is already associated
+            # with host
+            if parent_tag.get('id') == self.__get_tag_grp_id():
+                # tag is department tag
+                if self.__host_is_tagged(host_id, tag_id):
+                    # department is already tagged
+                    return 200
+                child_tags = self.__get_child_tags(tag_id)
+                for child_tag in child_tags:
+                    if self.__host_is_tagged(host_id, child_tag.get('id')):
+                        # admin of this department is already tagged, so
+                        # untag them and tag the department instead later
+                        if self.remove_admin_from_host(
+                            child_tag.get('name'),
+                            host
+                        ) != 200:
+                            raise Exception()
+                        break
+            else:
+                # tag is admin tag
+                if self.__host_is_tagged(host_id, tag_id):
+                    # admin is already tagged
+                    return 200
+                if self.__host_is_tagged(host_id, parent_tag.get('id')):
+                    # department is already tagged
+                    return 200
 
             # link tag to host
             linkentities_params = (f"entity1Id={host_id}"
