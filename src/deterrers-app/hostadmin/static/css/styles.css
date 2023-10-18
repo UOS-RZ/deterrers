@@ -45,20 +45,20 @@ table, th, td {
 
 tr:hover {background-color: rgb(57, 96, 96);}
 
+.btn, .btn:disabled, .btn:hover{
+    border-color: rgb(0, 0, 0);
+}
+
 .btn-primary {
     background-color: darkgoldenrod;
-    border-color: rgb(0, 0, 0);
-    
 }
 
 .btn-primary:disabled {
     background-color: rgb(231, 170, 13);
-    border-color: rgb(0, 0, 0);
 }
 
 .btn-primary:hover {
     background-color: rgb(135, 99, 8);
-    border-color: rgb(0, 0, 0);
 }
 
 code {
@@ -66,8 +66,13 @@ code {
     background-color: rgb(57, 96, 96);
 }
 
-.row {
+.host-actions {
     display: flex;
+    gap: 5px;
+}
+
+.host-actions button {
+    min-width: 150px;
 }
   
 .column {
