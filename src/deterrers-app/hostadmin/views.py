@@ -111,6 +111,7 @@ def about_view(request):
         HTTPResponse: Rendered HTML page.
     """
     context = {
+        'active_navigation_item': 'about',
         'changelog': add_changelog()
     }
     return render(request, 'about.html', context)
@@ -327,6 +328,7 @@ def hosts_list_view(request):
         hosts_list = paginator.page(paginator.num_pages)
 
     context = {
+        'active_navigation_item': 'hosts_list',
         'hostadmin': hostadmin,
         'hosts_list': hosts_list,
         'is_paginated': True,

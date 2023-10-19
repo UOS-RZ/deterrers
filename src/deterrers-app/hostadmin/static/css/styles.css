@@ -1,25 +1,35 @@
-.sidebar-nav {
-    margin: 0px;
-    padding: 10px;
-    list-style: none;
-    border: 2px solid black;
+header {
+    background-color: rgb(47, 79, 79);
+    color: white;
 
-    width: 225px;
-    position: fixed;
-    z-index: 1;
-    top: 20px;
-    left: 10px;
-    overflow-x: hidden;
+    padding: 5px;
+    border-bottom: thin solid rgb(40, 70, 70);
 }
 
-.sidebar-nav a, p {
-    /* padding: 6px 8px 6px 16px; */
-    text-decoration: none;
-    font-size: 20px;
-    display: block;
+header nav .login {
+    display: flex;
+    flex-grow: 1;
+    justify-content: flex-end;
+    align-items: center;
 }
 
+.nav-link {
+    color: rgba(184, 134, 11, 1);
+}
 
+.nav-link:hover, .nav-link:focus {
+    color: rgba(184, 134, 11, 0.8);
+
+}
+
+.nav-link.active {
+    color: rgba(184, 134, 11, 1);
+    font-weight: bold;
+}
+
+main > .container {
+    padding: 12px;
+}
 
 .col-sm-10 {
     margin-left: 250px; /* Same width as the sidebar + left position in px */
@@ -29,12 +39,16 @@
 }
 
 body {
-    background-color: darkslategrey;
+    background-color: rgba(47, 79, 79, 0.95);
     color: white;
 }
 
 a {
-    color: darkgoldenrod;
+    color: rgba(184, 134, 11, 1);
+}
+
+a:hover, a:focus {
+    color: rgba(184, 134, 11, 0.8);
 }
 
 table, th, td {
@@ -50,7 +64,8 @@ tr:hover {background-color: rgb(57, 96, 96);}
 }
 
 .btn-primary {
-    background-color: darkgoldenrod;
+    background-color: rgb(184, 134, 11);
+    border-color: rgb(0, 0, 0);
 }
 
 .btn-primary:disabled {
