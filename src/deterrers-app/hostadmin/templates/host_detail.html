@@ -37,14 +37,14 @@
         {% if can_update %}
             <form action="{{request.path}}update/" method="get">
                 {% csrf_token %}
-                {% bootstrap_button name="update_btn" button_type="submit" content="Edit Details" button_class="btn btn-primary" title="Edit host details, e.g. internet service profile or host-based firewall tool." %}
+                {% bootstrap_button name="update_btn" button_type="submit" content="Edit Details" button_class="btn btn-primary" title="Edit host details, e.g. internet service profile or host-based firewall tool. The host can not be edited during scans." %}
             </form>
         {% endif %}
 
-        {% if can_register %}
+        {% if show_register %}
             <form action="{{request.path}}register/" method="post">
                 {% csrf_token %}
-                {% bootstrap_button name="register_btn" button_type="submit" content="Register" button_class="btn btn-primary" title="Start vulnerability scan and unblock it from internet on success. During the scan, the host can not be edited or removed from DETERRERS." %}
+                {% bootstrap_button name="register_btn" button_type="submit" content="Register" button_class="btn btn-primary" title="Start vulnerability scan and unblock it from internet on success. A non-empty internet service profile and a public host IP are required. During the scan, the host can not be edited or removed from DETERRERS." %}
             </form>
         {% endif %}
 
@@ -58,7 +58,7 @@
         {% if can_scan %}
             <form action="{{request.path}}scan/" method="post">
                 {% csrf_token %}
-                {% bootstrap_button name="scan_btn" button_type="submit" content="Ordinary Scan" button_class="btn btn-primary" title="Start vulnerability scan but do not change status." %}
+                {% bootstrap_button name="scan_btn" button_type="submit" content="Ordinary Scan" button_class="btn btn-primary" title="Start vulnerability scan but do not change status. During the scan, the host can not be edited, blocked or removed from DETERRERS." %}
             </form>
         {% endif %}
 

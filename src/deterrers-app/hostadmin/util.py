@@ -88,6 +88,7 @@ def available_actions(host: MyHost) -> dict:
                 host.service_profile != HostServiceProfile.EMPTY
                 and is_public_ip(host.ipv4_addr)
             )
+            flags['show_register'] = True
             flags['can_scan'] = True
             flags['can_download_config'] = (
                 host.service_profile != HostServiceProfile.EMPTY
@@ -98,6 +99,7 @@ def available_actions(host: MyHost) -> dict:
         case HostStatus.UNDER_REVIEW:
             flags['can_update'] = False
             flags['can_register'] = False
+            flags['show_register'] = False
             flags['can_scan'] = False
             flags['can_download_config'] = (
                 host.service_profile != HostServiceProfile.EMPTY
@@ -111,6 +113,7 @@ def available_actions(host: MyHost) -> dict:
                 host.service_profile != HostServiceProfile.EMPTY
                 and is_public_ip(host.ipv4_addr)
             )
+            flags['show_register'] = True
             flags['can_scan'] = True
             flags['can_download_config'] = (
                 host.service_profile != HostServiceProfile.EMPTY
@@ -121,6 +124,7 @@ def available_actions(host: MyHost) -> dict:
         case HostStatus.ONLINE:
             flags['can_update'] = True
             flags['can_register'] = False
+            flags['show_register'] = False
             flags['can_scan'] = True
             flags['can_download_config'] = (
                 host.service_profile != HostServiceProfile.EMPTY
@@ -131,6 +135,7 @@ def available_actions(host: MyHost) -> dict:
         case _:
             flags['can_update'] = False
             flags['can_register'] = False
+            flags['show_register'] = False
             flags['can_scan'] = False
             flags['can_download_config'] = False
             flags['can_block'] = False

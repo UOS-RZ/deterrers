@@ -29,6 +29,7 @@
                         <p>
                             The host will be scanned thoroughly for vulnerabilities and unblocked by the perimeter firewall on success. 
                             In case there are security risks, the host remains blocked.
+                            This action requires a non-empty internet service profile and a public host IP.
                             Hosts should have a severity score (CVSS) of less than approximatly 8.5.<br>
                             Information on the scan results will be send via e-mail to the admin(s).
                         </p>
@@ -52,7 +53,8 @@
                         <p>
                             Choose a profile for the service the host provides to the internet and choose the host-based firewall program running on the host.<br>
                             This information is used for configuring the perimeter firewall to only allow traffic corresponding to the chosen service profile.<br>
-                            This information is also used for generating the host-based firewall configuration script.
+                            This information is also used for generating the host-based firewall configuration script.<br>
+                            The host can not be edited during scans.
                         </p>
                     </li>
                     <li>
@@ -82,7 +84,7 @@
                     <li>
                         <b>Under Review</b>
                         <p>
-                            Some scan is running for this host. This might take a while.
+                            Some scan is running for this host. This might take a while. During the scan, the host can not be edited, blocked or removed from DETERRERS.
                         </p>
                     </li>
                     <li>
