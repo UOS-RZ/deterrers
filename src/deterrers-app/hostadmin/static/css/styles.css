@@ -27,6 +27,13 @@ header nav .login {
     font-weight: bold;
 }
 
+.nav-tabs .nav-link.active {
+    color: rgba(184, 134, 11, 1);
+    font-weight: bold;
+    background-color: transparent;
+    border-bottom-color: rgba(47, 79, 79, 0.95);
+}
+
 main > .container {
     padding: 12px;
 }
@@ -59,26 +66,36 @@ table, th, td {
 
 tr:hover {background-color: rgb(57, 96, 96);}
 
-.btn, .btn:disabled, .btn:hover{
-    border-color: rgb(0, 0, 0);
+.btn, .btn:disabled, .btn:hover, .btn-primary:active {
+    border-color: rgb(0, 0, 0) !important;
 }
 
 .btn-primary {
+    color: white !important;
     background-color: rgb(184, 134, 11);
     border-color: rgb(0, 0, 0);
 }
 
-.btn-primary:disabled {
+.btn-primary:disabled, .btn-primary.disabled {
     background-color: rgb(231, 170, 13);
 }
 
-.btn-primary:hover {
-    background-color: rgb(135, 99, 8);
+.btn-primary:hover, .btn-primary:active, .btn-primary:focus{
+    background-color: rgb(135, 99, 8) !important;
 }
 
 code {
     color: white;
     background-color: rgb(57, 96, 96);
+}
+
+.host-details table, .host-rules table {
+    width: 100%;
+    margin-bottom: 12px;
+}
+
+.host-detail-tabs {
+    margin-bottom: 12px;
 }
 
 .host-actions {
