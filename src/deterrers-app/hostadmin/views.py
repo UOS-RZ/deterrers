@@ -207,6 +207,10 @@ def host_detail_view(request, ipv4: str):
             # create new empty form
             form = AddHostRulesForm()
 
+    # Show info message if scan is active
+    if host.status == HostStatus.UNDER_REVIEW:
+        messages.info(request, "Host is currently being scanned. During this process, no actions are available for the host.")
+
     context = {
         'hostadmin': hostadmin,
         'host_detail': host,
@@ -634,8 +638,13 @@ def register_host(request, ipv4: str):
             # check if user is admin of this host
             if hostadmin.username not in host.admin_ids:
                 raise Http404()
+            actions = available_actions(host)
+            # check if host is missing service profile or host ip is not public
+            if actions.get('show_register') and not actions.get('can_register'):
+                messages.error(request, 'No internet service profile is selected or host IP address is not public.')
+                return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ipv4_escaped()}))
             # check if this host can be registered
-            if not available_actions(host).get('can_register'):
+            if not actions.get('can_register'):
                 raise Http404()
             if not host.is_valid():
                 logger.warning("Host '%s' is not valid!", str(host))
