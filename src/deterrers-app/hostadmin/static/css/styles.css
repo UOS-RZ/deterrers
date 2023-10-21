@@ -13,6 +13,10 @@ header nav .login {
     align-items: center;
 }
 
+.navbar-brand, .navbar-brand:hover, .navbar-brand:focus {
+    color: white;
+}
+
 .nav-link {
     color: rgba(184, 134, 11, 1);
 }
@@ -22,9 +26,19 @@ header nav .login {
 
 }
 
-.nav-link.active {
+.navbar .nav-link.active {
     color: rgba(184, 134, 11, 1);
     font-weight: bold;
+}
+
+.nav-tabs {
+    flex-wrap: nowrap;
+}
+
+.nav-tabs .nav-link {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .nav-tabs .nav-link.active {
@@ -34,8 +48,24 @@ header nav .login {
     border-bottom-color: rgba(47, 79, 79, 0.95);
 }
 
+.navbar-toggler {
+    border-color: rgba(184, 134, 11, 0.5);
+}
+
+.navbar-toggler:focus {
+    box-shadow: 0 0 5px rgb(184, 134, 11);
+}
+
+.navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Cpath stroke='%23B8860B' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
+}
+
 main > .container {
     padding: 12px;
+}
+
+.form-text {
+    color: rgb(211, 211, 211);
 }
 
 .col-sm-10 {
@@ -100,11 +130,16 @@ code {
 
 .host-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 5px;
 }
 
 .host-actions button {
     min-width: 150px;
+}
+
+.host-rules-add-row td {
+    vertical-align: top;
 }
   
 .column {
