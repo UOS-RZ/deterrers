@@ -37,23 +37,38 @@
         <header>
             <div class="container">
                 {% block navbar %}
-                    <nav class="nav">
-                        <a class="nav-link {% if active_navigation_item == 'about' %}active{% endif %}" href="{% url 'about' %}">About</a>
-                        {% if user.is_authenticated %}
-                            <a class="nav-link {% if active_navigation_item == 'hosts_list' %}active{% endif %}" href="{% url 'hosts_list' %}">My Hosts</a>
-                            <a class="nav-link" href="https://cryptpad.rz.uni-osnabrueck.de/form/#/2/form/view/2RKGx3NOFFV6WdegC+b+CyE3e+maqMjDBVpmETEwvW4/embed/"
-                           target="_blank" rel="noopener noreferrer">Survey</a>
-                        {% endif %}
+                    <nav class="navbar navbar-expand-lg">
+                        <span class="navbar-brand" href="#">DETERRERS</span>
 
-                        <div class="login">
-                        {% if user.is_authenticated %}
-                            <span class="me-2">
-                                User: <strong>{{ user.get_username }} </strong>
-                            </span>
-                            <a class="btn btn-primary" href="{% url 'logout' %}">Logout</a>
-                        {% else %}
-                            <a class="btn btn-primary" href="{% url 'login' %}?next={{ request.path }}">Login</a>
-                        {% endif %}
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavItems" aria-controls="navbarTogglerDemo02" aria-expanded="false" aria-label="Toggle navigation">
+                          <span class="navbar-toggler-icon"></span>
+                        </button>
+
+                        <div class="collapse navbar-collapse" id="mainNavItems">
+                            <ul class="navbar-nav">
+                                <li class="nav-item">
+                                    <a class="nav-link {% if active_navigation_item == 'about' %}active{% endif %}" href="{% url 'about' %}">About</a>
+                                </li>
+                                {% if user.is_authenticated %}
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if active_navigation_item == 'hosts_list' %}active{% endif %}" href="{% url 'hosts_list' %}">My Hosts</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="https://cryptpad.rz.uni-osnabrueck.de/form/#/2/form/view/2RKGx3NOFFV6WdegC+b+CyE3e+maqMjDBVpmETEwvW4/embed/" target="_blank" rel="noopener noreferrer">Survey</a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+
+                            <div class="login">
+                                {% if user.is_authenticated %}
+                                    <span class="me-2">
+                                        User: <strong>{{ user.get_username }} </strong>
+                                    </span>
+                                    <a class="btn btn-primary" href="{% url 'logout' %}">Logout</a>
+                                {% else %}
+                                    <a class="btn btn-primary" href="{% url 'login' %}?next={{ request.path }}">Login</a>
+                                {% endif %}
+                            </div>
                         </div>
                     </nav>
                 {% endblock %}
