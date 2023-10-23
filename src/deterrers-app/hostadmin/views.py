@@ -12,7 +12,7 @@ from django.http import (Http404,
                          HttpResponseRedirect,
                          HttpResponse,
                          FileResponse)
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
@@ -111,6 +111,7 @@ def about_view(request):
         HTTPResponse: Rendered HTML page.
     """
     context = {
+        'active_navigation_item': 'about',
         'changelog': add_changelog()
     }
     return render(request, 'about.html', context)
@@ -142,7 +143,7 @@ def api_schema(request):
 
 @login_required
 @require_http_methods(['GET', 'POST'])
-def host_detail_view(request, ipv4: str):
+def host_detail_view(request, ipv4: str, tab: str = 'perimeter'):
     """
     Function-based view for showing host details. Only available to logged
     in users.
@@ -150,6 +151,7 @@ def host_detail_view(request, ipv4: str):
     Args:
         request (): Request object.
         ipv4 (str): IP string from the URL parameter.
+        tab (str): Name of the active tab. Defaults to the perimeter tab.
 
     Raises:
         Http404: When object is not available or user has no permission.
@@ -212,8 +214,10 @@ def host_detail_view(request, ipv4: str):
         messages.info(request, "Host is currently being scanned. During this process, no actions are available for the host.")
 
     context = {
+        'active_tab': tab,
         'hostadmin': hostadmin,
         'host_detail': host,
+        'host_ipv4': str(host.ipv4_addr),
         'host_rules': [
             {
                 'allow_src': HostBasedPolicySrc(
@@ -237,7 +241,7 @@ def host_detail_view(request, ipv4: str):
     for k, f in action_flags.items():
         context[k] = f
 
-    return render(request, 'host_detail.html', context)
+    return render(request, 'host/detail.html', context)
 
 
 @login_required
@@ -327,6 +331,7 @@ def hosts_list_view(request):
         hosts_list = paginator.page(paginator.num_pages)
 
     context = {
+        'active_navigation_item': 'hosts_list',
         'hostadmin': hostadmin,
         'hosts_list': hosts_list,
         'is_paginated': True,
@@ -442,6 +447,10 @@ def update_host_detail(request, ipv4: str):
             form = ChangeHostDetailForm(request.POST)
 
             if form.is_valid():
+                redirect_next = redirect('host_detail', ipv4=host.get_ipv4_escaped())
+                if 'next' in request.GET:
+                    redirect_next = redirect(request.GET.get('next'))
+
                 # update the actual model instance
                 service_profile_change = (
                     host.service_profile
@@ -461,21 +470,11 @@ def update_host_detail(request, ipv4: str):
                          + "Try again later...")
                     )
                     # redirect to a new URL:
-                    return HttpResponseRedirect(
-                        reverse(
-                            'host_detail',
-                            kwargs={'ipv4': host.get_ipv4_escaped()}
-                        )
-                    )
+                    return redirect_next
 
                 if not service_profile_change and not fw_change:
                     # return immediately if nothing was changed
-                    return HttpResponseRedirect(
-                        reverse(
-                            'host_detail',
-                            kwargs={'ipv4': host.get_ipv4_escaped()}
-                        )
-                    )
+                    return redirect_next
                 elif service_profile_change:
                     # if host is already online, update the perimeter FW
                     if host.status == HostStatus.ONLINE:
@@ -490,7 +489,7 @@ def update_host_detail(request, ipv4: str):
                             }
                             return render(
                                 request,
-                                'update_host_detail.html',
+                                'host/update_host_detail.html',
                                 context=context
                             )
                         if not set_host_online(str(host.ipv4_addr)):
@@ -504,7 +503,7 @@ def update_host_detail(request, ipv4: str):
                             }
                             return render(
                                 request,
-                                'update_host_detail.html',
+                                'host/update_host_detail.html',
                                 context=context
                             )
 
@@ -563,12 +562,7 @@ def update_host_detail(request, ipv4: str):
                         )
 
                 # redirect to a new URL:
-                return HttpResponseRedirect(
-                    reverse(
-                        'host_detail',
-                        kwargs={'ipv4': host.get_ipv4_escaped()}
-                    )
-                )
+                return redirect_next
 
         else:
             form = ChangeHostDetailForm(
@@ -583,7 +577,7 @@ def update_host_detail(request, ipv4: str):
         'form': form,
         'host_instance': host
     }
-    return render(request, 'update_host_detail.html', context=context)
+    return render(request, 'host/update_host_detail.html', context=context)
 
 
 """ Host Actions """
@@ -902,7 +896,10 @@ def delete_host_rule(request, ipv4: str, rule_id: uuid.UUID):
     return HttpResponseRedirect(
         reverse(
             'host_detail',
-            kwargs={'ipv4': host.get_ipv4_escaped()}
+            kwargs={
+                'ipv4': host.get_ipv4_escaped(),
+                'tab': 'host'
+            }
         )
     )
 

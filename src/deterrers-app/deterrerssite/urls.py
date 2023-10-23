@@ -22,6 +22,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
 
+from myuser.views import LogoutMessageView
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('hostadmin/', include('hostadmin.urls')),
@@ -39,5 +41,5 @@ urlpatterns += [
         ),
         name='login'
     ),
-    path('logout/', auth_views.LogoutView.as_view(), name='logout')
+    path('logout/', LogoutMessageView.as_view(), name='logout')
 ]
