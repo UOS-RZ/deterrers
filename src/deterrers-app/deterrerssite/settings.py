@@ -261,6 +261,9 @@ LOGIN_URL = '/login/'
 # Redirect to home URL after login
 LOGIN_REDIRECT_URL = '/'
 
+# Redirect to login after logout
+LOGOUT_REDIRECT_URL = '/login/'
+
 AUTH_USER_MODEL = 'myuser.MyUser'
 
 
