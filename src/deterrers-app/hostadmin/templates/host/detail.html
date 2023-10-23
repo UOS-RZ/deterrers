@@ -40,7 +40,7 @@
     <hr>
 
     <nav class="nav nav-tabs host-detail-tabs">
-        <a class="nav-link {% if active_tab == "perimeter" %}active{% endif %}" href="{% url 'host_detail' ipv4=host_ipv4 tab='perimeter' %}">Perimeter Firewall</a>
+        <a class="nav-link {% if active_tab == "perimeter" %}active{% endif %}" href="{% url 'host_detail' ipv4=host_ipv4 tab='perimeter' %}">General</a>
         <a class="nav-link {% if active_tab == "host" %}active{% endif %}" href="{% url 'host_detail' ipv4=host_ipv4 tab='host' %}">Host-based Firewall</a>
     </nav>
 
