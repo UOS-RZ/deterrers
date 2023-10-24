@@ -211,7 +211,11 @@ def host_detail_view(request, ipv4: str, tab: str = 'perimeter'):
 
     # Show info message if scan is active
     if host.status == HostStatus.UNDER_REVIEW:
-        messages.info(request, "Host is currently being scanned. During this process, no actions are available for the host.")
+        messages.info(
+            request,
+            ("Host is currently being scanned. "
+             + "During this process, no actions are available for the host.")
+        )
 
     context = {
         'active_tab': tab,
@@ -447,7 +451,10 @@ def update_host_detail(request, ipv4: str):
             form = ChangeHostDetailForm(request.POST)
 
             if form.is_valid():
-                redirect_next = redirect('host_detail', ipv4=host.get_ipv4_escaped())
+                redirect_next = redirect(
+                    'host_detail',
+                    ipv4=host.get_ipv4_escaped()
+                )
                 if 'next' in request.GET:
                     redirect_next = redirect(request.GET.get('next'))
 
@@ -635,8 +642,17 @@ def register_host(request, ipv4: str):
             actions = available_actions(host)
             # check if host is missing service profile or host ip is not public
             if actions.get('show_register') and not actions.get('can_register'):
-                messages.error(request, 'No internet service profile is selected or host IP address is not public.')
-                return HttpResponseRedirect(reverse('host_detail', kwargs={'ipv4': host.get_ipv4_escaped()}))
+                messages.error(
+                    request,
+                    ('No internet service profile is selected '
+                     + 'or host IP address is not public.')
+                )
+                return HttpResponseRedirect(
+                    reverse(
+                        'host_detail',
+                        kwargs={'ipv4': host.get_ipv4_escaped()}
+                    )
+                )
             # check if this host can be registered
             if not actions.get('can_register'):
                 raise Http404()

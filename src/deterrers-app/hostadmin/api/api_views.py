@@ -456,7 +456,11 @@ def host(request):
         return Response(status=500)
 
 
-def register_bulk(hostadmin: MyUser, ipv4_addrs: set[str], skip_scan: bool = False):
+def register_bulk(
+    hostadmin: MyUser,
+    ipv4_addrs: set[str],
+    skip_scan: bool = False
+):
     """
     Perform bulk registration by creating a registration scan and updating
     the status for each IP.
@@ -607,7 +611,11 @@ def action(request):
     try:
         match action:
             case 'register':
-                register_bulk(hostadmin=hostadmin, ipv4_addrs=ipv4_addrs, skip_scan=skip_scan)
+                register_bulk(
+                    hostadmin=hostadmin,
+                    ipv4_addrs=ipv4_addrs,
+                    skip_scan=skip_scan
+                )
             case 'block':
                 block_bulk(hostadmin=hostadmin, ipv4_addrs=ipv4_addrs)
             case _:
