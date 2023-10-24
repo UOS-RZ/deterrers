@@ -456,7 +456,7 @@ def host(request):
         return Response(status=500)
 
 
-def register_bulk(hostadmin: MyUser, ipv4_addrs: set[str]):
+def register_bulk(hostadmin: MyUser, ipv4_addrs: set[str], skip_scan: bool = False):
     """
     Perform bulk registration by creating a registration scan and updating
     the status for each IP.
@@ -465,6 +465,7 @@ def register_bulk(hostadmin: MyUser, ipv4_addrs: set[str]):
     Args:
         hostadmin (MyUser): User that performs the bulk request.
         ipv4_addrs (set[str]): Set of unique IPv4 addresses.
+        skip_scan (bool): Indicates whether the initial scan should be skipped.
     """
     ipv4_addrs = set(ipv4_addrs)
     with IPAMWrapper(
@@ -508,24 +509,32 @@ def register_bulk(hostadmin: MyUser, ipv4_addrs: set[str]):
             response_url = (settings.DOMAIN_NAME
                             + reverse('scanner_registration_alert'))
             for host in hosts:
-                target_uuid, task_uuid, report_uuid, alert_uuid = \
-                    scanner.create_registration_scan(str(host.ipv4_addr),
-                                                     response_url)
-                if target_uuid and task_uuid and report_uuid and alert_uuid:
-                    # update state in IPAM
-                    host.status = HostStatus.UNDER_REVIEW
-                    if not ipam.update_host_info(host):
-                        scanner.clean_up_scan_objects(target_uuid, task_uuid,
-                                                      report_uuid, alert_uuid)
-                        logger.error("Couldn't update status of host %s",
-                                     str(host.ipv4_addr))
-                        continue
+                if skip_scan:
+                    # Skip scan and change the perimeter firewall
+                    # configuration so that only hosts service
+                    # profile is allowed
+                    if not set_host_online(str(host.ipv4_addr)):
+                        raise Http500("Couldn't set host online!")
                 else:
-                    logger.error(
-                        "Registration for host %s couldn't be started!",
-                        str(host.ipv4_addr)
-                    )
-                    continue
+                    # Otherwise start vulnerability scan
+                    target_uuid, task_uuid, report_uuid, alert_uuid = \
+                        scanner.create_registration_scan(str(host.ipv4_addr),
+                                                         response_url)
+                    if target_uuid and task_uuid and report_uuid and alert_uuid:
+                        # update state in IPAM
+                        host.status = HostStatus.UNDER_REVIEW
+                        if not ipam.update_host_info(host):
+                            scanner.clean_up_scan_objects(target_uuid, task_uuid,
+                                                          report_uuid, alert_uuid)
+                            logger.error("Couldn't update status of host %s",
+                                         str(host.ipv4_addr))
+                            continue
+                    else:
+                        logger.error(
+                            "Registration for host %s couldn't be started!",
+                            str(host.ipv4_addr)
+                        )
+                        continue
 
 
 def block_bulk(hostadmin: MyUser, ipv4_addrs: set[str]):
@@ -591,13 +600,14 @@ def action(request):
         return Response(status=400)
     action = bulk_action.validated_data['action']
     ipv4_addrs = set(bulk_action.validated_data.get('ipv4_addrs', []))
+    skip_scan = bulk_action.validated_data['skip_scan']
     logger.info("API Request: Action %s by user %s on hosts %s", str(action),
                 request.user.username, str(ipv4_addrs))
 
     try:
         match action:
             case 'register':
-                register_bulk(hostadmin=hostadmin, ipv4_addrs=ipv4_addrs)
+                register_bulk(hostadmin=hostadmin, ipv4_addrs=ipv4_addrs, skip_scan=skip_scan)
             case 'block':
                 block_bulk(hostadmin=hostadmin, ipv4_addrs=ipv4_addrs)
             case _:
