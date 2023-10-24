@@ -2,13 +2,36 @@
 
 <div class="host-rules">
     <h3>Host-based Firewall Policies</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>IP Address</th>
+                <th>DNS Names</th>
+                <th>Admin(s):</th>
+                <th>Host-based Firewall</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{host_detail.ipv4_addr}}</td>
+                <td>{{host_detail.get_dns_rcs_display}}</td>
+                <td>{{host_detail.admin_ids|join:", "}}</td>
+                <td>{{host_detail.get_fw_display}}</td>
+            </tr>
+        </tbody>
+    </table>
+
     <p>
     {% if not host_detail.get_fw_display %}
         No host-based firewall configured. Select one to enable the download of the firewall configuration script.
-    {% else %}
-        Selected Host-based Firewall: {{ host_detail.get_fw_display }}
     {% endif %}
     </p>
+
+    <a href="{% url 'update_host_firewall' ipv4=host_ipv4 %}" class="btn btn-primary" title="Edit host-based firewall.">
+        Edit host-based Firewall
+    </a>
+
+    <hr>
 
     <table>
         <thead>
