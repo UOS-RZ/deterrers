@@ -36,7 +36,9 @@ logger = logging.getLogger(__name__)
 def add_changelog(history: int = 10) -> list[str]:
     # form: ("<date>", "<description>")
     changes = [
-
+        ("2023-10-18", "Fix: Removed host duplicates when adding hosts for admin and department"),  # noqa: E501
+        ("2023-10-24", "UI improvements for 'Host Details'-site."),
+        ("2023-10-24", "API users can now skip registration-scans.")
     ]
 
     today = datetime.datetime.today().date()
