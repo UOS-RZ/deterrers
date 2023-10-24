@@ -92,10 +92,7 @@ def available_actions(host: MyHost) -> dict:
             )
             flags['show_register'] = True
             flags['can_scan'] = True
-            flags['can_download_config'] = (
-                host.service_profile != HostServiceProfile.EMPTY
-                and host.fw != HostFW.EMPTY
-            )
+            flags['can_download_config'] = host.fw != HostFW.EMPTY
             flags['can_block'] = False
             flags['can_remove'] = True
         case HostStatus.UNDER_REVIEW:
@@ -103,10 +100,7 @@ def available_actions(host: MyHost) -> dict:
             flags['can_register'] = False
             flags['show_register'] = False
             flags['can_scan'] = False
-            flags['can_download_config'] = (
-                host.service_profile != HostServiceProfile.EMPTY
-                and host.fw != HostFW.EMPTY
-            )
+            flags['can_download_config'] = host.fw != HostFW.EMPTY
             flags['can_block'] = False
             flags['can_remove'] = False
         case HostStatus.BLOCKED:
@@ -117,10 +111,7 @@ def available_actions(host: MyHost) -> dict:
             )
             flags['show_register'] = True
             flags['can_scan'] = True
-            flags['can_download_config'] = (
-                host.service_profile != HostServiceProfile.EMPTY
-                and host.fw != HostFW.EMPTY
-            )
+            flags['can_download_config'] = host.fw != HostFW.EMPTY
             flags['can_block'] = False
             flags['can_remove'] = True
         case HostStatus.ONLINE:
@@ -128,10 +119,7 @@ def available_actions(host: MyHost) -> dict:
             flags['can_register'] = False
             flags['show_register'] = False
             flags['can_scan'] = True
-            flags['can_download_config'] = (
-                host.service_profile != HostServiceProfile.EMPTY
-                and host.fw != HostFW.EMPTY
-            )
+            flags['can_download_config'] = host.fw != HostFW.EMPTY
             flags['can_block'] = True
             flags['can_remove'] = True
         case _:
