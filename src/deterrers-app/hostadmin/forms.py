@@ -43,7 +43,6 @@ class ChangeHostDetailForm(forms.Form):
     # django
     SERVICE_CHOICES = [(profile.value, profile.value)
                        for profile in HostServiceProfile]
-    FW_CHOICES = [(fw.value, fw.value) for fw in HostFW]
 
     service_profile = forms.ChoiceField(
         choices=SERVICE_CHOICES,
@@ -53,6 +52,12 @@ class ChangeHostDetailForm(forms.Form):
         required=False,
         initial=""
     )
+
+
+class ChangeHostFirewallForm(forms.Form):
+    # create lists of tuples in order to make use of the model validation of
+    # django
+    FW_CHOICES = [(fw.value, fw.value) for fw in HostFW]
 
     fw = forms.ChoiceField(
         choices=FW_CHOICES,

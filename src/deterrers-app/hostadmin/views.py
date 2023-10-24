@@ -28,6 +28,7 @@ from hostadmin.util import (add_changelog,
                             set_host_offline,
                             set_host_online)
 from hostadmin.forms import (ChangeHostDetailForm,
+                             ChangeHostFirewallForm,
                              AddHostRulesForm,
                              HostadminForm,
                              AddHostForm)
@@ -414,7 +415,7 @@ def update_host_detail(request, ipv4: str):
         HTTPResponse: Rendered HTML page.
     """
     logger.info(
-        "Request: Update host %s with method %s by user %s",
+        "Request: Update details of host %s with method %s by user %s",
         ipv4,
         str(request.method),
         request.user.username
@@ -451,13 +452,6 @@ def update_host_detail(request, ipv4: str):
             form = ChangeHostDetailForm(request.POST)
 
             if form.is_valid():
-                redirect_next = redirect(
-                    'host_detail',
-                    ipv4=host.get_ipv4_escaped()
-                )
-                if 'next' in request.GET:
-                    redirect_next = redirect(request.GET.get('next'))
-
                 # update the actual model instance
                 service_profile_change = (
                     host.service_profile
@@ -465,24 +459,13 @@ def update_host_detail(request, ipv4: str):
                         form.cleaned_data['service_profile']
                     )
                 )
-                host.service_profile = HostServiceProfile(
-                    form.cleaned_data['service_profile']
-                )
-                fw_change = host.fw != HostFW(form.cleaned_data['fw'])
-                host.fw = HostFW(form.cleaned_data['fw'])
-                if not ipam.update_host_info(host):
-                    form.add_error(
-                        None,
-                        ("Host information could not be updated! "
-                         + "Try again later...")
-                    )
-                    # redirect to a new URL:
-                    return redirect_next
 
-                if not service_profile_change and not fw_change:
+                if not service_profile_change:
                     # return immediately if nothing was changed
-                    return redirect_next
-                elif service_profile_change:
+                    return redirect('host_detail', ipv4=host.get_ipv4_escaped())
+                else:
+                    host.service_profile = HostServiceProfile(form.cleaned_data['service_profile'])
+
                     # if host is already online, update the perimeter FW
                     if host.status == HostStatus.ONLINE:
                         if host.service_profile == HostServiceProfile.EMPTY:
@@ -496,7 +479,7 @@ def update_host_detail(request, ipv4: str):
                             }
                             return render(
                                 request,
-                                'host/update_host_detail.html',
+                                'host/update_host_form.html',
                                 context=context
                             )
                         if not set_host_online(str(host.ipv4_addr)):
@@ -510,7 +493,7 @@ def update_host_detail(request, ipv4: str):
                             }
                             return render(
                                 request,
-                                'host/update_host_detail.html',
+                                'host/update_host_form.html',
                                 context=context
                             )
 
@@ -569,14 +552,13 @@ def update_host_detail(request, ipv4: str):
                         )
 
                 # redirect to a new URL:
-                return redirect_next
+                return redirect('host_detail', ipv4=host.get_ipv4_escaped())
 
         else:
             form = ChangeHostDetailForm(
                 initial={
                     'name': host.name,
                     'service_profile': host.service_profile.value,
-                    'fw': host.fw.value
                 }
             )
 
@@ -584,7 +566,63 @@ def update_host_detail(request, ipv4: str):
         'form': form,
         'host_instance': host
     }
-    return render(request, 'host/update_host_detail.html', context=context)
+    return render(request, 'host/update_host_form.html', context=context)
+
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def update_host_firewall(request, ipv4: str):
+    logger.info(
+        "Request: Update host-based firewall of host %s with method %s by user %s",
+        ipv4,
+        str(request.method),
+        request.user.username
+    )
+    hostadmin = get_object_or_404(MyUser, username=request.user.username)
+
+    with IPAMWrapper(
+            settings.IPAM_USERNAME,
+            settings.IPAM_SECRET_KEY,
+            settings.IPAM_URL
+    ) as ipam:
+        if not ipam.enter_ok:
+            return HttpResponse(status=500)
+
+        # check if user has IPAM permission or an admin tag for them exists
+        if not ipam.is_admin(hostadmin.username):
+            raise Http404()
+        # get host
+        host = ipam.get_host_info_from_ip(ipv4)
+        if not host:
+            raise Http404()
+
+        # check if user is admin of this host
+        if hostadmin.username not in host.admin_ids:
+            raise Http404()
+
+        # do processing based on whether this is GET or POST request
+        if request.method == 'POST':
+            form = ChangeHostFirewallForm(request.POST)
+
+            if form.is_valid():
+                fw_change = host.fw != HostFW(form.cleaned_data['fw'])
+                # changing the host firewall during scans is allowed
+                host.fw = HostFW(form.cleaned_data['fw'])
+                if not ipam.update_host_info(host):
+                    messages.error(request, "Host information could not be updated! "
+                         + "Try again later...")
+
+                # redirect to a new URL:
+                return redirect('host_detail', ipv4=host.get_ipv4_escaped(), tab='host')
+
+        else:
+            form = ChangeHostFirewallForm(initial={'fw': host.fw.value})
+
+    context = {
+        'form': form,
+        'host_instance': host
+    }
+    return render(request, 'host/update_host_form.html', context=context)
 
 
 """ Host Actions """
