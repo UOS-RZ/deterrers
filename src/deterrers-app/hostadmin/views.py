@@ -143,7 +143,7 @@ def api_schema(request):
 
 @login_required
 @require_http_methods(['GET', 'POST'])
-def host_detail_view(request, ipv4: str, tab: str = 'perimeter'):
+def host_detail_view(request, ipv4: str, tab: str = 'general'):
     """
     Function-based view for showing host details. Only available to logged
     in users.
@@ -151,7 +151,7 @@ def host_detail_view(request, ipv4: str, tab: str = 'perimeter'):
     Args:
         request (): Request object.
         ipv4 (str): IP string from the URL parameter.
-        tab (str): Name of the active tab. Defaults to the perimeter tab.
+        tab (str): Name of the active tab. Defaults to the general tab.
 
     Raises:
         Http404: When object is not available or user has no permission.
