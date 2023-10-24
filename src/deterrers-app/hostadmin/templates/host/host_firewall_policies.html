@@ -1,0 +1,67 @@
+{% load django_bootstrap5 %}
+
+<div class="host-rules">
+    <h3>Host-based Firewall Policies</h3>
+    <p>
+    {% if not host_detail.get_fw_display %}
+        No host-based firewall configured. Select one to enable the download of the firewall configuration script.
+    {% else %}
+        Selected Host-based Firewall: {{ host_detail.get_fw_display }}
+    {% endif %}
+    </p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Allow from:</th>
+                <th>Port(s):</th>
+                <th>Protocol:</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for rule in host_rules %}
+            <form action="{% url 'delete_rule' ipv4=host_ipv4 rule_id=rule.id %}" method="post">
+                {% csrf_token %}
+                <tr>
+                    <td>{{rule.allow_src}}</td>
+                    <td>{{rule.allow_ports|join:", "}}</td>
+                    <td>{{rule.allow_proto}}</td>
+                    <td>{% bootstrap_button button_type="submit" content="Delete" button_class="btn btn-danger" %}</td>
+                </tr>
+            </form>
+        {% endfor %}
+        </tbody>
+        <tfoot>
+            <form action='' method="post" class="form">
+                {% csrf_token %}
+                <tr class="host-rules-add-row">
+                    <td>
+                        {% bootstrap_field form.subnet show_label=False %}
+                    </td>
+                    <td>
+                        {% bootstrap_field form.ports show_label=False %}
+                    </td>
+                    <td>
+                        {% bootstrap_field form.protocol show_label=False %}
+                    </td>
+                    <td>
+                        {% bootstrap_button button_type="submit" content="Add" %}
+                        {% bootstrap_form_errors form %}
+                    </td>
+                </tr>
+            </form>
+        </tfoot>
+    </table>
+
+    <form action="{% url 'get_fw_config' ipv4=host_ipv4 %}" method="get">
+        <div class="d-grid gap-2 col-6 mx-auto">
+            {% csrf_token %}
+            {% if can_download_config %}
+                {% bootstrap_button name="fw_config_btn" button_type="submit" content="Download Firewall Configuration Script" button_class="btn btn-primary" title="Download script for specified firewall tool." %}
+            {% else %}
+                {% bootstrap_button name="fw_config_btn" button_type="submit" content="Download Firewall Configuration Script" button_class="btn btn-primary" disabled=True %}
+            {% endif %}
+        </div>
+    </form>
+</div>

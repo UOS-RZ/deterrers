@@ -1,0 +1,65 @@
+{% load django_bootstrap5 %}
+
+<div>
+    <h3>Actions</h3>
+    <div class="host-actions">
+        {% if show_register %}
+            <form action="{% url 'register_host' ipv4=host_ipv4 %}" method="post">
+                {% csrf_token %}
+                {% bootstrap_button name="register_btn" button_type="submit" content="Register" button_class="btn btn-primary" title="Start vulnerability scan and unblock it from internet on success. A non-empty internet service profile and a public host IP are required. During the scan, the host can not be edited or removed from DETERRERS." %}
+            </form>
+        {% endif %}
+
+        {% if can_block %}
+            <form action="{% url 'block_host' ipv4=host_ipv4 %}" method="post">
+                {% csrf_token %}
+                {% bootstrap_button name="block_btn" button_type="submit" content="Block" button_class="btn btn-primary" title="Block host from the internet. After the host is blocked, it can be registered again." %}
+            </form>
+        {% endif %}
+
+        {% if can_scan %}
+            <form action="{% url 'scan_host' ipv4=host_ipv4 %}" method="post">
+                {% csrf_token %}
+                {% bootstrap_button name="scan_btn" button_type="submit" content="Ordinary Scan" button_class="btn btn-primary" title="Start vulnerability scan but do not change status. During the scan, the host can not be edited, blocked or removed from DETERRERS." %}
+            </form>
+        {% endif %}
+
+        {% if can_remove %}
+            <form action="{% url 'remove_host' ipv4=host_ipv4 %}" method="post">
+                {% csrf_token %}
+                {% bootstrap_button name="remove_btn" button_type="submit" content="Remove from DETERRERS" button_class="btn btn-danger" title="Remove host from DETERRERS. Blocks it and removes all information on it." %}
+            </form>
+        {% endif %}
+    </div>
+</div>
+
+<hr>
+
+<div>
+    <h3> Increasing the Scan Quality</h3>
+    <p>
+        In order to increase the vulnerability scan results, we recommend to enable SSH access for the vulnerability scanner. This can be achieved by following these steps:
+    </p>
+    <ol>
+        <li>
+            On the target host: Create a user named <code>greenbone</code>.<br>
+            <code>
+                sudo adduser greenbone
+            </code>
+        </li>
+        <li>
+            Download the public key that enables key-based SSH access for the vulnerability scanner:<br>
+            <code>curl {{scanner_key_url}} --output scanner.pub</code>
+        </li>
+        <li>
+            Add this public key to the authorized keys of user <code>greenbone</code>:<br>
+            <code>
+                sudo bash -c "mkdir -p /home/greenbone/.ssh && chown -R greenbone:greenbone /home/greenbone/.ssh && chmod 700 /home/greenbone/.ssh && touch /home/greenbone/.ssh/authorized_keys && cat scanner.pub >> /home/greenbone/.ssh/authorized_keys"
+            </code>
+        </li>
+        <li>In case you restricted the allowed users for SSH you should add the user <code>greenbone</code> to the AllowUsers list in <code>/etc/ssh/sshdconfig</code>.</li>
+    </ol>
+    <p>
+        Now the vulnerability scanner should have SSH access to your host and be able to gather more precise information on possible vulnerabilities of your system.
+    </p>
+</div>
