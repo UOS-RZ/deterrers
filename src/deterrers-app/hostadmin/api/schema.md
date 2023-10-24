@@ -147,7 +147,10 @@ Edit only the internet service profile of host 0.0.0.0 to 'HTTP':
                 application/json:
                     schema: {
                         'action' : <'register'|'block'>,
-                        'ipv4_addrs' : [<ip>,]
+                        'ipv4_addrs' : [<ip>,],
+                        'skip_scan':
+                            'type': boolean,
+                            'default': false,
                     }
             responses:
                 '200':
@@ -157,3 +160,7 @@ Example:
 Start registration of host 0.0.0.0:
 
     curl -X POST -H 'Authorization: Token <user_token>' -H "Content-Type: application/json" -d '{"action" : "register", "ipv4_addrs" : ["0.0.0.0"]}' https://deterrers.rz.uos.de:443/hostadmin/api/action/
+
+Start registration of host 0.0.0.0 without registration scan: 
+    
+    curl -X POST -H 'Authorization: Token <user_token>' -H "Content-Type: application/json" -d '{"action" : "register", "ipv4_addrs" : ["0.0.0.0"], "skip_scan" : true}' https://deterrers.rz.uos.de:443/hostadmin/api/action/
