@@ -109,3 +109,4 @@ class HostActionSerializer(serializers.Serializer):
         required=True,
         child=serializers.IPAddressField(protocol='ipv4')
     )
+    skip_scan = serializers.BooleanField(default=False)
