@@ -1,5 +1,37 @@
 {% load django_bootstrap5 %}
 
+<div class="host-details">
+    <h3>Host Details</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>IP Address</th>
+                <th>DNS Names</th>
+                <th>Admin(s):</th>
+                <th>Internet Service Profile</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{host_detail.ipv4_addr}}</td>
+                <td>{{host_detail.get_dns_rcs_display}}</td>
+                <td>{{host_detail.admin_ids|join:", "}}</td>
+                <td>{{host_detail.get_service_profile_display}}</td>
+                <td>{{host_detail.get_status_display}}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    {% if can_update %}
+    <a href="{% url 'update_host_detail' ipv4=host_ipv4 %}" class="btn btn-primary" title="Edit internet service profile. The service profile can not be edited during scans.">
+        Edit Service Profile
+    </a>
+    {% endif %}
+</div>
+
+<hr>
+
 <div>
     <h3>Actions</h3>
     <div class="host-actions">
