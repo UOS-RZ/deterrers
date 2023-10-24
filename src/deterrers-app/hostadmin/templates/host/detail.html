@@ -1,0 +1,52 @@
+{% extends "base_generic.html" %}
+
+{% load django_bootstrap5 %}
+
+{% block title %} <title>Host Status: {{host_detail.ipv4_addr}} ({{host_detail.get_dns_rcs_display}})</title> {% endblock %}
+
+{% block content %}
+    <div class="host-details">
+        <h3>Host Details</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>IP Address</th>
+                    <th>DNS Names</th>
+                    <th>Admin(s):</th>
+                    <th>Internet Service Profile</th>
+                    <th>Host-based Firewall</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{host_detail.ipv4_addr}}</td>
+                    <td>{{host_detail.get_dns_rcs_display}}</td>
+                    <td>{{host_detail.admin_ids|join:", "}}</td>
+                    <td>{{host_detail.get_service_profile_display}}</td>
+                    <td>{{host_detail.get_fw_display}}</td>
+                    <td>{{host_detail.get_status_display}}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        {% if can_update %}
+        <a href="{% url 'update_host_detail' ipv4=host_ipv4 %}?next={{request.path}}" class="btn btn-primary" title="Edit host details, e.g. internet service profile or host-based firewall tool. The host can not be edited during scans.">
+            Edit Details
+        </a>
+        {% endif %}
+    </div>
+
+    <hr>
+
+    <nav class="nav nav-tabs host-detail-tabs">
+        <a class="nav-link {% if active_tab == "perimeter" %}active{% endif %}" href="{% url 'host_detail' ipv4=host_ipv4 tab='perimeter' %}">General</a>
+        <a class="nav-link {% if active_tab == "host" %}active{% endif %}" href="{% url 'host_detail' ipv4=host_ipv4 tab='host' %}">Host-based Firewall</a>
+    </nav>
+
+    {% if active_tab == "perimeter" %}
+        {% include "host/perimeter_firewall.html" %}
+    {% else %}
+        {% include "host/host_firewall_policies.html" %}
+    {% endif %}
+{% endblock %}
