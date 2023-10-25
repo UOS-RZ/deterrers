@@ -51,7 +51,8 @@ class DataMockWrapper(DataAbstract):
                         "dns_rcs": [],
                         "service_profile": HostServiceProfile.EMPTY.name,
                         "fw": HostFW.EMPTY.name,
-                        "host_based_policies": []
+                        "host_based_policies": [],
+                        "comment": "",
                     }
                 }
                 json.dump(data, f)
@@ -79,7 +80,8 @@ class DataMockWrapper(DataAbstract):
                     set(),
                     HostServiceProfile.EMPTY,
                     HostFW.EMPTY,
-                    []
+                    [],
+                    ''
                 )
             data = data["hosts"][ipv4]
             return MyHost(
@@ -93,7 +95,8 @@ class DataMockWrapper(DataAbstract):
                 HostServiceProfile[data["service_profile"]],
                 HostFW[data["fw"]],
                 [HostBasedPolicy.from_string(pol)
-                 for pol in data["host_based_policies"]]
+                 for pol in data["host_based_policies"]],
+                data["comment"]
             )
 
     def get_hosts_of_admin(
