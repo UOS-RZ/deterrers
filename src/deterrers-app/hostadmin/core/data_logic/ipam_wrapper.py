@@ -497,7 +497,8 @@ class ProteusIPAMWrapper(DataAbstract):
     #          status,
     #          service,
     #          fw,
-    #          rules) = self.__parse_ipam_host_entity(data)
+    #          rules,
+    #          comment) = self.__parse_ipam_host_entity(data)
     #         # get all tagged admins
     #         tagged_admins = self.__get_admins_of_host(host_id)
     #         # get dns records
@@ -513,7 +514,8 @@ class ProteusIPAMWrapper(DataAbstract):
     #             service_profile=service,
     #             fw=fw,
     #             host_based_policies=rules,
-    #             entity_id=int(host_id)
+    #             entity_id=int(host_id),
+    #             comment=comment
     #         )
     #         if my_host.is_valid():
     #             return my_host
@@ -957,6 +959,7 @@ class ProteusIPAMWrapper(DataAbstract):
                     + "|deterrers_rules="
                     + json.dumps([p.to_string()
                                   for p in host.host_based_policies])
+                    + f"|comment={self.__escape_user_input(host.comment)}"
                     + "|"
                 )
                 update_host_body = {
