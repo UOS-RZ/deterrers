@@ -189,6 +189,11 @@ class DataMockWrapper(DataAbstract):
         host: MyHost
     ) -> int:
         host.admin_ids.add(admin_name)
+        if admin_name in self.get_department_names():
+            host.admin_ids.update(
+                [n for n in self.get_all_admin_names()
+                 if self.get_department_to_admin(n) == admin_name]
+            )
         self.update_host_info(host)
 
         return 200
