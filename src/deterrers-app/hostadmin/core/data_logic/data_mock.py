@@ -81,7 +81,7 @@ class DataMockWrapper(DataAbstract):
                     HostServiceProfile.EMPTY,
                     HostFW.EMPTY,
                     [],
-                    ''
+                    ""
                 )
             data = data["hosts"][ipv4]
             return MyHost(
@@ -119,7 +119,8 @@ class DataMockWrapper(DataAbstract):
                         HostServiceProfile[host_data["service_profile"]],
                         HostFW[host_data["fw"]],
                         [HostBasedPolicy.from_string(pol)
-                         for pol in host_data["host_based_policies"]]
+                         for pol in host_data["host_based_policies"]],
+                        host_data["comment"]
                     ))
         return hosts
 
@@ -217,7 +218,8 @@ class DataMockWrapper(DataAbstract):
             "service_profile": host.service_profile.name,
             "fw": host.fw.name,
             "host_based_policies": [pol.to_string()
-                                    for pol in host.host_based_policies]
+                                    for pol in host.host_based_policies],
+            "comment": host.comment
         }
 
         with open(self.f_path, "w") as f:
