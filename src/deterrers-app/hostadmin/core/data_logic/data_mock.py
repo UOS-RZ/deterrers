@@ -51,7 +51,8 @@ class DataMockWrapper(DataAbstract):
                         "dns_rcs": [],
                         "service_profile": HostServiceProfile.EMPTY.name,
                         "fw": HostFW.EMPTY.name,
-                        "host_based_policies": []
+                        "host_based_policies": [],
+                        "comment": "",
                     }
                 }
                 json.dump(data, f)
@@ -79,7 +80,8 @@ class DataMockWrapper(DataAbstract):
                     set(),
                     HostServiceProfile.EMPTY,
                     HostFW.EMPTY,
-                    []
+                    [],
+                    ""
                 )
             data = data["hosts"][ipv4]
             return MyHost(
@@ -93,7 +95,8 @@ class DataMockWrapper(DataAbstract):
                 HostServiceProfile[data["service_profile"]],
                 HostFW[data["fw"]],
                 [HostBasedPolicy.from_string(pol)
-                 for pol in data["host_based_policies"]]
+                 for pol in data["host_based_policies"]],
+                data["comment"]
             )
 
     def get_hosts_of_admin(
@@ -104,7 +107,10 @@ class DataMockWrapper(DataAbstract):
         with open(self.f_path, "r") as f:
             data = json.load(f)
             for ipv4, host_data in data["hosts"].items():
-                if admin_name in host_data["admin_ids"]:
+                if (
+                    admin_name in host_data["admin_ids"]
+                    or self.get_department_to_admin(admin_name) in host_data["admin_ids"]  # noqa: E501
+                ):
                     hosts.append(MyHost(
                         host_data["entity_id"],
                         host_data["ipv4_addr"],
@@ -116,7 +122,8 @@ class DataMockWrapper(DataAbstract):
                         HostServiceProfile[host_data["service_profile"]],
                         HostFW[host_data["fw"]],
                         [HostBasedPolicy.from_string(pol)
-                         for pol in host_data["host_based_policies"]]
+                         for pol in host_data["host_based_policies"]],
+                        host_data["comment"]
                     ))
         return hosts
 
@@ -182,6 +189,11 @@ class DataMockWrapper(DataAbstract):
         host: MyHost
     ) -> int:
         host.admin_ids.add(admin_name)
+        if admin_name in self.get_department_names():
+            host.admin_ids.update(
+                [n for n in self.get_all_admin_names()
+                 if self.get_department_to_admin(n) == admin_name]
+            )
         self.update_host_info(host)
 
         return 200
@@ -214,7 +226,8 @@ class DataMockWrapper(DataAbstract):
             "service_profile": host.service_profile.name,
             "fw": host.fw.name,
             "host_based_policies": [pol.to_string()
-                                    for pol in host.host_based_policies]
+                                    for pol in host.host_based_policies],
+            "comment": host.comment
         }
 
         with open(self.f_path, "w") as f:
