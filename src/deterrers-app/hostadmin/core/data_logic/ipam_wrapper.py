@@ -135,6 +135,10 @@ class ProteusIPAMWrapper(DataAbstract):
                          for p_str in json.loads(props['deterrers_rules'])]
             except KeyError:
                 rules = []
+            try:
+                comment = props['comment']
+            except KeyError:
+                comment = ''
         except (KeyError, AttributeError, TypeError):
             ip = ''
             mac = ''
@@ -142,7 +146,8 @@ class ProteusIPAMWrapper(DataAbstract):
             service_profile = HostServiceProfile.EMPTY
             fw = HostFW.EMPTY
             rules = []
-        return host_id, name, ip, mac, status, service_profile, fw, rules
+            comment = ''
+        return host_id, name, ip, mac, status, service_profile, fw, rules, comment
 
     def __escape_user_input(self, input_str: str) -> str:
         """
@@ -427,7 +432,8 @@ class ProteusIPAMWrapper(DataAbstract):
              status,
              service,
              fw,
-             rules) = self.__parse_ipam_host_entity(data)
+             rules,
+             comment) = self.__parse_ipam_host_entity(data)
             if type(host_id) is not int:
                 logger.error("Couldn't get data for host %s", ipv4)
                 return None
@@ -446,6 +452,7 @@ class ProteusIPAMWrapper(DataAbstract):
                 service_profile=service,
                 fw=fw,
                 host_based_policies=rules,
+                comment=comment,
                 entity_id=int(host_id)
             )
             if my_host.is_valid():
@@ -490,7 +497,8 @@ class ProteusIPAMWrapper(DataAbstract):
     #          status,
     #          service,
     #          fw,
-    #          rules) = self.__parse_ipam_host_entity(data)
+    #          rules,
+    #          comment) = self.__parse_ipam_host_entity(data)
     #         # get all tagged admins
     #         tagged_admins = self.__get_admins_of_host(host_id)
     #         # get dns records
@@ -506,7 +514,8 @@ class ProteusIPAMWrapper(DataAbstract):
     #             service_profile=service,
     #             fw=fw,
     #             host_based_policies=rules,
-    #             entity_id=int(host_id)
+    #             entity_id=int(host_id),
+    #             comment=comment
     #         )
     #         if my_host.is_valid():
     #             return my_host
@@ -547,7 +556,8 @@ class ProteusIPAMWrapper(DataAbstract):
                  status,
                  service,
                  fw,
-                 rules) = self.__parse_ipam_host_entity(host_e)
+                 rules,
+                 comment) = self.__parse_ipam_host_entity(host_e)
                 if type(host_id) is not int:
                     logger.error("Couldn't get data for host %s", str(ip))
                     return None
@@ -565,6 +575,7 @@ class ProteusIPAMWrapper(DataAbstract):
                     service_profile=service,
                     fw=fw,
                     host_based_policies=rules,
+                    comment=comment,
                     entity_id=int(host_id)
                 )
                 if my_host.is_valid():
@@ -948,6 +959,7 @@ class ProteusIPAMWrapper(DataAbstract):
                     + "|deterrers_rules="
                     + json.dumps([p.to_string()
                                   for p in host.host_based_policies])
+                    + f"|comment={self.__escape_user_input(host.comment)}"
                     + "|"
                 )
                 update_host_body = {

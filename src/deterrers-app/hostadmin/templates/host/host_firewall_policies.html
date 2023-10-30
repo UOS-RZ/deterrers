@@ -7,6 +7,7 @@
             <tr>
                 <th>IP Address</th>
                 <th>DNS Names</th>
+                <th>Comment</th>
                 <th>Admin(s):</th>
                 <th>Host-based Firewall</th>
             </tr>
@@ -15,6 +16,7 @@
             <tr>
                 <td>{{host_detail.ipv4_addr}}</td>
                 <td>{{host_detail.get_dns_rcs_display}}</td>
+                <td>{{host_detail.comment}}</td>
                 <td>{{host_detail.admin_ids|join:", "}}</td>
                 <td>{{host_detail.get_fw_display}}</td>
             </tr>

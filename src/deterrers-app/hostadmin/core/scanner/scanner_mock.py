@@ -141,7 +141,10 @@ class ScannerMock(ScannerAbstract):
         with open(self.f_path, "r") as f:
             data = set(json.load(f))
 
-        data.remove(host_ip)
+        try:
+            data.remove(host_ip)
+        except KeyError:
+            return True
 
         with open(self.f_path, "w") as f:
             json.dump(list(data), f)
