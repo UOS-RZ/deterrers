@@ -1,9 +1,8 @@
 header {
-    background-color: rgb(47, 79, 79);
+    background-color: rgb(41, 68, 68);
     color: white;
 
     padding: 5px;
-    border-bottom: thin solid rgb(40, 70, 70);
 }
 
 header nav .login {
@@ -18,16 +17,16 @@ header nav .login {
 }
 
 .nav-link {
-    color: rgba(184, 134, 11, 1);
+    color: rgb(255, 184, 5);
 }
 
 .nav-link:hover, .nav-link:focus {
-    color: rgba(184, 134, 11, 0.8);
+    color: rgba(255, 184, 5, 0.8);
 
 }
 
 .navbar .nav-link.active {
-    color: rgba(184, 134, 11, 1);
+    color: rgba(255, 184, 5, 1);
     font-weight: bold;
 }
 
@@ -42,18 +41,18 @@ header nav .login {
 }
 
 .nav-tabs .nav-link.active {
-    color: rgba(184, 134, 11, 1);
+    color: rgb(255, 184, 5);
     font-weight: bold;
     background-color: transparent;
-    border-bottom-color: rgba(47, 79, 79, 0.95);
+    border-bottom-color: rgba(41, 68, 68, 0.95);
 }
 
 .navbar-toggler {
-    border-color: rgba(184, 134, 11, 0.5);
+    border-color: rgba(255, 184, 5, 0.5);
 }
 
 .navbar-toggler:focus {
-    box-shadow: 0 0 5px rgb(184, 134, 11);
+    box-shadow: 0 0 5px rgb(255, 184, 5);
 }
 
 .navbar-toggler-icon {
@@ -68,6 +67,10 @@ main > .container {
     color: rgb(211, 211, 211);
 }
 
+.text-danger {
+    color: rgb(255, 156, 156) !important;
+}
+
 .col-sm-10 {
     margin-left: 250px; /* Same width as the sidebar + left position in px */
     margin-top: 20px;
@@ -76,16 +79,16 @@ main > .container {
 }
 
 body {
-    background-color: rgba(47, 79, 79, 0.95);
+    background-color: rgba(41, 68, 68, 0.95);
     color: white;
 }
 
 a {
-    color: rgba(184, 134, 11, 1);
+    color: rgba(255, 184, 5, 1);
 }
 
 a:hover, a:focus {
-    color: rgba(184, 134, 11, 0.8);
+    color: rgba(255, 184, 5, 0.8);
 }
 
 table, th, td {
@@ -94,24 +97,24 @@ table, th, td {
     padding: 10px;
 } 
 
-tr:hover {background-color: rgb(57, 96, 96);}
+tr:hover {background-color: rgb(55, 91, 91);}
 
 .btn, .btn:disabled, .btn:hover, .btn-primary:active {
     border-color: rgb(0, 0, 0) !important;
 }
 
 .btn-primary {
-    color: white !important;
-    background-color: rgb(184, 134, 11);
+    color: rgb(41, 68, 68) !important;
+    background-color: rgb(255, 184, 5);
     border-color: rgb(0, 0, 0);
 }
 
 .btn-primary:disabled, .btn-primary.disabled {
-    background-color: rgb(231, 170, 13);
+    background-color: rgb(252, 208, 122);
 }
 
 .btn-primary:hover, .btn-primary:active, .btn-primary:focus{
-    background-color: rgb(135, 99, 8) !important;
+    background-color: rgb(220, 162, 12) !important;
 }
 
 code {
