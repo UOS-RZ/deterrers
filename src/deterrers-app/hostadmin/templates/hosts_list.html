@@ -24,9 +24,10 @@
 			<tr>
 				<th><a href='#sort:0:asc'>IP Address</a></th>
 				<th><a href='#sort:1:asc'>DNS Names</a></th>
-				<th><a href='#sort:2:asc'>Admin(s)</a></th>
-				<th><a href='#sort:3:asc'>Internet Service Profile</a></th>
-				<th><a href='#sort:4:asc'>Status</a></th>
+				<th><a href='#sort:2:asc'>Comment</a></th>
+				<th><a href='#sort:3:asc'>Admin(s)</a></th>
+				<th><a href='#sort:4:asc'>Internet Service Profile</a></th>
+				<th><a href='#sort:5:asc'>Status</a></th>
 			</tr>
 		</thead>
 		<tbody>
@@ -34,6 +35,7 @@
 			<tr>
 				<td><a href="{{ host.get_absolute_url }}">{{host.ipv4_addr}}</a></td>
 				<td>{{host.get_dns_rcs_display}}</td>
+				<td>{{host.comment}}</td>
 				<td>{{host.admin_ids|join:", "}}</td>
 				<td>{{host.get_service_profile_display}}</td>
 				<td>{{host.get_status_display}}</td>

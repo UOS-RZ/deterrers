@@ -25,7 +25,8 @@ class MyHost():
         dns_rcs: set[str] = set(),
         service_profile: HostServiceProfile = HostServiceProfile.EMPTY,
         fw: HostFW = HostFW.EMPTY,
-        host_based_policies: list[HostBasedPolicy] = []
+        host_based_policies: list[HostBasedPolicy] = [],
+        comment: str = '',
     ):
 
         # Mandatory
@@ -44,6 +45,7 @@ class MyHost():
         self.service_profile = service_profile
         self.fw = fw
         self.host_based_policies = host_based_policies
+        self.comment = comment
 
     def __str__(self) -> str:
         return (f"IPv4: {str(self.ipv4_addr)} "
