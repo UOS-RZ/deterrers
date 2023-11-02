@@ -462,9 +462,14 @@ def update_host_detail(request, ipv4: str):
 
                 if not service_profile_change:
                     # return immediately if nothing was changed
-                    return redirect('host_detail', ipv4=host.get_ipv4_escaped())
+                    return redirect(
+                        'host_detail',
+                        ipv4=host.get_ipv4_escaped()
+                    )
                 else:
-                    host.service_profile = HostServiceProfile(form.cleaned_data['service_profile'])
+                    host.service_profile = HostServiceProfile(
+                        form.cleaned_data['service_profile']
+                    )
 
                     # if host is already online, update the perimeter FW
                     if host.status == HostStatus.ONLINE:
@@ -573,7 +578,7 @@ def update_host_detail(request, ipv4: str):
 @require_http_methods(['GET', 'POST'])
 def update_host_firewall(request, ipv4: str):
     logger.info(
-        "Request: Update host-based firewall of host %s with method %s by user %s",
+        "Request: Update host-based firewall of host %s with method %s by user %s",  # noqa: E501
         ipv4,
         str(request.method),
         request.user.username
@@ -606,14 +611,21 @@ def update_host_firewall(request, ipv4: str):
 
             if form.is_valid():
                 fw_change = host.fw != HostFW(form.cleaned_data['fw'])
-                # changing the host firewall during scans is allowed
-                host.fw = HostFW(form.cleaned_data['fw'])
-                if not ipam.update_host_info(host):
-                    messages.error(request, "Host information could not be updated! "
-                         + "Try again later...")
+                if fw_change:
+                    # changing the host firewall during scans is allowed
+                    host.fw = HostFW(form.cleaned_data['fw'])
+                    if not ipam.update_host_info(host):
+                        messages.error(
+                            request,
+                            "Host information could not be updated! Try again later..."  # noqa: E501
+                        )
 
                 # redirect to a new URL:
-                return redirect('host_detail', ipv4=host.get_ipv4_escaped(), tab='host')
+                return redirect(
+                    'host_detail',
+                    ipv4=host.get_ipv4_escaped(),
+                    tab='host'
+                )
 
         else:
             form = ChangeHostFirewallForm(initial={'fw': host.fw.value})
@@ -679,7 +691,7 @@ def register_host(request, ipv4: str):
                 raise Http404()
             actions = available_actions(host)
             # check if host is missing service profile or host ip is not public
-            if actions.get('show_register') and not actions.get('can_register'):
+            if actions.get('show_register') and not actions.get('can_register'):  # noqa: E501
                 messages.error(
                     request,
                     ('No internet service profile is selected '
@@ -1426,7 +1438,7 @@ def scanner_periodic_alert(request):
                         host = ipam.get_host_info_from_ip(host_ipv4)
                         if not host or not host.is_valid():
                             logger.error(
-                                "Invalid host during risk assessment: %s",
+                                "Invalid host during risk assessment: %s!!!",
                                 str(host)
                             )
                             continue

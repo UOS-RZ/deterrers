@@ -266,7 +266,7 @@ class ProteusIPAMWrapper(DataAbstract):
             dns_names.add(host_info[0])
             for alias in host_info[1]:
                 dns_names.add(alias)
-        except socket.herror:
+        except (socket.herror, OSError):
             return set()
         except Exception:
             logger.exception("Error while querying host names of host %s",
@@ -319,8 +319,12 @@ class ProteusIPAMWrapper(DataAbstract):
             # check for all tags whether they belong to the
             # "Deterrers Host Admins" Tag Group or a sub-tag
             for tag_entity in data:
-                tag_id = tag_entity['id']
-                tag_name = tag_entity['name']
+                try:
+                    tag_id = tag_entity['id']
+                    tag_name = tag_entity['name']
+                except TypeError:
+                    # if tag_entity is not of type dict something went wrong
+                    return []
 
                 parent_tag = self.__get_parent_tag(tag_id)
                 if parent_tag['id'] == tag_group_id:
@@ -458,7 +462,7 @@ class ProteusIPAMWrapper(DataAbstract):
             if my_host.is_valid():
                 return my_host
             else:
-                logger.warning("Host '%s' is not valid!", str(my_host))
+                logger.warning("Host '%s' is not valid!", ipv4)
         except requests.exceptions.ConnectTimeout:
             logger.exception('Connection to %s timed out!', self.main_url)
         except requests.exceptions.ConnectionError:
