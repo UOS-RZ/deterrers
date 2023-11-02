@@ -74,16 +74,28 @@ class MyHost():
         return reverse('host_detail', kwargs={'ipv4': self.get_ipv4_escaped()})
 
     def get_service_profile_display(self) -> str:
-        return self.service_profile.value
+        try:
+            return self.service_profile.value
+        except AttributeError:
+            return "Not available!"
 
     def get_fw_display(self) -> str:
-        return self.fw.value
+        try:
+            return self.fw.value
+        except AttributeError:
+            return "Not available!"
 
     def get_status_display(self) -> str:
-        return self.status.value
+        try:
+            return self.status.value
+        except AttributeError:
+            return "Not available!"
 
     def get_dns_rcs_display(self) -> str:
-        return ", ".join(self.dns_rcs)
+        try:
+            return ", ".join(self.dns_rcs)
+        except AttributeError:
+            return "Not available!"
 
     def add_host_based_policy(self, subnets: dict, ports: list[str],
                               proto: str) -> bool:
