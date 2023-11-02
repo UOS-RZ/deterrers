@@ -311,13 +311,13 @@ Following vulnerabilities resulted in the blocking:
             email_body += f"""
     Network Vulnerability Test Name:    {vul.nvt_name}
     Network Vulnerability Test ID:      {vul.nvt_oid}
-    CVSS Base Score:                    {vul.cvss_base_score} ({vul.cvss_base_vector})  # noqa: E501
+    CVSS Base Score:                    {vul.cvss_base_score} ({vul.cvss_base_vector})
     Quality of Detection:               {vul.qod}
     Hostname:                           {vul.hostname}
     Port:                               {vul.port}/{vul.proto}
     Vulnerability References:           {", ".join(vul.refs)}
 
-"""
+"""  # noqa: E501
 
     return email_body
 
@@ -363,13 +363,13 @@ Following vulnerabilities resulted in the blocking:
             email_body += f"""
     Network Vulnerability Test Name:    {vul.nvt_name}
     Network Vulnerability Test ID:      {vul.nvt_oid}
-    CVSS Base Score:                    {vul.cvss_base_score} ({vul.cvss_base_vector})  # noqa: E501
+    CVSS Base Score:                    {vul.cvss_base_score} ({vul.cvss_base_vector})
     Quality of Detection:               {vul.qod}
     Hostname:                           {vul.hostname}
     Port:                               {vul.port}/{vul.proto}
     Vulnerability References:           {", ".join(vul.refs)}
 
-"""
+"""  # noqa: E501
         # if block reasons and notify reasons
         if len(notify_reasons) != 0:
             email_body += """
@@ -412,13 +412,13 @@ They are either not exposed to the internet, affect only the availability or are
             email_body += f"""
     Network Vulnerability Test Name:    {vul.nvt_name}
     Network Vulnerability Test ID:      {vul.nvt_oid}
-    CVSS Base Score:                    {vul.cvss_base_score} ({vul.cvss_base_vector})  # noqa: E501
+    CVSS Base Score:                    {vul.cvss_base_score} ({vul.cvss_base_vector})
     Quality of Detection:               {vul.qod}
     Hostname:                           {vul.hostname}
     Port:                               {vul.port}/{vul.proto}
     Vulnerability References:           {", ".join(vul.refs)}
 
-"""
+"""  # noqa: E501
         email_body += """
 Remediation of these vulnerabilities will still increase the security level of the whole campus network.
 """     # noqa: E501
