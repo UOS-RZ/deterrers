@@ -1376,6 +1376,13 @@ class GmpScannerWrapper(ScannerAbstract):
                     nvt_oid = result_xml.xpath('nvt')[0].attrib['oid']
                     qod = result_xml.xpath('qod/value')[0].text
                     severities = result_xml.xpath('nvt/severities/severity')
+                    try:
+                        description = result_xml.xpath('description')[0].text
+                    except Exception:
+                        logger.exception(
+                            "Couldn't extract vulnerability result description!"
+                        )
+                        description = ""
                 except Exception:
                     continue
                 cvss_severities = []
@@ -1417,6 +1424,7 @@ class GmpScannerWrapper(ScannerAbstract):
                     cvss_base_score=cvss_base_score,
                     cvss_base_vector=cvss_base_vector,
                     refs=refs,
+                    description=description
                 )
                 if results.get(host_ip):
                     results[host_ip].append(res)

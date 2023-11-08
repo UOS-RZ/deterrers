@@ -1219,15 +1219,21 @@ def scanner_registration_alert(request):
                         admin_addresses = [admin_id + "@uos.de"
                                            for admin_id in host.admin_ids
                                            if admin_id not in departments]
+                        max_sev = max(
+                            [v.cvss_base_score for v in block_reasons],
+                            default=None
+                        )
                         if passed:
                             email_subject = (
                                 f"DETERRERS - {str(host.ipv4_addr)} "
-                                + "- Registration finished - PASSED"
+                                + "- Registration finished "
+                                + f"- max. CVSS: {max_sev} - PASSED"
                             )
                         else:
                             email_subject = (
                                 f"DETERRERS - {str(host.ipv4_addr)} "
-                                + "- Registration finished - BLOCKED"
+                                + "- Registration finished "
+                                + f"- max. CVSS: {max_sev} - BLOCKED"
                             )
                         __send_report_email(
                             report_html,
@@ -1334,9 +1340,20 @@ def scanner_scan_alert(request):
                 admin_addresses = [admin_id + "@uos.de"
                                    for admin_id in host.admin_ids
                                    if admin_id not in departments]
+                # get highest CVSS
+                max_sev = -1
+                for host_ipv4, vulnerabilities in results.items():
+                    max_sev = max(
+                        max_sev,
+                        max(
+                            [v.cvss_base_score for v in vulnerabilities],
+                            default=-1
+                        ),
+                    )
                 __send_report_email(
                     report_html,
-                    f"DETERRERS - {str(host.ipv4_addr)} - Scan finished",
+                    (f"DETERRERS - {str(host.ipv4_addr)} - Scan finished "
+                     + f"- max. CVSS: {max_sev}"),
                     scan_mail_body(host, scan_end),
                     list(set(admin_addresses)),
                 )
@@ -1450,6 +1467,12 @@ def scanner_periodic_alert(request):
                             medium_cvss_threshold=settings.PERIO_MEDIUM_CVSS_T,
                             high_cvss_threshold=settings.PERIO_HIGH_CVSS_T
                         )
+                        # get highest CVSS
+                        max_sev = max(
+                            [v.cvss_base_score
+                             for v in block_reasons.extend(notify_reasons)],
+                            default=None
+                        )
                         # block if there were reasons found
                         if len(block_reasons) != 0:
                             logger.info(
@@ -1474,7 +1497,8 @@ def scanner_periodic_alert(request):
                             __send_report_email(
                                 None,
                                 (f"DETERRERS - {str(host.ipv4_addr)} "
-                                 + "- Periodic scan - BLOCKED"),
+                                 + "- Periodic scan "
+                                 + f"- max. CVSS: {max_sev} - BLOCKED"),
                                 email_body,
                                 list(set(admin_addrs)),
                             )
@@ -1501,7 +1525,8 @@ def scanner_periodic_alert(request):
                             __send_report_email(
                                 None,
                                 (f"DETERRERS - {str(host.ipv4_addr)} "
-                                 + "- Periodic scan - NOT BLOCKED"),
+                                 + "- Periodic scan "
+                                 + f"- max. CVSS: {max_sev} - NOT BLOCKED"),
                                 email_body,
                                 list(set(admin_addrs)),
                             )
