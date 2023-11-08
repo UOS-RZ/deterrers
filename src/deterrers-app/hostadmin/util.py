@@ -40,6 +40,7 @@ def add_changelog(history: int = 10) -> list[str]:
         ("2023-10-24", "UI improvements for 'Host Details'-site."),
         ("2023-10-24", "API users can now skip registration-scans."),
         ("2023-10-30", "Added comment column that displays a host's comment field from Proteus."),  # noqa: E501
+        ("2023-11-08", "Added description to vulnerability details in e-mails."),  # noqa: E501
     ]
 
     today = datetime.datetime.today().date()
@@ -308,6 +309,11 @@ Complete scan report can be found attached to this e-mail.
 Following vulnerabilities resulted in the blocking:
 """
         for vul in block_reasons:
+            # append 10 tabs to newlines for proper indentation
+            desc = vul.description.replace(
+                "\n",
+                "\n"+"".join(["\t" for _ in range(10)])
+            )
             email_body += f"""
     Network Vulnerability Test Name:    {vul.nvt_name}
     Network Vulnerability Test ID:      {vul.nvt_oid}
@@ -316,6 +322,7 @@ Following vulnerabilities resulted in the blocking:
     Hostname:                           {vul.hostname}
     Port:                               {vul.port}/{vul.proto}
     Vulnerability References:           {", ".join(vul.refs)}
+    Description:                        {desc}
 
 """  # noqa: E501
 
@@ -360,6 +367,11 @@ Internet Service Profile: {host.service_profile.value}
 Following vulnerabilities resulted in the blocking:
 """     # noqa: E501
         for vul in block_reasons:
+            # append 10 tabs to newlines for proper indentation
+            desc = vul.description.replace(
+                "\n",
+                "\n"+"".join(["\t" for _ in range(10)])
+            )
             email_body += f"""
     Network Vulnerability Test Name:    {vul.nvt_name}
     Network Vulnerability Test ID:      {vul.nvt_oid}
@@ -368,6 +380,7 @@ Following vulnerabilities resulted in the blocking:
     Hostname:                           {vul.hostname}
     Port:                               {vul.port}/{vul.proto}
     Vulnerability References:           {", ".join(vul.refs)}
+    Description:                        {desc}
 
 """  # noqa: E501
         # if block reasons and notify reasons
@@ -377,6 +390,11 @@ Additionally, following vulnerabilities were found but do not result in blocking
 They are either not exposed to the internet, affect only the availability or are not severe enough to legitimize blocking the host:
 """     # noqa: E501
             for vul in notify_reasons:
+                # append 10 tabs to newlines for proper indentation
+                desc = vul.description.replace(
+                    "\n",
+                    "\n"+"".join(["\t" for _ in range(10)])
+                )
                 email_body += f"""
     Network Vulnerability Test Name:    {vul.nvt_name}
     Network Vulnerability Test ID:      {vul.nvt_oid}
@@ -385,6 +403,7 @@ They are either not exposed to the internet, affect only the availability or are
     Hostname:                           {vul.hostname}
     Port:                               {vul.port}/{vul.proto}
     Vulnerability References:           {", ".join(vul.refs)}
+    Description:                        {desc}
 
 """     # noqa: E501
 
@@ -409,6 +428,11 @@ Following vulnerabilities were found but do not result in blocking.
 They are either not exposed to the internet, affect only the availability or are not severe enough to legitimize blocking the host:
 """     # noqa: E501
         for vul in notify_reasons:
+            # append 10 tabs to newlines for proper indentation
+            desc = vul.description.replace(
+                "\n",
+                "\n"+"".join(["\t" for _ in range(10)])
+            )
             email_body += f"""
     Network Vulnerability Test Name:    {vul.nvt_name}
     Network Vulnerability Test ID:      {vul.nvt_oid}
@@ -417,6 +441,7 @@ They are either not exposed to the internet, affect only the availability or are
     Hostname:                           {vul.hostname}
     Port:                               {vul.port}/{vul.proto}
     Vulnerability References:           {", ".join(vul.refs)}
+    Description:                        {desc}
 
 """  # noqa: E501
         email_body += """

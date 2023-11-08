@@ -25,7 +25,8 @@ class VulnerabilityScanResult():
         cvss_version: int,
         cvss_base_score: float,
         cvss_base_vector: str,
-        refs: list[str]
+        refs: list[str],
+        description: str
     ) -> None:
         self.uuid = str(uuid)
         self.host_ip = str(host_ip)
@@ -39,6 +40,7 @@ class VulnerabilityScanResult():
         self.cvss_base_score = float(cvss_base_score)
         self.cvss_base_vector = str(cvss_base_vector)
         self.refs = list(refs)
+        self.description = description
 
 
 class RiskFlag(Flag):
