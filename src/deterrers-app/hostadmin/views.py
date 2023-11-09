@@ -1220,7 +1220,7 @@ def scanner_registration_alert(request):
                                            for admin_id in host.admin_ids
                                            if admin_id not in departments]
                         max_sev = max(
-                            [v.cvss_base_score for v in block_reasons],
+                            [v.cvss_base_score for v in vulnerabilities],
                             default=None
                         )
                         if passed:
@@ -1470,7 +1470,7 @@ def scanner_periodic_alert(request):
                         # get highest CVSS
                         max_sev = max(
                             [v.cvss_base_score
-                             for v in block_reasons.extend(notify_reasons)],
+                             for v in vulnerabilities],
                             default=None
                         )
                         # block if there were reasons found
