@@ -1,6 +1,5 @@
 *__pycache__
-db/*
-logs/*
-vpn/*
+*.log
+*.sqlight
 .pip_cache/
 .env.prod
