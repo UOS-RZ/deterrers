@@ -487,7 +487,7 @@ def update_host_detail(request, ipv4: str):
                                 'host/update_host_form.html',
                                 context=context
                             )
-                        if not set_host_online(str(host.ipv4_addr)):
+                        if not set_host_online(host):
                             form.add_error(
                                 None,
                                 "Perimeter firewall could not be updated."
@@ -888,7 +888,7 @@ def block_host(request, ipv4: str):
     if not available_actions(host).get('can_block'):
         raise Http404()
 
-    if not set_host_offline(ipv4):
+    if not set_host_offline(host):
         messages.error(request, "Couldn't block host!")
 
     # redirect to a new URL:
@@ -1085,7 +1085,7 @@ def remove_host(request, ipv4: str):
 
         # block
         if host.status == HostStatus.ONLINE:
-            if not set_host_offline(str(host.ipv4_addr)):
+            if not set_host_offline(host):
                 return HttpResponse(status=500)
 
         # set all DETERRERS fields to blank
@@ -1199,7 +1199,7 @@ def scanner_registration_alert(request):
                             )
                             # change the perimeter firewall configuration so
                             # that only hosts service profile is allowed
-                            if not set_host_online(host_ipv4):
+                            if not set_host_online(host):
                                 raise RuntimeError("Couldn't set host online!")
                         else:
                             passed = False
@@ -1208,7 +1208,7 @@ def scanner_registration_alert(request):
                                  + "will be blocked."),
                                 host_ipv4
                             )
-                            if not set_host_offline(host_ipv4):
+                            if not set_host_offline(host):
                                 raise RuntimeError("Couldn't block host")
 
                         # get HTML report and send via e-mail to admin
@@ -1480,7 +1480,7 @@ def scanner_periodic_alert(request):
                                  + "and will be blocked."),
                                 str(host.ipv4_addr)
                             )
-                            if not set_host_offline(str(host.ipv4_addr)):
+                            if not set_host_offline(host):
                                 raise RuntimeError("Couldn't block host")
                             # deduce admin email addr and filter out
                             # departments
