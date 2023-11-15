@@ -487,7 +487,7 @@ def update_host_detail(request, ipv4: str):
                                 'host/update_host_form.html',
                                 context=context
                             )
-                        if not set_host_online(str(host.ipv4_addr)):
+                        if not set_host_online(host):
                             form.add_error(
                                 None,
                                 "Perimeter firewall could not be updated."
@@ -1199,7 +1199,7 @@ def scanner_registration_alert(request):
                             )
                             # change the perimeter firewall configuration so
                             # that only hosts service profile is allowed
-                            if not set_host_online(host_ipv4):
+                            if not set_host_online(host):
                                 raise RuntimeError("Couldn't set host online!")
                         else:
                             passed = False
