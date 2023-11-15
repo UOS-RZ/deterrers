@@ -198,7 +198,7 @@ def set_host_bulk_offline(host_ipv4s: set[str]) -> bool:
     return True
 
 
-def set_host_online(host_ipv4: str) -> bool:
+def set_host_online(host: MyHost) -> bool:
     """
     Change the perimeter firewall configuration so that only host's
     service profile is allowed.
@@ -206,12 +206,12 @@ def set_host_online(host_ipv4: str) -> bool:
     Add host to the periodic scan.
 
     Args:
-        host_ipv4 (str): IPv4 address of the host.
+        host (MyHost): Hostobject to set online.
 
     Returns:
         bool: Returns True on success and False if something goes wrong.
     """
-    logger.info("Set host %s online.", host_ipv4)
+    logger.info("Set host %s online.", str(host.ipv4_addr))
 
     with IPAMWrapper(
         settings.IPAM_USERNAME,
@@ -235,7 +235,6 @@ def set_host_online(host_ipv4: str) -> bool:
                 if not fw.enter_ok:
                     return False
 
-                host = ipam.get_host_info_from_ip(host_ipv4)
                 if (
                     not host.is_valid()
                     or host.service_profile is HostServiceProfile.EMPTY
@@ -247,11 +246,11 @@ def set_host_online(host_ipv4: str) -> bool:
                 response_url = (settings.DOMAIN_NAME
                                 + reverse('scanner_periodic_alert'))
                 if not scanner.add_host_to_periodic_scans(
-                    host_ip=host_ipv4,
+                    host_ip=str(host.ipv4_addr),
                     alert_dest_url=response_url
                 ):
                     logger.error("Couldn't add host %s to periodic scan!",
-                                 host_ipv4)
+                                 str(host.ipv4_addr))
                     return False
 
                 # get IPv6 address to all IPv4 address

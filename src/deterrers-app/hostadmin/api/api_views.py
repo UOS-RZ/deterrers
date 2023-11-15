@@ -259,7 +259,7 @@ def __update_host_logic(ipam: IPAMWrapper,
                 if not set_host_offline(str(host.ipv4_addr)):
                     raise Http500("Could not set host offline")
             else:
-                if not set_host_online(str(host.ipv4_addr)):
+                if not set_host_online(host):
                     raise Http500("Could not set new service profile for host")
 
         # auto-add some host-based policies
@@ -517,7 +517,7 @@ def register_bulk(
                     # Skip scan and change the perimeter firewall
                     # configuration so that only hosts service
                     # profile is allowed
-                    if not set_host_online(str(host.ipv4_addr)):
+                    if not set_host_online(host):
                         raise Http500("Couldn't set host online!")
                 else:
                     # Otherwise start vulnerability scan
