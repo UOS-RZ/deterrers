@@ -195,7 +195,7 @@ def __remove_host(request) -> Response:
 
         # block
         if host.status == HostStatus.ONLINE:
-            if not set_host_offline(str(host.ipv4_addr)):
+            if not set_host_offline(host):
                 raise Http500("Host could not be set offline")
 
         # set all DETERRERS fields to blank
@@ -256,7 +256,7 @@ def __update_host_logic(ipam: IPAMWrapper,
         # if host is already online, update the perimeter FW
         if host.status == HostStatus.ONLINE:
             if host.service_profile == HostServiceProfile.EMPTY:
-                if not set_host_offline(str(host.ipv4_addr)):
+                if not set_host_offline(host):
                     raise Http500("Could not set host offline")
             else:
                 if not set_host_online(host):
@@ -564,6 +564,7 @@ def block_bulk(hostadmin: MyUser, ipv4_addrs: set[str]):
             raise Http404()
 
         # check if all requested hosts are permitted for this hostadmin
+        hosts = set()
         for ipv4 in ipv4_addrs:
             # get host
             host = ipam.get_host_info_from_ip(ipv4)
@@ -578,9 +579,10 @@ def block_bulk(hostadmin: MyUser, ipv4_addrs: set[str]):
             # check if host is actually valid
             if not host.is_valid():
                 raise Http409()
+            hosts.add(host)
 
     # set all hosts offline
-    set_host_bulk_offline(ipv4_addrs)
+    set_host_bulk_offline(hosts)
 
 
 @api_view(['POST'])

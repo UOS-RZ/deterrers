@@ -135,17 +135,19 @@ def available_actions(host: MyHost) -> dict:
     return flags
 
 
-def set_host_offline(host_ipv4: str) -> bool:
+def set_host_offline(host: MyHost) -> bool:
     """
     Block a host at the perimeter firewall and update the status in the IPAM.
     Removes host also from periodic scan.
 
     Args:
-        host_ipv4 (str): IPv4 address of the host.
+        host (MyHost): Host to set offline.
 
     Returns:
         bool: Returns True on success and False if something went wrong.
     """
+    logger.info("Set host %s offline.", str(host.ipv4_addr))
+
     with IPAMWrapper(
         settings.IPAM_USERNAME,
         settings.IPAM_SECRET_KEY,
@@ -168,7 +170,6 @@ def set_host_offline(host_ipv4: str) -> bool:
                 if not fw.enter_ok:
                     return False
 
-                host = ipam.get_host_info_from_ip(host_ipv4)
                 ips_to_block = ipam.get_IP6Addresses(host)
                 ips_to_block.add(str(host.ipv4_addr))
                 # change the perimeter firewall configuration so that host
@@ -189,11 +190,11 @@ def set_host_offline(host_ipv4: str) -> bool:
     return True
 
 
-def set_host_bulk_offline(host_ipv4s: set[str]) -> bool:
+def set_host_bulk_offline(hosts: set[MyHost]) -> bool:
     # TODO: optimize for better performance by querying many ips to FW
-    for ipv4 in host_ipv4s:
-        if not set_host_offline(ipv4):
-            logger.error("Couldn't block host: %s", ipv4)
+    for host in hosts:
+        if not set_host_offline(host):
+            logger.error("Couldn't block host: %s", str(host))
         continue
     return True
 
