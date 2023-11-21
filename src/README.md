@@ -1,8 +1,8 @@
 # Project Structure:
 
         src/                                                % main python package that holds all source code
-            deterrers-app/                                  % django project folder that will hold all the custom apps for the website executed in one docker container
-                deterrerssite/                               % django project configurations
+            application/                                  % django project folder that will hold all the custom apps for the website executed in one docker container
+                application/                               % django project configurations
                     ...
                 hostadmin/                                  % main app that holds the DETERRERS website logic
                     api/                                    % API views for programmatic access to DETERRERS
