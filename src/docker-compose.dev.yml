@@ -4,13 +4,13 @@ services:
 
   dev-web:
     build: 
-      context: ./deterrers-app
+      context: ./application
       dockerfile: Dockerfile
     command: python manage.py runserver 0.0.0.0:80
     ports:
       - 80:80
     env_file:
-      - ./.env.dev
+      - ./.dev.env
     image: deterrers-application
     volumes:
       - .:/microservice:rw # map data and files from parent directory in host to microservice directory in docker containe
@@ -18,19 +18,6 @@ services:
       - ./dev-db:/home/app/microservice/db
       - ./dev-logs:/home/app/microservice/logs
     restart: "on-failure"
-
-  # dev-supercronic:
-  #   depends_on:
-  #     - dev-web
-  #   build: 
-  #     context: ./deterrers-app
-  #     dockerfile: Dockerfile-supercronic
-  #   env_file:
-  #     - ./.env.dev
-  #   volumes:
-  #     - .:/microservice:rw # map data and files from parent directory in host to microservice directory in docker containe
-  #     - ./dev-logs:/home/app/microservice/logs
-  #   restart: "on-failure"
 
 volumes:
  static_volume:
