@@ -22,7 +22,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
 
-from myuser.views import LogoutMessageView
+from user.views import LogoutMessageView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
