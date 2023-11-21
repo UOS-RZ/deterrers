@@ -23,13 +23,13 @@ To test the user interface of DETERRERS, perform the following steps below. This
 
         docker compose -f docker-compose.dev.yml create --build
 
-    inside <code>deterrers/src/</code>.
+    inside <code>deterrers/project/</code>.
 
 3. Start containers by running
 
         docker compose -f docker-compose.dev.yml start
 
-    inside <code>deterrers/src/</code>.
+    inside <code>deterrers/project/</code>.
 
 4. DETERRERS is now running on port 80. You should be able to log in with the credentials (<code>DJANGO_SUPERUSER_USERNAME</code>, <code>DJANGO_SUPERUSER_PASSWORD</code>) from the configuration file.
 
@@ -39,7 +39,7 @@ To test the user interface of DETERRERS, perform the following steps below. This
 
         docker compose -f docker-compose.dev.yml down --remove-orphans
 
-    inside <code>deterrers/src/</code>.
+    inside <code>deterrers/project/</code>.
 
 
 ## Deployment
@@ -57,7 +57,7 @@ A deployment is currently only possible in conjunction with the following compon
 ## Configuration
 
 - access credentials for external endpoints (IPAM, Vulnerability Scanner, perimeter FW, LDAP) are set in .env-files
-- general settings/"contracts" are defined as Enums in <code>src/application/main/core/contracts.py</code>
+- general settings/"contracts" are defined as Enums in <code>project/application/main/core/contracts.py</code>
 - interface-specific settings (e.g. Greenbone GMP configurations UUIDs or AddressGroup-names of the Palo Alto FW) are defined with the respective API-wrappers
 
 
