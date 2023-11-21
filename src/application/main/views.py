@@ -59,7 +59,7 @@ else:
         import PaloAltoWrapper as FWWrapper
 
 
-from myuser.models import MyUser
+from user.models import MyUser
 
 logger = logging.getLogger(__name__)
 

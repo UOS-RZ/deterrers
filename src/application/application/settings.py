@@ -130,7 +130,7 @@ INSTALLED_APPS = [
     'maintenance_mode',
     # Custom applications
     'main.apps.MainConfig',
-    'myuser.apps.MyuserConfig',
+    'user.apps.UserConfig',
 ]
 
 MIDDLEWARE = [
@@ -264,7 +264,7 @@ LOGIN_REDIRECT_URL = '/'
 # Redirect to login after logout
 LOGOUT_REDIRECT_URL = '/login/'
 
-AUTH_USER_MODEL = 'myuser.MyUser'
+AUTH_USER_MODEL = 'user.MyUser'
 
 
 """ SETUP MAINTENANCE MODE """

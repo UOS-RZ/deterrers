@@ -12,7 +12,7 @@ from django.shortcuts import get_object_or_404
 from django.http import Http404
 from django.urls import reverse
 
-from myuser.models import MyUser
+from user.models import MyUser
 from main.util import (available_actions,
                             set_host_bulk_offline,
                             set_host_online,
