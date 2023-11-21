@@ -1,6 +1,6 @@
 # Project Structure:
 
-        src/                                                % main python package that holds all source code
+        project/                                                % main python package that holds all source code
             application/                                  % django project folder that will hold all the custom apps for the website executed in one docker container
                 application/                               % django project configurations
                     ...
