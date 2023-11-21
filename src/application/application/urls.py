@@ -26,7 +26,7 @@ from myuser.views import LogoutMessageView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('hostadmin/', include('hostadmin.urls')),
+    path('hostadmin/', include('main.urls')),
     path('', RedirectView.as_view(url='hostadmin/', permanent=True)),
 ]
 

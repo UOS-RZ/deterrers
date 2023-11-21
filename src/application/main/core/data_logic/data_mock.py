@@ -3,12 +3,12 @@ import ipaddress
 import logging
 import os
 
-from hostadmin.core.data_logic.data_abstract import DataAbstract
-from hostadmin.core.host import MyHost
-from hostadmin.core.contracts import (HostStatus,
+from main.core.data_logic.data_abstract import DataAbstract
+from main.core.host import MyHost
+from main.core.contracts import (HostStatus,
                                       HostServiceProfile,
                                       HostFW)
-from hostadmin.core.rule_generator import HostBasedPolicy
+from main.core.rule_generator import HostBasedPolicy
 
 logger = logging.getLogger(__name__)
 

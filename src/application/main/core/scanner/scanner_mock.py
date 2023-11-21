@@ -6,7 +6,7 @@ import json
 import logging
 import os
 
-from hostadmin.core.scanner.scanner_abstract import ScannerAbstract
+from main.core.scanner.scanner_abstract import ScannerAbstract
 
 logger = logging.getLogger(__name__)
 

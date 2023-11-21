@@ -129,7 +129,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'maintenance_mode',
     # Custom applications
-    'hostadmin.apps.HostadminConfig',
+    'main.apps.mainConfig',
     'myuser.apps.MyuserConfig',
 ]
 

@@ -2,7 +2,7 @@
 
 python manage.py check --deploy
 python manage.py makemigrations --noinput
-python manage.py makemigrations hostadmin --noinput
+python manage.py makemigrations main --noinput
 python manage.py makemigrations myuser --noinput
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput

@@ -13,27 +13,27 @@ from django.http import Http404
 from django.urls import reverse
 
 from myuser.models import MyUser
-from hostadmin.util import (available_actions,
+from main.util import (available_actions,
                             set_host_bulk_offline,
                             set_host_online,
                             set_host_offline)
-from hostadmin.core.host import MyHost
-from hostadmin.core.contracts import (HostStatus,
+from main.core.host import MyHost
+from main.core.contracts import (HostStatus,
                                       HostServiceProfile,
                                       HostBasedPolicySrc,
                                       HostBasedPolicyProtocol,
                                       HostFW)
 if settings.IPAM_DUMMY:
-    from hostadmin.core.data_logic.data_mock \
+    from main.core.data_logic.data_mock \
         import DataMockWrapper as IPAMWrapper
 else:
-    from hostadmin.core.data_logic.ipam_wrapper \
+    from main.core.data_logic.ipam_wrapper \
         import ProteusIPAMWrapper as IPAMWrapper
 if settings.SCANNER_DUMMY:
-    from hostadmin.core.scanner.scanner_mock \
+    from main.core.scanner.scanner_mock \
         import ScannerMock as ScannerWrapper
 else:
-    from hostadmin.core.scanner.gmp_wrapper \
+    from main.core.scanner.gmp_wrapper \
         import GmpScannerWrapper as ScannerWrapper
 from .serializers import MyHostSerializer, HostActionSerializer
 

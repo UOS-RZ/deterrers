@@ -20,42 +20,42 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.mail import EmailMessage
 
-from hostadmin.util import (add_changelog,
+from main.util import (add_changelog,
                             available_actions,
                             registration_mail_body,
                             scan_mail_body,
                             periodic_mail_body,
                             set_host_offline,
                             set_host_online)
-from hostadmin.forms import (ChangeHostDetailForm,
+from main.forms import (ChangeHostDetailForm,
                              ChangeHostFirewallForm,
                              AddHostRulesForm,
                              HostadminForm,
                              AddHostForm)
-from hostadmin.core.risk_assessor import assess_host_risk
-from hostadmin.core.rule_generator import generate_fw_config
-from hostadmin.core.contracts import (HostBasedPolicySrc,
+from main.core.risk_assessor import assess_host_risk
+from main.core.rule_generator import generate_fw_config
+from main.core.contracts import (HostBasedPolicySrc,
                                       HostBasedPolicyProtocol,
                                       HostStatus,
                                       HostServiceProfile,
                                       HostFW,)
 if settings.IPAM_DUMMY:
-    from hostadmin.core.data_logic.data_mock \
+    from main.core.data_logic.data_mock \
         import DataMockWrapper as IPAMWrapper
 else:
-    from hostadmin.core.data_logic.ipam_wrapper \
+    from main.core.data_logic.ipam_wrapper \
         import ProteusIPAMWrapper as IPAMWrapper
 if settings.SCANNER_DUMMY:
-    from hostadmin.core.scanner.scanner_mock \
+    from main.core.scanner.scanner_mock \
         import ScannerMock as ScannerWrapper
 else:
-    from hostadmin.core.scanner.gmp_wrapper \
+    from main.core.scanner.gmp_wrapper \
         import GmpScannerWrapper as ScannerWrapper
 if settings.FIREWALL_DUMMY:
-    from hostadmin.core.fw.fw_mock \
+    from main.core.fw.fw_mock \
         import FWMock as FWWrapper
 else:
-    from hostadmin.core.fw.pa_wrapper \
+    from main.core.fw.pa_wrapper \
         import PaloAltoWrapper as FWWrapper
 
 

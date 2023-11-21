@@ -1,6 +1,6 @@
 from abc import (ABC, abstractmethod)
 
-from hostadmin.core.host import MyHost
+from main.core.host import MyHost
 
 
 class DataAbstract(ABC):

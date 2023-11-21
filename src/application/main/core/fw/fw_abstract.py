@@ -1,7 +1,7 @@
 from abc import (ABC, abstractmethod)
 import ipaddress
 
-from hostadmin.core.contracts import (HostStatus,
+from main.core.contracts import (HostStatus,
                                       HostServiceProfile)
 
 

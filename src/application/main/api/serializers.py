@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
-from hostadmin.core.rule_generator import HostBasedPolicy
-from hostadmin.core.contracts import (HostStatus,
+from main.core.rule_generator import HostBasedPolicy
+from main.core.contracts import (HostStatus,
                                       HostServiceProfile,
                                       HostFW)
 

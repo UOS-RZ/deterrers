@@ -5,10 +5,10 @@ import logging
 from django.conf import settings
 
 if settings.FIREWALL_DUMMY:
-    from hostadmin.core.fw.fw_mock \
+    from main.core.fw.fw_mock \
         import FWMock as FWWrapper
 else:
-    from hostadmin.core.fw.pa_wrapper \
+    from main.core.fw.pa_wrapper \
         import PaloAltoWrapper as FWWrapper
 
 logger = logging.getLogger(__name__)

@@ -1,4 +1,4 @@
 *migrations/
 .coverage
 static-root/
-hostadmin/core/scanner_configurations.py
+main/core/scanner_configurations.py
