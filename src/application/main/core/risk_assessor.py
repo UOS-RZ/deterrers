@@ -2,8 +2,8 @@ import logging
 from enum import Flag, auto
 from cvss import CVSS2, CVSS3
 
-from hostadmin.core.host import MyHost
-from hostadmin.core.contracts import HostServiceProfile
+from main.core.host import MyHost
+from main.core.contracts import HostServiceProfile
 
 logger = logging.getLogger(__name__)
 

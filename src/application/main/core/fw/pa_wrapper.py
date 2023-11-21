@@ -5,8 +5,8 @@ import time
 from enum import Enum
 import ipaddress
 
-from hostadmin.core.fw.fw_abstract import FWAbstract
-from hostadmin.core.contracts import (HostStatus,
+from main.core.fw.fw_abstract import FWAbstract
+from main.core.contracts import (HostStatus,
                                       HostServiceProfile)
 
 

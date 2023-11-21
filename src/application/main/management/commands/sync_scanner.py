@@ -5,19 +5,19 @@ import logging
 
 from django.conf import settings
 
-from hostadmin.core.contracts import HostStatus, HostServiceProfile
-from hostadmin.core.host import MyHost
+from main.core.contracts import HostStatus, HostServiceProfile
+from main.core.host import MyHost
 if settings.IPAM_DUMMY:
-    from hostadmin.core.data_logic.data_mock \
+    from main.core.data_logic.data_mock \
         import DataMockWrapper as IPAMWrapper
 else:
-    from hostadmin.core.data_logic.ipam_wrapper \
+    from main.core.data_logic.ipam_wrapper \
         import ProteusIPAMWrapper as IPAMWrapper
 if settings.SCANNER_DUMMY:
-    from hostadmin.core.scanner.scanner_mock \
+    from main.core.scanner.scanner_mock \
         import ScannerMock as ScannerWrapper
 else:
-    from hostadmin.core.scanner.gmp_wrapper \
+    from main.core.scanner.gmp_wrapper \
         import GmpScannerWrapper as ScannerWrapper
 
 logger = logging.getLogger(__name__)

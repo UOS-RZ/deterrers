@@ -5,28 +5,28 @@ import ipaddress
 from django.conf import settings
 from django.urls import reverse
 
-from hostadmin.core.host import MyHost
-from hostadmin.core.contracts import (HostStatus,
+from main.core.host import MyHost
+from main.core.contracts import (HostStatus,
                                       HostServiceProfile,
                                       HostFW)
-from hostadmin.core.risk_assessor import VulnerabilityScanResult
+from main.core.risk_assessor import VulnerabilityScanResult
 if settings.IPAM_DUMMY:
-    from hostadmin.core.data_logic.data_mock \
+    from main.core.data_logic.data_mock \
         import DataMockWrapper as IPAMWrapper
 else:
-    from hostadmin.core.data_logic.ipam_wrapper \
+    from main.core.data_logic.ipam_wrapper \
         import ProteusIPAMWrapper as IPAMWrapper
 if settings.SCANNER_DUMMY:
-    from hostadmin.core.scanner.scanner_mock \
+    from main.core.scanner.scanner_mock \
         import ScannerMock as ScannerWrapper
 else:
-    from hostadmin.core.scanner.gmp_wrapper \
+    from main.core.scanner.gmp_wrapper \
         import GmpScannerWrapper as ScannerWrapper
 if settings.FIREWALL_DUMMY:
-    from hostadmin.core.fw.fw_mock \
+    from main.core.fw.fw_mock \
         import FWMock as FWWrapper
 else:
-    from hostadmin.core.fw.pa_wrapper \
+    from main.core.fw.pa_wrapper \
         import PaloAltoWrapper as FWWrapper
 
 

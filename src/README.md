@@ -4,7 +4,7 @@
             application/                                  % django project folder that will hold all the custom apps for the website executed in one docker container
                 application/                               % django project configurations
                     ...
-                hostadmin/                                  % main app that holds the DETERRERS website logic
+                main/                                  % main app that holds the DETERRERS website logic
                     api/                                    % API views for programmatic access to DETERRERS
                     core/                                   % modules that implement main logic
                         data_logic/                         % data-backend interfaces

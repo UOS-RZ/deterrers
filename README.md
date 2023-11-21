@@ -57,7 +57,7 @@ A deployment is currently only possible in conjunction with the following compon
 ## Configuration
 
 - access credentials for external endpoints (IPAM, Vulnerability Scanner, perimeter FW, LDAP) are set in .env-files
-- general settings/"contracts" are defined as Enums in <code>src/application/hostadmin/core/contracts.py</code>
+- general settings/"contracts" are defined as Enums in <code>src/application/main/core/contracts.py</code>
 - interface-specific settings (e.g. Greenbone GMP configurations UUIDs or AddressGroup-names of the Palo Alto FW) are defined with the respective API-wrappers
 
 

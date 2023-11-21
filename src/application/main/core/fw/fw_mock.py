@@ -3,8 +3,8 @@ import json
 import logging
 import os
 
-from hostadmin.core.fw.fw_abstract import FWAbstract
-from hostadmin.core.contracts import (HostStatus,
+from main.core.fw.fw_abstract import FWAbstract
+from main.core.contracts import (HostStatus,
                                       HostServiceProfile)
 
 logger = logging.getLogger(__name__)

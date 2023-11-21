@@ -16,8 +16,8 @@ from gvm.protocols.gmpv224 import (AlertCondition,
                                    AliveTest,
                                    HostsOrdering)
 
-from hostadmin.core.scanner.scanner_abstract import ScannerAbstract
-from hostadmin.core.risk_assessor import VulnerabilityScanResult
+from main.core.scanner.scanner_abstract import ScannerAbstract
+from main.core.risk_assessor import VulnerabilityScanResult
 
 
 logger = logging.getLogger(__name__)
