@@ -129,7 +129,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'maintenance_mode',
     # Custom applications
-    'main.apps.mainConfig',
+    'main.apps.MainConfig',
     'myuser.apps.MyuserConfig',
 ]
 
