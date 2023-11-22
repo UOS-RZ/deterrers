@@ -19,6 +19,9 @@ register_converter(IPPathConverter, 'esc_ip')
 
 urlpatterns = [
     path('',
+         views.hosts_list_view,
+         name='main_landing'),
+    path('about/',
          views.about_view,
          name='about'),
     path('init/',
