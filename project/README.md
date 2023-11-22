@@ -1,10 +1,10 @@
 # Project Structure:
 
-        project/                                                % main python package that holds all source code
-            application/                                  % django project folder that will hold all the custom apps for the website executed in one docker container
-                application/                               % django project configurations
+        project/                                            % main python package that holds all source code
+            application/                                    % django project folder that will hold all the custom apps for the website executed in one docker container
+                application/                                % django project configurations
                     ...
-                main/                                  % main app that holds the DETERRERS website logic
+                main/                                       % main app that holds the DETERRERS website logic
                     api/                                    % API views for programmatic access to DETERRERS
                     core/                                   % modules that implement main logic
                         data_logic/                         % data-backend interfaces
@@ -23,7 +23,7 @@
                     tests/                                  % holds the tests
                         ...
                     ...
-                user/                                     % custom user app
+                user/                                       % custom user app
                     ...
                 templates/
                     registrations/                          % HTML templates for login and logout
