@@ -23,10 +23,10 @@
                     tests/                                  % holds the tests
                         ...
                     ...
+                templates/                                  % project wide HTML templates
+                    ...
                 user/                                       % custom user app
                     ...
-                templates/
-                    registrations/                          % HTML templates for login and logout
                 Dockerfile                                  % dockerfile for the web app container
                 Dockerfile-supercronic                      % dockerfile for the supercronic jobs container
                 entrypoint.sh                               % entrypoint script that is executed by docker
@@ -38,8 +38,8 @@
                 dhparam4096.pem
                 Dockerfile                                  % dockerfile for the nginx container
                 nginx.conf
-            .env.dev                                        % environment variables for the development docker compose
-            .env.prod.template                              % template for the production configuration file
+            .dev.env                                        % environment variables for the development docker compose
+            .template.prod.env                              % template for the production configuration file
             docker-compose.dev.yml                          % development docker compose config
             docker-compose.prod.yml                         % production docker compose config
 
