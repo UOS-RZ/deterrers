@@ -1,0 +1,4 @@
+*migrations/
+.coverage
+static-root/
+main/core/scanner_configurations.py
