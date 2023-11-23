@@ -183,7 +183,7 @@ class HostBasedPolicy():
         else:  # format version 1
             if not (
                 isinstance(self.id, str)
-                and isinstance(self.allow_srcs, dict)
+                and isinstance(self.allow_src, dict)
                 and isinstance(self.allow_ports, set)
                 and isinstance(self.allow_proto, str)
             ):
@@ -191,7 +191,7 @@ class HostBasedPolicy():
                     ("Property of HostBasedPolicy has wrong type! "
                      + "id: %s allow_srcs: %s allow_ports: %s allow_proto: %s"),
                     str(type(self.id)),
-                    str(type(self.allow_srcs)),
+                    str(type(self.allow_src)),
                     str(type(self.allow_ports)),
                     str(type(self.allow_proto))
                 )
@@ -204,12 +204,12 @@ class HostBasedPolicy():
                 logger.warning("UUID of policy is invalid: '%s", self.id)
                 return False
 
-            if not self.allow_srcs.get('name') or not self.allow_srcs.get('range'):
+            if not self.allow_src.get('name') or not self.allow_src.get('range'):
                 logger.warning(
                     "Policy's allow_srcs has no field 'name' or 'range'!"
                 )
                 return False
-            for src_range in self.allow_srcs.get('range'):
+            for src_range in self.allow_src.get('range'):
                 try:
                     ipaddress.ip_network(src_range)
                 except ValueError:
