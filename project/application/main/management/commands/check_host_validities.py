@@ -14,8 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = ('Updates all definitions of host-based FW policies in the IPAM '
-            + 'from the old format to a new one.')
+    help = ('Checks host validities.')
 
     def handle(self, *args, **options):
         logger.info("Start!")
@@ -43,6 +42,5 @@ class Command(BaseCommand):
                     ipam_hosts_total[str(host.ipv4_addr)] = host
 
             for ipv4, host in ipam_hosts_total.items():
-                if host.is_valid() and len(host.host_based_policies) > 0:
-                    logger.info("Update policy format of host %s", ipv4)
-                    ipam.update_host_info(host)
+                if not host.is_valid():
+                    logger.error("Host %s not valid.", str(host))
