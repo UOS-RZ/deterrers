@@ -66,7 +66,9 @@ class HostBasedPolicy():
         elems = string.split(cls.SEPARATOR_v2)
         if len(elems) == 4:
             p_id = elems[0]
-            allow_src = HostBasedPolicySrc[elems[1]].value
+            for src in HostBasedPolicySrc:
+                if elems[1] == src.value['name']:
+                    allow_src = src.value
             allow_ports = set(elems[2].split(","))
             allow_proto = elems[3]
             return cls(id=p_id,
@@ -86,7 +88,7 @@ class HostBasedPolicy():
         """
         return (self.id
                 + self.SEPARATOR_v2
-                + self.allow_src["name"]
+                + HostBasedPolicySrc(self.allow_src).name
                 + self.SEPARATOR_v2
                 + ",".join(self.allow_ports)
                 + self.SEPARATOR_v2
