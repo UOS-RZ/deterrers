@@ -16,8 +16,8 @@ class HostBasedPolicy():
     """
     Class representing a host-based firewall policy.
     """
-    SEPERATOR_v1 = '___'
-    SEPERATOR_v2 = '|_|_|'
+    SEPARATOR_v1 = '___'
+    SEPARATOR_v2 = '***'
 
     def __init__(
         self,
@@ -36,7 +36,10 @@ class HostBasedPolicy():
         self.allow_proto = allow_proto
 
     @classmethod
-    def from_string(cls, string: str) -> HostBasedPolicy | None:
+    def from_string(
+        cls: HostBasedPolicy,
+        string: str
+    ) -> HostBasedPolicy | None:
         """
         Construct an instance of HostBasedPolicy from its string
         representation. Supports the old format as well as the new format.
@@ -49,25 +52,25 @@ class HostBasedPolicy():
             something goes wrong.
         """
         # format version 1
-        elems = string.split(cls.SEPERATOR_v1)
+        elems = string.split(cls.SEPARATOR_v1)
         if len(elems) == 4:
             p_id = elems[0]
-            allow_srcs = json.loads(elems[1])
+            allow_src = json.loads(elems[1])
             allow_ports = set(json.loads(elems[2]))
             allow_proto = elems[3]
             return cls(id=p_id,
-                       allow_srcs=allow_srcs,
+                       allow_src=allow_src,
                        allow_ports=allow_ports,
                        allow_proto=allow_proto)
         # format version 2
-        elems = string.split(cls.SEPERATOR_v2)
+        elems = string.split(cls.SEPARATOR_v2)
         if len(elems) == 4:
             p_id = elems[0]
-            allow_srcs = HostBasedPolicySrc[elems[1]]
+            allow_src = HostBasedPolicySrc[elems[1]]
             allow_ports = set(elems[2].split(","))
             allow_proto = elems[3]
             return cls(id=p_id,
-                       allow_srcs=allow_srcs,
+                       allow_src=allow_src,
                        allow_ports=allow_ports,
                        allow_proto=allow_proto)
         logger.error("Invalid string input: %s", string)
@@ -82,11 +85,11 @@ class HostBasedPolicy():
             str: Returns the string representation.
         """
         return (self.id
-                + self.SEPERATOR_v1
+                + self.SEPARATOR_v1
                 + self.allow_src["name"]
-                + self.SEPERATOR_v1
+                + self.SEPARATOR_v1
                 + ",".join(self.allow_ports)
-                + self.SEPERATOR_v1
+                + self.SEPARATOR_v1
                 + self.allow_proto)
 
     def is_subset_of(self, p: HostBasedPolicy) -> bool:
