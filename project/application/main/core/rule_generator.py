@@ -66,7 +66,7 @@ class HostBasedPolicy():
         elems = string.split(cls.SEPARATOR_v2)
         if len(elems) == 4:
             p_id = elems[0]
-            allow_src = HostBasedPolicySrc[elems[1]]
+            allow_src = HostBasedPolicySrc[elems[1]].value
             allow_ports = set(elems[2].split(","))
             allow_proto = elems[3]
             return cls(id=p_id,
