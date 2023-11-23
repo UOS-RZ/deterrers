@@ -272,8 +272,9 @@ def __update_host_logic(ipam: IPAMWrapper,
                 # allow SSH standard port 22 over TCP if a service profile
                 # is specified
                 host.add_host_based_policy(
-                    HostBasedPolicySrc.ANY.value, ['22'],
-                    HostBasedPolicyProtocol.TCP.value
+                    HostBasedPolicySrc.ANY,
+                    ['22'],
+                    HostBasedPolicyProtocol.TCP
                 )
                 match s_p:
                     case HostServiceProfile.SSH:
@@ -285,14 +286,14 @@ def __update_host_logic(ipam: IPAMWrapper,
                         # allow HTTP and HTTPS standard ports 80 and 443
                         # over TCP
                         host.add_host_based_policy(
-                            HostBasedPolicySrc.ANY.value,
+                            HostBasedPolicySrc.ANY,
                             ['80'],
-                            HostBasedPolicyProtocol.TCP.value
+                            HostBasedPolicyProtocol.TCP
                         )
                         host.add_host_based_policy(
-                            HostBasedPolicySrc.ANY.value,
+                            HostBasedPolicySrc.ANY,
                             ['443'],
-                            HostBasedPolicyProtocol.TCP.value
+                            HostBasedPolicyProtocol.TCP
                         )
             case HostServiceProfile.MULTIPURPOSE:
                 # allow nothing else; users are expected to configure their
