@@ -2,8 +2,8 @@ from rest_framework import serializers
 
 from main.core.rule_generator import HostBasedPolicy
 from main.core.contracts import (HostStatus,
-                                      HostServiceProfile,
-                                      HostFW)
+                                 HostServiceProfile,
+                                 HostFW)
 
 
 class MyHostSerializer(serializers.Serializer):
