@@ -101,7 +101,7 @@ class AddHostRulesForm(forms.Form):
 
     SUBNET_CHOICES = [(sub.name, sub.display())
                       for sub in HostBasedPolicySrc]
-    PROTOCOL_CHOICES = [(proto.value, proto.value)
+    PROTOCOL_CHOICES = [(proto.name, proto.value)
                         for proto in HostBasedPolicyProtocol]
 
     subnet = forms.ChoiceField(

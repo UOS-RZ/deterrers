@@ -21,9 +21,9 @@ class HostBasedPolicy():
 
     def __init__(
         self,
-        allow_src: dict,
+        allow_src: HostBasedPolicySrc,
         allow_ports: set[str],
-        allow_proto: str,
+        allow_proto: HostBasedPolicyProtocol,
         id: str | None = None
     ):
         if not id:
@@ -66,9 +66,9 @@ class HostBasedPolicy():
         elems = string.split(cls.SEPARATOR_v2)
         if len(elems) == 4:
             p_id = elems[0]
-            allow_src = HostBasedPolicySrc[elems[1]].value
+            allow_src = HostBasedPolicySrc[elems[1]]
             allow_ports = set(elems[2].split(","))
-            allow_proto = elems[3]
+            allow_proto = HostBasedPolicyProtocol[elems[3]]
             return cls(id=p_id,
                        allow_src=allow_src,
                        allow_ports=allow_ports,
@@ -86,11 +86,11 @@ class HostBasedPolicy():
         """
         return (self.id
                 + self.SEPARATOR_v2
-                + HostBasedPolicySrc(self.allow_src).name
+                + self.allow_src.name
                 + self.SEPARATOR_v2
                 + ",".join(self.allow_ports)
                 + self.SEPARATOR_v2
-                + HostBasedPolicyProtocol(self.allow_proto).name)
+                + self.allow_proto.name)
 
     def is_subset_of(self, p: HostBasedPolicy) -> bool:
         """
@@ -119,9 +119,9 @@ class HostBasedPolicy():
         """
         # check types
         if not (isinstance(self.id, str)
-                and isinstance(self.allow_src, dict)
+                and isinstance(self.allow_src, HostBasedPolicySrc)
                 and isinstance(self.allow_ports, set)
-                and isinstance(self.allow_proto, str)):
+                and isinstance(self.allow_proto, HostBasedPolicyProtocol)):
             logger.warning(
                 ("Property of HostBasedPolicy has wrong type! "
                  + "id: %s allow_srcs: %s allow_ports: %s allow_proto: %s"),
@@ -139,12 +139,15 @@ class HostBasedPolicy():
             logger.warning("UUID of policy is invalid: '%s", self.id)
             return False
 
-        if not self.allow_src.get('name') or not self.allow_src.get('range'):
+        if (
+            not self.allow_src.value.get('name')
+            or not self.allow_src.value.get('range')
+        ):
             logger.warning(
                 "Policy's allow_srcs has no field 'name' or 'range'!"
             )
             return False
-        for src_range in self.allow_src.get('range'):
+        for src_range in self.allow_src.value.get('range'):
             try:
                 ipaddress.ip_network(src_range)
             except ValueError:
@@ -164,7 +167,7 @@ class HostBasedPolicy():
                 logger.warning("Policy's allow_port is invalid: '%s'", p)
                 return False
 
-        if self.allow_proto.lower() not in ('tcp', 'udp'):
+        if self.allow_proto.value.lower() not in ('tcp', 'udp'):
             logger.warning("Policy's allow_proto is invalid: '%s'",
                            self.allow_proto)
             return False
@@ -226,13 +229,13 @@ ufw default allow outgoing
 
     # construct custom rules
     for n, c_policy in enumerate(custom_policies):
-        allow_srcs = c_policy.allow_src
+        allow_srcs = c_policy.allow_src.value['range']
         allow_ports = c_policy.allow_ports
-        allow_proto = c_policy.allow_proto
+        allow_proto = c_policy.allow_proto.value
         policy_config += f"""
 # set custom rule no. {n}"""
 
-        for src in allow_srcs['range']:
+        for src in allow_srcs:
             policy_config += f"""
 ufw allow proto {allow_proto} from {src} to any port {','.join(allow_ports)} comment 'Custom DETERRERS rule no. {n}' """  # noqa: E501
 
@@ -285,9 +288,9 @@ firewall-cmd --reload
     # construct custom rules as rich rules because abstraction to zone does
     # not work as long as sources cannot overlap
     for n, c_policy in enumerate(custom_policies):
-        allow_srcs = c_policy.allow_src['range']
+        allow_srcs = c_policy.allow_src.value['range']
         allow_ports = c_policy.allow_ports
-        allow_proto = c_policy.allow_proto
+        allow_proto = c_policy.allow_proto.value
         policy_config += f"""
 # set custom rule no. {n}"""
         for src in allow_srcs:
@@ -377,9 +380,9 @@ table inet filter {{
 
     # construct the custom rules
     for n, c_policy in enumerate(custom_policy):
-        allow_srcs = c_policy.allow_src['range']
+        allow_srcs = c_policy.allow_src.value['range']
         allow_ports = c_policy.allow_ports
-        allow_proto = c_policy.allow_proto
+        allow_proto = c_policy.allow_proto.value
         policy_config += f"""
         # set custom rule no. {n}"""
 

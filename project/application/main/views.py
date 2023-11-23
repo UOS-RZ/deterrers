@@ -192,9 +192,11 @@ def host_detail_view(request, ipv4: str, tab: str = 'general'):
             if form.is_valid():
                 subnet = HostBasedPolicySrc[
                     form.cleaned_data['subnet']
-                ].value
+                ]
                 ports = form.cleaned_data['ports']
-                proto = form.cleaned_data['protocol']
+                proto = HostBasedPolicyProtocol[
+                    form.cleaned_data['protocol']
+                ]
                 # update the actual model instance
                 if not host.add_host_based_policy(subnet, ports, proto):
                     form.add_error(None, "Rule is redundant!")
@@ -229,7 +231,7 @@ def host_detail_view(request, ipv4: str, tab: str = 'general'):
                     p.allow_src
                 ).display(),
                 'allow_ports': p.allow_ports,
-                'allow_proto': p.allow_proto,
+                'allow_proto': p.allow_proto.value,
                 'id': p.id
             }
             for p in host.host_based_policies],
@@ -512,9 +514,9 @@ def update_host_detail(request, ipv4: str):
                             # allow SSH standard port 22 over TCP if a service
                             # profile is specified
                             host.add_host_based_policy(
-                                HostBasedPolicySrc.ANY.value,
+                                HostBasedPolicySrc.ANY,
                                 ['22'],
-                                HostBasedPolicyProtocol.TCP.value
+                                HostBasedPolicyProtocol.TCP
                             )
                             match s_p:
                                 case HostServiceProfile.SSH:
@@ -526,14 +528,14 @@ def update_host_detail(request, ipv4: str):
                                     # allow HTTP and HTTPS standard ports
                                     # 80 and 443 over TCP
                                     host.add_host_based_policy(
-                                        HostBasedPolicySrc.ANY.value,
+                                        HostBasedPolicySrc.ANY,
                                         ['80'],
-                                        HostBasedPolicyProtocol.TCP.value
+                                        HostBasedPolicyProtocol.TCP
                                     )
                                     host.add_host_based_policy(
-                                        HostBasedPolicySrc.ANY.value,
+                                        HostBasedPolicySrc.ANY,
                                         ['443'],
-                                        HostBasedPolicyProtocol.TCP.value
+                                        HostBasedPolicyProtocol.TCP
                                     )
                         case HostServiceProfile.MULTIPURPOSE:
                             # allow nothing else; users are expected to
