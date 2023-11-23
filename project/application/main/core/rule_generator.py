@@ -84,13 +84,22 @@ class HostBasedPolicy():
         Returns:
             str: Returns the string representation.
         """
-        return (self.id
-                + self.SEPARATOR_v2
-                + self.allow_src.name
-                + self.SEPARATOR_v2
-                + ",".join(self.allow_ports)
-                + self.SEPARATOR_v2
-                + self.allow_proto.name)
+        if isinstance(self.allow_src, HostBasedPolicySrc):  # format version 2
+            return (self.id
+                    + self.SEPARATOR_v2
+                    + self.allow_src.name
+                    + self.SEPARATOR_v2
+                    + ",".join(self.allow_ports)
+                    + self.SEPARATOR_v2
+                    + self.allow_proto.name)
+        else:  # format version 1
+            return (self.id
+                    + self.SEPARATOR_v1
+                    + json.dumps(self.allow_src)
+                    + self.SEPARATOR_v1
+                    + json.dumps(list(self.allow_ports))
+                    + self.SEPARATOR_v1
+                    + self.allow_proto)
 
     def is_subset_of(self, p: HostBasedPolicy) -> bool:
         """
