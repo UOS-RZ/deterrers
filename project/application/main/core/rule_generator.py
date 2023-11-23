@@ -16,8 +16,7 @@ class HostBasedPolicy():
     """
     Class representing a host-based firewall policy.
     """
-    SEPARATOR_v1 = '___'
-    SEPARATOR_v2 = '***'
+    SEPARATOR = '***'
 
     def __init__(
         self,
@@ -51,7 +50,7 @@ class HostBasedPolicy():
             HostBasedPolicy|None: Returns the constructed object or None if
             something goes wrong.
         """
-        elems = string.split(cls.SEPARATOR_v2)
+        elems = string.split(cls.SEPARATOR)
         if len(elems) == 4:
             p_id = elems[0]
             allow_src = HostBasedPolicySrc[elems[1]]
@@ -73,11 +72,11 @@ class HostBasedPolicy():
             str: Returns the string representation.
         """
         return (self.id
-                + self.SEPARATOR_v2
+                + self.SEPARATOR
                 + self.allow_src.name
-                + self.SEPARATOR_v2
+                + self.SEPARATOR
                 + ",".join(self.allow_ports)
-                + self.SEPARATOR_v2
+                + self.SEPARATOR
                 + self.allow_proto.name)
 
     def is_subset_of(self, p: HostBasedPolicy) -> bool:
