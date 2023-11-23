@@ -8,8 +8,8 @@ import ipaddress
 from main.core.data_logic.data_abstract import DataAbstract
 from main.core.host import MyHost
 from main.core.contracts import (HostStatus,
-                                      HostServiceProfile,
-                                      HostFW)
+                                 HostServiceProfile,
+                                 HostFW)
 from main.core.rule_generator import HostBasedPolicy
 
 logger = logging.getLogger(__name__)

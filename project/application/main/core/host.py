@@ -5,7 +5,9 @@ from django.urls import reverse
 from .rule_generator import HostBasedPolicy
 from .contracts import (HostFW,
                         HostServiceProfile,
-                        HostStatus)
+                        HostStatus,
+                        HostBasedPolicyProtocol,
+                        HostBasedPolicySrc)
 
 
 class MyHost():
@@ -97,16 +99,19 @@ class MyHost():
         except AttributeError:
             return "Not available!"
 
-    def add_host_based_policy(self, subnets: dict, ports: list[str],
-                              proto: str) -> bool:
+    def add_host_based_policy(
+        self,
+        subnets: HostBasedPolicySrc,
+        ports: list[str],
+        proto: HostBasedPolicyProtocol
+    ) -> bool:
         """
         Adds a host-based FW policy to a host.
 
         Args:
-            subnets (dict): A dict with fields 'name' and 'range' that specify
-            the allow-src.
+            subnets (HostBasedPolicySrc): Policy source.
             ports (list[str]): List of port definitions that are to be allowed.
-            proto (str): Protocol to allow.
+            proto (HostBasedPolicyProtocol): Protocol to allow.
 
         Returns:
             bool: Returns True if policy was added and False if policy is
