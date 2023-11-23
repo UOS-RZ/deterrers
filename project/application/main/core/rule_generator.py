@@ -6,7 +6,7 @@ import uuid
 import json
 import ipaddress
 
-from .contracts import HostFW, HostBasedPolicySrc
+from .contracts import HostFW, HostBasedPolicySrc, HostBasedPolicyProtocol
 
 
 logger = logging.getLogger(__name__)
@@ -90,7 +90,7 @@ class HostBasedPolicy():
                 + self.SEPARATOR_v2
                 + ",".join(self.allow_ports)
                 + self.SEPARATOR_v2
-                + self.allow_proto)
+                + HostBasedPolicyProtocol(self.allow_proto).name)
 
     def is_subset_of(self, p: HostBasedPolicy) -> bool:
         """
