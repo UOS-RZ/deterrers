@@ -226,7 +226,7 @@ def host_detail_view(request, ipv4: str, tab: str = 'general'):
         'host_rules': [
             {
                 'allow_src': HostBasedPolicySrc(
-                    p.allow_srcs
+                    p.allow_src
                 ).display(),
                 'allow_ports': p.allow_ports,
                 'allow_proto': p.allow_proto,
