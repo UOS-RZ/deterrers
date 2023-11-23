@@ -51,7 +51,7 @@ class Command(BaseCommand):
                     for host in hosts:
                         ipam_hosts_total[str(host.ipv4_addr)] = host
                 
-                for ipv4, host in ipam_hosts_total:
+                for ipv4, host in ipam_hosts_total.items():
                     if host.is_valid() and len(host.host_based_policies) > 0:
                         logger.info("Update policy format of host %s", ipv4)
                         ipam.update_host_info(host)
