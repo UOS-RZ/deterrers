@@ -16,8 +16,7 @@ class HostBasedPolicy():
     """
     Class representing a host-based firewall policy.
     """
-    SEPARATOR_v1 = '___'
-    SEPARATOR_v2 = '***'
+    SEPARATOR = '***'
 
     def __init__(
         self,
@@ -51,19 +50,7 @@ class HostBasedPolicy():
             HostBasedPolicy|None: Returns the constructed object or None if
             something goes wrong.
         """
-        # format version 1
-        elems = string.split(cls.SEPARATOR_v1)
-        if len(elems) == 4:
-            p_id = elems[0]
-            allow_src = json.loads(elems[1])
-            allow_ports = set(json.loads(elems[2]))
-            allow_proto = elems[3]
-            return cls(id=p_id,
-                       allow_src=allow_src,
-                       allow_ports=allow_ports,
-                       allow_proto=allow_proto)
-        # format version 2
-        elems = string.split(cls.SEPARATOR_v2)
+        elems = string.split(cls.SEPARATOR)
         if len(elems) == 4:
             p_id = elems[0]
             allow_src = HostBasedPolicySrc[elems[1]]
@@ -85,11 +72,11 @@ class HostBasedPolicy():
             str: Returns the string representation.
         """
         return (self.id
-                + self.SEPARATOR_v2
+                + self.SEPARATOR
                 + self.allow_src.name
-                + self.SEPARATOR_v2
+                + self.SEPARATOR
                 + ",".join(self.allow_ports)
-                + self.SEPARATOR_v2
+                + self.SEPARATOR
                 + self.allow_proto.name)
 
     def is_subset_of(self, p: HostBasedPolicy) -> bool:
@@ -117,128 +104,68 @@ class HostBasedPolicy():
         Returns:
             bool: Returns True if valid and False if not valid.
         """
-        if isinstance(self.allow_src, HostBasedPolicySrc):  # format version 2
-            # check types
-            if not (
-                isinstance(self.id, str)
-                and isinstance(self.allow_src, HostBasedPolicySrc)
-                and isinstance(self.allow_ports, set)
-                and isinstance(self.allow_proto, HostBasedPolicyProtocol)
-            ):
-                logger.warning(
-                    ("Property of HostBasedPolicy has wrong type! "
-                     + "id: %s allow_srcs: %s allow_ports: %s allow_proto: %s"),
-                    str(type(self.id)),
-                    str(type(self.allow_src)),
-                    str(type(self.allow_ports)),
-                    str(type(self.allow_proto))
-                )
-                return False
+        # check types
+        if not (
+            isinstance(self.id, str)
+            and isinstance(self.allow_src, HostBasedPolicySrc)
+            and isinstance(self.allow_ports, set)
+            and isinstance(self.allow_proto, HostBasedPolicyProtocol)
+        ):
+            logger.warning(
+                ("Property of HostBasedPolicy has wrong type! "
+                    + "id: %s allow_srcs: %s allow_ports: %s allow_proto: %s"),
+                str(type(self.id)),
+                str(type(self.allow_src)),
+                str(type(self.allow_ports)),
+                str(type(self.allow_proto))
+            )
+            return False
 
-            # check value sanity
+        # check value sanity
+        try:
+            uuid.UUID(self.id)
+        except ValueError:
+            logger.warning("UUID of policy is invalid: '%s", self.id)
+            return False
+
+        if (
+            not self.allow_src.value.get('name')
+            or not self.allow_src.value.get('range')
+        ):
+            logger.warning(
+                "Policy's allow_srcs has no field 'name' or 'range'!"
+            )
+            return False
+        for src_range in self.allow_src.value.get('range'):
             try:
-                uuid.UUID(self.id)
+                ipaddress.ip_network(src_range)
             except ValueError:
-                logger.warning("UUID of policy is invalid: '%s", self.id)
-                return False
-
-            if (
-                not self.allow_src.value.get('name')
-                or not self.allow_src.value.get('range')
-            ):
                 logger.warning(
-                    "Policy's allow_srcs has no field 'name' or 'range'!"
-                )
-                return False
-            for src_range in self.allow_src.value.get('range'):
-                try:
-                    ipaddress.ip_network(src_range)
-                except ValueError:
-                    logger.warning(
-                        "Policy's allow_srcs range '%s' is invalid!",
-                        src_range
-                    )
-                    return False
-
-            for p in self.allow_ports:
-                try:
-                    if ':' in p:
-                        ps = p.split(':')
-                        int(ps[0])
-                        int(ps[1])
-                    else:
-                        int(p)
-                except ValueError:
-                    logger.warning("Policy's allow_port is invalid: '%s'", p)
-                    return False
-
-            if self.allow_proto.value.lower() not in ('tcp', 'udp'):
-                logger.warning(
-                    "Policy's allow_proto is invalid: '%s'",
-                    self.allow_proto
+                    "Policy's allow_srcs range '%s' is invalid!",
+                    src_range
                 )
                 return False
 
-            return True
-        else:  # format version 1
-            if not (
-                isinstance(self.id, str)
-                and isinstance(self.allow_src, dict)
-                and isinstance(self.allow_ports, set)
-                and isinstance(self.allow_proto, str)
-            ):
-                logger.warning(
-                    ("Property of HostBasedPolicy has wrong type! "
-                     + "id: %s allow_srcs: %s allow_ports: %s allow_proto: %s"),
-                    str(type(self.id)),
-                    str(type(self.allow_src)),
-                    str(type(self.allow_ports)),
-                    str(type(self.allow_proto))
-                )
-                return False
-
-            # check value sanity
+        for p in self.allow_ports:
             try:
-                uuid.UUID(self.id)
+                if ':' in p:
+                    ps = p.split(':')
+                    int(ps[0])
+                    int(ps[1])
+                else:
+                    int(p)
             except ValueError:
-                logger.warning("UUID of policy is invalid: '%s", self.id)
+                logger.warning("Policy's allow_port is invalid: '%s'", p)
                 return False
 
-            if not self.allow_src.get('name') or not self.allow_src.get('range'):
-                logger.warning(
-                    "Policy's allow_srcs has no field 'name' or 'range'!"
-                )
-                return False
-            for src_range in self.allow_src.get('range'):
-                try:
-                    ipaddress.ip_network(src_range)
-                except ValueError:
-                    logger.warning(
-                        "Policy's allow_srcs range '%s' is invalid!",
-                        src_range
-                    )
-                    return False
+        if self.allow_proto.value.lower() not in ('tcp', 'udp'):
+            logger.warning(
+                "Policy's allow_proto is invalid: '%s'",
+                self.allow_proto
+            )
+            return False
 
-            for p in self.allow_ports:
-                try:
-                    if ':' in p:
-                        ps = p.split(':')
-                        int(ps[0])
-                        int(ps[1])
-                    else:
-                        int(p)
-                except ValueError:
-                    logger.warning("Policy's allow_port is invalid: '%s'", p)
-                    return False
-
-            if self.allow_proto.lower() not in ('tcp', 'udp'):
-                logger.warning(
-                    "Policy's allow_proto is invalid: '%s'",
-                    self.allow_proto
-                )
-                return False
-
-            return True
+        return True
 
 
 FW_PROGRAM_CHECK = """
