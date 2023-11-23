@@ -95,11 +95,11 @@ class HostBasedPolicy():
         else:  # format version 1
             return (self.id
                     + self.SEPARATOR_v1
-                    + json.dumps(self.allow_src)
+                    + HostBasedPolicySrc[self.allow_src].name
                     + self.SEPARATOR_v1
-                    + json.dumps(list(self.allow_ports))
+                    + ",".join(self.allow_ports)
                     + self.SEPARATOR_v1
-                    + self.allow_proto)
+                    + HostBasedPolicyProtocol[self.allow_proto].name)
 
     def is_subset_of(self, p: HostBasedPolicy) -> bool:
         """
