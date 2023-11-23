@@ -6,7 +6,7 @@ import uuid
 import json
 import ipaddress
 
-from .contracts import HostFW
+from .contracts import HostFW, HostBasedPolicySrc
 
 
 logger = logging.getLogger(__name__)
@@ -16,11 +16,12 @@ class HostBasedPolicy():
     """
     Class representing a host-based firewall policy.
     """
-    SEPERATOR = '___'
+    SEPERATOR_v1 = '___'
+    SEPERATOR_v2 = '|_|_|'
 
     def __init__(
         self,
-        allow_srcs: dict,
+        allow_src: dict,
         allow_ports: set[str],
         allow_proto: str,
         id: str | None = None
@@ -29,7 +30,7 @@ class HostBasedPolicy():
             self.id = str(uuid.uuid4())
         else:
             self.id = id
-        self.allow_srcs = allow_srcs
+        self.allow_src = allow_src
         self.allow_ports = set([allow_port.strip()
                                 for allow_port in allow_ports])
         self.allow_proto = allow_proto
@@ -38,7 +39,7 @@ class HostBasedPolicy():
     def from_string(cls, string: str) -> HostBasedPolicy | None:
         """
         Construct an instance of HostBasedPolicy from its string
-        representation.
+        representation. Supports the old format as well as the new format.
 
         Args:
             string (str): String representation of a HostBasedPolicy object.
@@ -47,11 +48,23 @@ class HostBasedPolicy():
             HostBasedPolicy|None: Returns the constructed object or None if
             something goes wrong.
         """
-        elems = string.split(cls.SEPERATOR)
+        # format version 1
+        elems = string.split(cls.SEPERATOR_v1)
         if len(elems) == 4:
             p_id = elems[0]
             allow_srcs = json.loads(elems[1])
             allow_ports = set(json.loads(elems[2]))
+            allow_proto = elems[3]
+            return cls(id=p_id,
+                       allow_srcs=allow_srcs,
+                       allow_ports=allow_ports,
+                       allow_proto=allow_proto)
+        # format version 2
+        elems = string.split(cls.SEPERATOR_v2)
+        if len(elems) == 4:
+            p_id = elems[0]
+            allow_srcs = HostBasedPolicySrc[elems[1]]
+            allow_ports = set(elems[2].split(","))
             allow_proto = elems[3]
             return cls(id=p_id,
                        allow_srcs=allow_srcs,
@@ -69,11 +82,11 @@ class HostBasedPolicy():
             str: Returns the string representation.
         """
         return (self.id
-                + self.SEPERATOR
-                + json.dumps(self.allow_srcs)
-                + self.SEPERATOR
-                + json.dumps(list(self.allow_ports))
-                + self.SEPERATOR
+                + self.SEPERATOR_v1
+                + self.allow_src["name"]
+                + self.SEPERATOR_v1
+                + ",".join(self.allow_ports)
+                + self.SEPERATOR_v1
                 + self.allow_proto)
 
     def is_subset_of(self, p: HostBasedPolicy) -> bool:
@@ -87,7 +100,7 @@ class HostBasedPolicy():
         Returns:
             bool: Returns True if self is made obsolete by p, False otherwise.
         """
-        same_src = self.allow_srcs == p.allow_srcs
+        same_src = self.allow_src == p.allow_src
         same_proto = self.allow_proto == p.allow_proto
         ports_are_subset = self.allow_ports.issubset(p.allow_ports)
         if same_src and same_proto and ports_are_subset:
@@ -103,14 +116,14 @@ class HostBasedPolicy():
         """
         # check types
         if not (isinstance(self.id, str)
-                and isinstance(self.allow_srcs, dict)
+                and isinstance(self.allow_src, dict)
                 and isinstance(self.allow_ports, set)
                 and isinstance(self.allow_proto, str)):
             logger.warning(
                 ("Property of HostBasedPolicy has wrong type! "
                  + "id: %s allow_srcs: %s allow_ports: %s allow_proto: %s"),
                 str(type(self.id)),
-                str(type(self.allow_srcs)),
+                str(type(self.allow_src)),
                 str(type(self.allow_ports)),
                 str(type(self.allow_proto))
             )
@@ -123,12 +136,12 @@ class HostBasedPolicy():
             logger.warning("UUID of policy is invalid: '%s", self.id)
             return False
 
-        if not self.allow_srcs.get('name') or not self.allow_srcs.get('range'):
+        if not self.allow_src.get('name') or not self.allow_src.get('range'):
             logger.warning(
                 "Policy's allow_srcs has no field 'name' or 'range'!"
             )
             return False
-        for src_range in self.allow_srcs.get('range'):
+        for src_range in self.allow_src.get('range'):
             try:
                 ipaddress.ip_network(src_range)
             except ValueError:
@@ -210,7 +223,7 @@ ufw default allow outgoing
 
     # construct custom rules
     for n, c_policy in enumerate(custom_policies):
-        allow_srcs = c_policy.allow_srcs
+        allow_srcs = c_policy.allow_src
         allow_ports = c_policy.allow_ports
         allow_proto = c_policy.allow_proto
         policy_config += f"""
@@ -269,7 +282,7 @@ firewall-cmd --reload
     # construct custom rules as rich rules because abstraction to zone does
     # not work as long as sources cannot overlap
     for n, c_policy in enumerate(custom_policies):
-        allow_srcs = c_policy.allow_srcs['range']
+        allow_srcs = c_policy.allow_src['range']
         allow_ports = c_policy.allow_ports
         allow_proto = c_policy.allow_proto
         policy_config += f"""
@@ -361,7 +374,7 @@ table inet filter {{
 
     # construct the custom rules
     for n, c_policy in enumerate(custom_policy):
-        allow_srcs = c_policy.allow_srcs['range']
+        allow_srcs = c_policy.allow_src['range']
         allow_ports = c_policy.allow_ports
         allow_proto = c_policy.allow_proto
         policy_config += f"""
