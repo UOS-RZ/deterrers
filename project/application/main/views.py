@@ -5,7 +5,7 @@ from threading import Thread
 import os
 import markdown
 import pathlib
-import pickle
+import json
 
 from django.contrib.auth.decorators import login_required
 from django.http import (Http404,
@@ -21,24 +21,24 @@ from django.contrib import messages
 from django.core.mail import EmailMessage
 
 from main.util import (add_changelog,
-                            available_actions,
-                            registration_mail_body,
-                            scan_mail_body,
-                            periodic_mail_body,
-                            set_host_offline,
-                            set_host_online)
+                       available_actions,
+                       registration_mail_body,
+                       scan_mail_body,
+                       periodic_mail_body,
+                       set_host_offline,
+                       set_host_online)
 from main.forms import (ChangeHostDetailForm,
-                             ChangeHostFirewallForm,
-                             AddHostRulesForm,
-                             HostadminForm,
-                             AddHostForm)
+                        ChangeHostFirewallForm,
+                        AddHostRulesForm,
+                        HostadminForm,
+                        AddHostForm)
 from main.core.risk_assessor import assess_host_risk
 from main.core.rule_generator import generate_fw_config
 from main.core.contracts import (HostBasedPolicySrc,
-                                      HostBasedPolicyProtocol,
-                                      HostStatus,
-                                      HostServiceProfile,
-                                      HostFW,)
+                                 HostBasedPolicyProtocol,
+                                 HostStatus,
+                                 HostServiceProfile,
+                                 HostFW,)
 if settings.IPAM_DUMMY:
     from main.core.data_logic.data_mock \
         import DataMockWrapper as IPAMWrapper
@@ -1444,11 +1444,16 @@ def scanner_periodic_alert(request):
                         with open(
                             os.path.join(
                                 settings.BASE_DIR,
-                                f"logs/scan-results_{task_uuid}_{scan_end}.pickle"  # noqa: E501
+                                f"logs/scan-results_{task_uuid}_{scan_end}.json"  # noqa: E501
                             ),
                             "wb"
                         ) as f:
-                            pickle.dump(scan_results, f)
+                            data = {}
+                            for ip, results in scan_results.items():
+                                data[ip] = [
+                                    result.to_dict() for result in results
+                                ]
+                            json.dump(data, f)
                     except Exception:
                         pass
 

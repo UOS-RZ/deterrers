@@ -42,6 +42,9 @@ class VulnerabilityScanResult():
         self.refs = list(refs)
         self.description = description
 
+    def to_dict(self) -> dict:
+        return self.__dict__
+
 
 class RiskFlag(Flag):
     """
