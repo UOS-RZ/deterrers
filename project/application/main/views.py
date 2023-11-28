@@ -1446,7 +1446,7 @@ def scanner_periodic_alert(request):
                                 settings.BASE_DIR,
                                 f"logs/scan-results_{task_uuid}_{scan_end}.json"  # noqa: E501
                             ),
-                            "wb"
+                            "w"
                         ) as f:
                             data = {}
                             for ip, results in scan_results.items():
