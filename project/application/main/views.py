@@ -1455,7 +1455,7 @@ def scanner_periodic_alert(request):
                                 ]
                             json.dump(data, f)
                     except Exception:
-                        pass
+                        logger.exception("")
 
                     # Risk assessment
                     for host_ipv4, vulnerabilities in scan_results.items():
