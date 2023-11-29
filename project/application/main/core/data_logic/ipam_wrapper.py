@@ -876,7 +876,6 @@ class ProteusIPAMWrapper(DataAbstract):
                             host
                         ) != 200:
                             raise Exception()
-                        break
             else:
                 # tag is admin tag
                 if self.__host_is_tagged(host_id, tag_id):
@@ -895,6 +894,9 @@ class ProteusIPAMWrapper(DataAbstract):
             response = requests.put(linkentities_url,
                                     headers=self.header,
                                     timeout=self.TIMEOUT)
+            # add the new admin name to host object in case it is used further
+            host.admin_ids.add(admin_name)
+
             return response.status_code
         except Exception:
             logger.exception("Couldn't add tag to host!")
