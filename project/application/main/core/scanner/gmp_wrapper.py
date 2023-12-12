@@ -63,7 +63,7 @@ class GmpAPIError(Exception):
     """
     Custom exception that can be raised when the gmp does not respond as
     expected.
-     """
+    """
 
 
 class GmpScannerWrapper(ScannerAbstract):
