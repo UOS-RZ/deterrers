@@ -46,15 +46,17 @@ class PortList(Enum):
     ALL_TCP_UDP_UUID = "94c4fe31-c6e4-4e38-b876-fc00a0225021"
 
 
-class Credentials(Enum):
-    HULK_SSH_CRED_UUID = "22bdc0be-827c-4566-9b1d-2679cf85cb65"
-    HULK_SMB_CRED_UUID = "13c917aa-e0cc-4027-b249-068ed0f6f4a0"
-
-
 class ReportFormat(Enum):
     ANON_XML_UUID = "5057e5cc-b825-11e4-9d0e-28d24461215b"
     XML_UUID = "a994b278-1f62-11e1-96ac-406186ea4fc5"
     HTML_UUID = "ffa123c9-a2d2-409e-bbbb-a6c1385dbeaa"
+
+
+# These UUIDs are specific to the deployment
+# TODO: make configurable
+class Credentials(Enum):
+    HULK_SSH_CRED_UUID = None
+    HULK_SMB_CRED_UUID = None
 
 
 class GmpAPIError(Exception):
