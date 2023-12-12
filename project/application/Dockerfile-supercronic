@@ -55,5 +55,8 @@ RUN echo '0 6,18 * * * python ${MICRO_SERVICE}/manage.py sync_fw --sync' >> ./my
 # schedule vulnerability scanner synchronisation once per day
 RUN echo '0 3 * * * python ${MICRO_SERVICE}/manage.py sync_scanner --sync' >> ./my_crontab
 
+# add scanner's SSH fingerprint to known hosts
+RUN python ${MICRO_SERVICE}/manage.py add_ssh_fingerprint
+
 
 CMD supercronic ./my_crontab

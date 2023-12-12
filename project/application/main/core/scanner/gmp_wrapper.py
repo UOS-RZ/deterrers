@@ -1485,20 +1485,21 @@ class GmpScannerWrapper(ScannerAbstract):
         hosts = set()
         for bucket in range(self.__PERIODIC_TARGET_BUCKETS):
             try:
-                task_name = (
+                target_name = (
                     self.PERIODIC_TASK_NAME + f" [{bucket}]"
                 )
                 # if stash target exists use it
                 target_uuid = self.__get_target_id(
-                    task_name + self.PERIODIC_STASH_SUFFIX
+                    target_name + self.PERIODIC_STASH_SUFFIX
                 )
                 if not target_uuid:
                     # if stash target does not exist, use default target
                     target_uuid = self.__get_target_id(
-                        task_name + self.PERIODIC_STASH_SUFFIX
+                        target_name
                     )
                     if not target_uuid:
                         # if default target does not exist skip
+                        logger.error("Target '%s' does not exist", target_name)
                         continue
 
                 response = self.gmp.get_target(target_uuid)
