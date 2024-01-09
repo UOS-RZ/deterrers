@@ -285,7 +285,7 @@ def hosts_list_view(request):
                 return HttpResponseRedirect(reverse('hostadmin_init'))
             else:
                 logout(request)
-                raise HttpResponse(status=401)
+                return HttpResponse(status=401)
 
         tag_choices = [
             hostadmin.username,
@@ -376,7 +376,7 @@ def hostadmin_init_view(request):
         # hostadmin can only initialize if they are a user in IPAM
         if not ipam.user_exists(hostadmin.username):
             logout(request)
-            raise HttpResponse(status=401)
+            return HttpResponse(status=401)
         # check if hostadmin already has a tag
         if ipam.is_admin(hostadmin.username):
             return HttpResponseRedirect(reverse('hosts_list'))
