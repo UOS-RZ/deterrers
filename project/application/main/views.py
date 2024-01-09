@@ -18,6 +18,7 @@ from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import logout
 from django.core.mail import EmailMessage
 
 from main.util import (add_changelog,
@@ -283,7 +284,8 @@ def hosts_list_view(request):
             if ipam.user_exists(hostadmin.username):
                 return HttpResponseRedirect(reverse('hostadmin_init'))
             else:
-                raise Http404()
+                logout(request)
+                raise HttpResponse(status=401)
 
         tag_choices = [
             hostadmin.username,
@@ -373,7 +375,8 @@ def hostadmin_init_view(request):
 
         # hostadmin can only initialize if they are a user in IPAM
         if not ipam.user_exists(hostadmin.username):
-            raise Http404()
+            logout(request)
+            raise HttpResponse(status=401)
         # check if hostadmin already has a tag
         if ipam.is_admin(hostadmin.username):
             return HttpResponseRedirect(reverse('hosts_list'))
