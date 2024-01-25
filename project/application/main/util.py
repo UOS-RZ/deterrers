@@ -309,6 +309,9 @@ Complete scan report can be found attached to this e-mail.
 Following vulnerabilities resulted in the blocking:
 """
         for vul in block_reasons:
+            # sanity check
+            if not vul:
+                continue
             # append 40 whitespaces to newlines for proper indentation
             desc = vul.description.replace(
                 "\n",
@@ -367,6 +370,9 @@ Internet Service Profile: {host.service_profile.value}
 Following vulnerabilities resulted in the blocking:
 """     # noqa: E501
         for vul in block_reasons:
+            # sanity check
+            if not vul:
+                continue
             # append 40 whitespaces to newlines for proper indentation
             desc = vul.description.replace(
                 "\n",
@@ -390,6 +396,9 @@ Additionally, following vulnerabilities were found but do not result in blocking
 They are either not exposed to the internet, affect only the availability or are not severe enough to legitimize blocking the host:
 """     # noqa: E501
             for vul in notify_reasons:
+                # sanity check
+                if not vul:
+                    continue
                 # append 40 whitespaces to newlines for proper indentation
                 desc = vul.description.replace(
                     "\n",
@@ -428,6 +437,9 @@ Following vulnerabilities were found but do not result in blocking.
 They are either not exposed to the internet, affect only the availability or are not severe enough to legitimize blocking the host:
 """     # noqa: E501
         for vul in notify_reasons:
+            # sanity check
+            if not vul:
+                continue
             # append 40 whitespaces to newlines for proper indentation
             desc = vul.description.replace(
                 "\n",
