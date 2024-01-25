@@ -1379,6 +1379,26 @@ class GmpScannerWrapper(ScannerAbstract):
                     qod = result_xml.xpath('qod/value')[0].text
                     severities = result_xml.xpath('nvt/severities/severity')
                     try:
+                        overrides = []
+                        ors = result_xml.xpath('overrides/override')
+                        for override in ors:
+                            if int(override.xpath('active')[0].text) == 1:
+                                override_id = override.attrib['id']
+                                override_nvt_oid = override.xpath('nvt').attrib['oid']
+                                override_new_threat = override.xpath('new_threat')[0].text
+                                override_new_severity = override.xpath('new_severity')[0].text
+                                overrides.append({
+                                    'id': override_id,
+                                    'nvt_oid': override_nvt_oid,
+                                    'new_threat': override_new_threat,
+                                    'new_severity': float(override_new_severity)
+                                })
+                    except Exception:
+                        logger.exception(
+                            "Couldn't extract all overrides!"
+                        )
+
+                    try:
                         description = result_xml.xpath('description')[0].text
                     except Exception:
                         logger.exception(
@@ -1426,7 +1446,8 @@ class GmpScannerWrapper(ScannerAbstract):
                     cvss_base_score=cvss_base_score,
                     cvss_base_vector=cvss_base_vector,
                     refs=refs,
-                    description=description
+                    description=description,
+                    overrides=overrides
                 )
                 if results.get(host_ip):
                     results[host_ip].append(res)

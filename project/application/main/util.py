@@ -7,8 +7,8 @@ from django.urls import reverse
 
 from main.core.host import MyHost
 from main.core.contracts import (HostStatus,
-                                      HostServiceProfile,
-                                      HostFW)
+                                 HostServiceProfile,
+                                 HostFW)
 from main.core.risk_assessor import VulnerabilityScanResult
 if settings.IPAM_DUMMY:
     from main.core.data_logic.data_mock \
