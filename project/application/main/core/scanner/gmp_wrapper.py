@@ -1384,7 +1384,7 @@ class GmpScannerWrapper(ScannerAbstract):
                         for override in ors:
                             if int(override.xpath('active')[0].text) == 1:
                                 override_id = override.attrib['id']
-                                override_nvt_oid = override.xpath('nvt').attrib['oid']
+                                override_nvt_oid = override.xpath('nvt')[0].attrib['oid']
                                 override_new_threat = override.xpath('new_threat')[0].text
                                 override_new_severity = override.xpath('new_severity')[0].text
                                 overrides.append({
@@ -1399,7 +1399,7 @@ class GmpScannerWrapper(ScannerAbstract):
                         )
 
                     try:
-                        description = result_xml.xpath('description')[0].text
+                        description = str(result_xml.xpath('description')[0].text)
                     except Exception:
                         logger.exception(
                             "Couldn't extract vulnerability result description!"
