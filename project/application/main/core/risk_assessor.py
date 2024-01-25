@@ -26,7 +26,8 @@ class VulnerabilityScanResult():
         cvss_base_score: float,
         cvss_base_vector: str,
         refs: list[str],
-        description: str
+        description: str,
+        overrides: list[dict]
     ) -> None:
         self.uuid = str(uuid)
         self.host_ip = str(host_ip)
@@ -41,6 +42,7 @@ class VulnerabilityScanResult():
         self.cvss_base_vector = str(cvss_base_vector)
         self.refs = list(refs)
         self.description = description
+        self.overrides = list(overrides)
 
     def to_dict(self) -> dict:
         return self.__dict__
@@ -192,6 +194,12 @@ def assess_vulnerability_risk(
     """
     risk = RiskFlag.NONE
     try:
+        # if there is an override for this vulnerability which sets its
+        # threat-level to False Positive, there is no risk assumed
+        for override in vul.overrides:
+            if override['new_threat'] == 'False Positive':
+                return RiskFlag.NONE
+
         # if still no severity matched CVSS v2 or v3 skip to avoid error
         if vul.cvss_version not in (2, 3):
             return RiskFlag.NONE
