@@ -47,7 +47,7 @@
         {% if can_block %}
             <form action="{% url 'block_host' ipv4=host_ipv4 %}" method="post">
                 {% csrf_token %}
-                {% bootstrap_button name="block_btn" button_type="submit" content="Block" button_class="btn btn-primary" title="Block host from the internet. After the host is blocked, it can be registered again." %}
+                {% bootstrap_button name="block_btn" button_type="submit" content="Block" button_class="btn btn-primary" onclick="return confirm('Do you really want to block this host?');" title="Block host from the internet. After the host is blocked, it can be registered again." %}
             </form>
         {% endif %}
 
