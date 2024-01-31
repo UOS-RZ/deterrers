@@ -61,7 +61,7 @@
         {% if can_remove %}
             <form action="{% url 'remove_host' ipv4=host_ipv4 %}" method="post">
                 {% csrf_token %}
-                {% bootstrap_button name="remove_btn" button_type="submit" content="Remove from DETERRERS" button_class="btn btn-danger" onclick="return confirm('Do you really want to remove this host?');" title="Remove host from DETERRERS. Blocks it and removes all information on it." %}
+                {% bootstrap_button name="remove_btn" button_type="submit" content="Remove from DETERRERS" button_class="btn btn-danger" onclick="return confirm('Do you really want to remove this host? This will block it and remove all information on it!');" title="Remove host from DETERRERS. Blocks it and removes all information on it." %}
             </form>
         {% endif %}
     </div>
