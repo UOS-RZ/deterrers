@@ -41,6 +41,7 @@ def add_changelog(history: int = 10) -> list[str]:
         ("2023-10-24", "API users can now skip registration-scans."),
         ("2023-10-30", "Added comment column that displays a host's comment field from Proteus."),  # noqa: E501
         ("2023-11-08", "Added description to vulnerability details in e-mails."),  # noqa: E501
+        ("2024-01-31", "Added confirmation pop-up for block- and remove-actions."),  # noqa: E501
     ]
 
     today = datetime.datetime.today().date()
