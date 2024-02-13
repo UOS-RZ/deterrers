@@ -61,9 +61,15 @@
                                     <span class="me-2">
                                         User: <strong>{{ user.get_username }} </strong>
                                     </span>
-                                    <a class="btn btn-primary" href="{% url 'logout' %}">Logout</a>
+                                    <form action="{% url 'logout' %}" method="post">
+                                        {% csrf_token %}
+                                        {% bootstrap_button name="logout_btn" button_type="submit" content="Logout" button_class="btn btn-primary" title="Log out" %}
+                                    </form>
                                 {% else %}
-                                    <a class="btn btn-primary" href="{% url 'login' %}?next={{ request.path }}">Login</a>
+                                    <form action="{% url 'login' %}?next={{ request.path }}" method="get">
+                                        {% csrf_token %}
+                                        {% bootstrap_button name="login_btn" button_type="submit" content="Login" button_class="btn btn-primary" title="Log" %}
+                                    </form>
                                 {% endif %}
                             </div>
                         </div>
