@@ -164,6 +164,7 @@ class Command(BaseCommand):
                             for host in hosts:
                                 if (
                                     host.service_profile
+                                    and host.service_profile != HostServiceProfile.EMPTY
                                     and host not in ipam_hosts_total[host.service_profile]
                                 ):
                                     ipam_hosts_total[host.service_profile].add(
