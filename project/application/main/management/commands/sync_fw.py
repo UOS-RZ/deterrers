@@ -154,6 +154,7 @@ class Command(BaseCommand):
                             sp: set()
                             for sp in HostServiceProfile
                         }
+                        ipam_ips_allowed_cnt = 0
                         ipam_ip_addrs_allowed_total = set()
                         admin_tag_names = ipam.get_all_admin_names()
                         for a_tag_name in admin_tag_names:
@@ -170,12 +171,19 @@ class Command(BaseCommand):
                                     ipam_ip_addrs_allowed_total.add(
                                         str(host.ipv4_addr)
                                     )
+                                    ipv6s = ipam.get_IP6Addresses(host)
                                     ipam_ip_addrs_allowed_total.update(
-                                        ipam.get_IP6Addresses(host)
+                                        ipv6s
                                     )
+                                    ipam_ips_allowed_cnt += (1 + len(ipv6s))
+                        logger.info(
+                            'Got %d IPs allowed or under review.',
+                            ipam_ips_allowed_cnt
+                        )
 
                         # get addresses from firewall that are in some
                         # allowing service profile
+                        logger.info('Get assets from FW!')
                         fw_ip_addrs_allowed_total = set()
                         for out_sp in set(HostServiceProfile).difference(
                             {HostServiceProfile.EMPTY, }
@@ -185,6 +193,10 @@ class Command(BaseCommand):
                                     fw_ip_addrs_allowed_total.add(str(ip))
                                 if type(ip) is ipaddress.IPv6Address:
                                     fw_ip_addrs_allowed_total.add(ip.exploded)
+                        logger.info(
+                            'Got %d IPs allowed at FW.',
+                            len(fw_ip_addrs_allowed_total)
+                        )
 
                         """ SYNC DATA """
 
