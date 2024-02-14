@@ -146,17 +146,18 @@ class Command(BaseCommand):
                                 admin_name=a_tag_name
                             )
                             for host in hosts:
-                                ipam_hosts_total[str(host.ipv4_addr)] = host
-                                if host.status in (
-                                    HostStatus.ONLINE, HostStatus.UNDER_REVIEW
-                                ):
-                                    ipam_hosts_allowed_cnt += 1
-                                    ipam_ip_addrs_allowed_total.add(
-                                        str(host.ipv4_addr)
-                                    )
-                                    ipam_ip_addrs_allowed_total.update(
-                                        ipam.get_IP6Addresses(host)
-                                    )
+                                if ipam_hosts_total.get(str(host.ipv4_addr)) == None:
+                                    ipam_hosts_total[str(host.ipv4_addr)] = host
+                                    if host.status in (
+                                        HostStatus.ONLINE, HostStatus.UNDER_REVIEW
+                                    ):
+                                        ipam_hosts_allowed_cnt += 1
+                                        ipam_ip_addrs_allowed_total.add(
+                                            str(host.ipv4_addr)
+                                        )
+                                        ipam_ip_addrs_allowed_total.update(
+                                            ipam.get_IP6Addresses(host)
+                                        )
                         logger.info(
                             "Got %d hosts that are online or under review.",
                             ipam_hosts_allowed_cnt
