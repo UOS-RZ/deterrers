@@ -162,20 +162,21 @@ class Command(BaseCommand):
                                 admin_name=a_tag_name
                             )
                             for host in hosts:
-                                ipam_hosts_total[host.service_profile].add(
-                                    host
-                                )
-                                if host.status in (
-                                    HostStatus.ONLINE, HostStatus.UNDER_REVIEW
-                                ):
-                                    ipam_ip_addrs_allowed_total.add(
-                                        str(host.ipv4_addr)
+                                if host not in ipam_hosts_total[host.service_profile]:
+                                    ipam_hosts_total[host.service_profile].add(
+                                        host
                                     )
-                                    ipv6s = ipam.get_IP6Addresses(host)
-                                    ipam_ip_addrs_allowed_total.update(
-                                        ipv6s
-                                    )
-                                    ipam_ips_allowed_cnt += (1 + len(ipv6s))
+                                    if host.status in (
+                                        HostStatus.ONLINE, HostStatus.UNDER_REVIEW
+                                    ):
+                                        ipam_ip_addrs_allowed_total.add(
+                                            str(host.ipv4_addr)
+                                        )
+                                        ipv6s = ipam.get_IP6Addresses(host)
+                                        ipam_ip_addrs_allowed_total.update(
+                                            ipv6s
+                                        )
+                                        ipam_ips_allowed_cnt += (1 + len(ipv6s))
                         logger.info(
                             'Got %d IPs allowed or under review.',
                             ipam_ips_allowed_cnt
