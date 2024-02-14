@@ -162,7 +162,10 @@ class Command(BaseCommand):
                                 admin_name=a_tag_name
                             )
                             for host in hosts:
-                                if host not in ipam_hosts_total[host.service_profile]:
+                                if (
+                                    host.service_profile
+                                    and host not in ipam_hosts_total[host.service_profile]
+                                ):
                                     ipam_hosts_total[host.service_profile].add(
                                         host
                                     )

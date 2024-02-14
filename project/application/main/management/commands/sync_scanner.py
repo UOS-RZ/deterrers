@@ -146,7 +146,7 @@ class Command(BaseCommand):
                                 admin_name=a_tag_name
                             )
                             for host in hosts:
-                                if ipam_hosts_total.get(str(host.ipv4_addr)) == None:
+                                if host.ipv4_addr and not ipam_hosts_total.get(str(host.ipv4_addr)):
                                     ipam_hosts_total[str(host.ipv4_addr)] = host
                                     if host.status in (
                                         HostStatus.ONLINE, HostStatus.UNDER_REVIEW
