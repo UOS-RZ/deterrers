@@ -138,6 +138,7 @@ class Command(BaseCommand):
                         # get all hosts in IPAM
                         logger.info("Get assets from IPAM!")
                         ipam_hosts_total = {}
+                        ipam_hosts_allowed_cnt = 0
                         ipam_ip_addrs_allowed_total = set()
                         admin_tag_names = ipam.get_all_admin_names()
                         for a_tag_name in admin_tag_names:
@@ -149,15 +150,21 @@ class Command(BaseCommand):
                                 if host.status in (
                                     HostStatus.ONLINE, HostStatus.UNDER_REVIEW
                                 ):
+                                    ipam_hosts_allowed_cnt += 1
                                     ipam_ip_addrs_allowed_total.add(
                                         str(host.ipv4_addr)
                                     )
                                     ipam_ip_addrs_allowed_total.update(
                                         ipam.get_IP6Addresses(host)
                                     )
+                        logger.info(
+                            "Got %d hosts that are online or under review.",
+                            ipam_hosts_allowed_cnt
+                        )
 
                         logger.info('Get assets in periodic scan!')
                         scanner_hosts = scanner.get_periodic_scanned_hosts()
+                        logger.info('Got %d hosts from scanner.', len(scanner_hosts))
 
                         """ SYNC DATA """
 
