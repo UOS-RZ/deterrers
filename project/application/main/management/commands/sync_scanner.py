@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand
 import os
 import argparse
 import logging
+from time import sleep
 
 from django.conf import settings
 
@@ -105,6 +106,8 @@ class Command(BaseCommand):
                 ipam_url
             ) as ipam:
                 if not ipam.enter_ok:
+                    sleep(1.0)
+                    logger.warning("Try again connecting to IPAM...")
                     continue
 
                 while True:
@@ -128,6 +131,8 @@ class Command(BaseCommand):
                         scanner_url
                     ) as scanner:
                         if not scanner.enter_ok:
+                            sleep(1.0)
+                            logger.warning("Try again connecting to scanner...")
                             continue
 
                         # TODO: move logic to corresponding wrappers to
