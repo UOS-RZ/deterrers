@@ -53,7 +53,7 @@ RUN echo '*/15 * * * * python ${MICRO_SERVICE}/manage.py commit_to_perimeter_fw'
 # schedule Palo Alto FW synchronisation twice a day
 RUN echo '0 6,18 * * * python ${MICRO_SERVICE}/manage.py sync_fw --sync' >> ./my_crontab
 # schedule vulnerability scanner synchronisation once per day and add ssh fingerprint beforehand
-RUN echo '58 2 * * * python ${MICRO_SERVICE}/manage.py add_ssh_fingerprint' >> ./my_crontab
+RUN echo '58 2 * * * python ${MICRO_SERVICE}/manage.py add_ssh_fingerprints' >> ./my_crontab
 RUN echo '0 3 * * * python ${MICRO_SERVICE}/manage.py sync_scanner --sync' >> ./my_crontab
 
 
