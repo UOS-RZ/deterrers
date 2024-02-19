@@ -3,6 +3,7 @@ import os
 import argparse
 import ipaddress
 import logging
+from time import sleep
 
 from django.conf import settings
 
@@ -124,6 +125,8 @@ class Command(BaseCommand):
                 ipam_url
             ) as ipam:
                 if not ipam.enter_ok:
+                    sleep(1.0)
+                    logger.warning("Try again connecting to IPAM...")
                     continue
 
                 while True:
@@ -141,6 +144,8 @@ class Command(BaseCommand):
                         fw_url
                     ) as fw:
                         if not fw.enter_ok:
+                            sleep(1.0)
+                            logger.warning("Try again connecting to FW...")
                             continue
 
                         # TODO: move logic to corresponding wrappers to
