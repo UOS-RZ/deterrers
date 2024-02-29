@@ -94,7 +94,6 @@ LOGGING = {
                 ),
             "backupCount": 20,
             "when": "midnight",
-            "interval": 7,
             "formatter": "verbose",
         },
     },
