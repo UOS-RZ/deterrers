@@ -7,7 +7,7 @@ import ipaddress
 
 from main.core.fw.fw_abstract import FWAbstract
 from main.core.contracts import (HostStatus,
-                                      HostServiceProfile)
+                                 HostServiceProfile)
 
 
 logger = logging.getLogger(__name__)
