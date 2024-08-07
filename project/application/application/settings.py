@@ -92,8 +92,8 @@ LOGGING = {
                         BASE_DIR
                     ), "logs/deterrers-app.log"
                 ),
-            "backupCount": 20,
-            "when": "midnight",
+            "backupCount": 4,
+            "when": "W3",
             "formatter": "verbose",
         },
     },
