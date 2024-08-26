@@ -164,14 +164,15 @@ class FortigateWrapper(FWAbstract):
                 and int(data.get('http_status')) == 200):
             return None
 
-        if int(data.get('matched_count', 0)) == 0:
-            return None
-        elif int(data.get('matched_count')) > 1:
-            logger.error(
-                "There are to many address objects in the firewall with IP %s",
-                ip_addr
-            )
-            return None
+        # TODO: think of other way to check count
+        # if int(data.get('matched_count', 0)) == 0:
+        #     return None
+        # elif int(data.get('matched_count')) > 1:
+        #     logger.error(
+        #         "There are to many address objects in the firewall with IP %s",
+        #         ip_addr
+        #     )
+        #     return None
         obj_name = data.get('results')[0].get('name')
 
         return obj_name
