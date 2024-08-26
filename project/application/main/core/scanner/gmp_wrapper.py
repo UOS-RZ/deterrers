@@ -10,11 +10,11 @@ from gvm.protocols.gmp import Gmp
 from gvm.connections import SSHConnection
 from gvm.transforms import EtreeCheckCommandTransform
 from gvm.errors import GvmError
-from gvm.protocols.gmpv224 import (AlertCondition,
-                                   AlertEvent,
-                                   AlertMethod,
-                                   AliveTest,
-                                   HostsOrdering)
+from gvm.protocols.gmp.requests.v225 import (AlertCondition,
+                                             AlertEvent,
+                                             AlertMethod,
+                                             AliveTest,
+                                             HostsOrdering)
 
 from main.core.scanner.scanner_abstract import ScannerAbstract
 from main.core.risk_assessor import VulnerabilityScanResult

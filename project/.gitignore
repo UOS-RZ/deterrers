@@ -1,5 +1,7 @@
 *__pycache__
-*.log
+*.log*
+*.json
+*.sqlight3
 *.sqlight
 .pip_cache/
 .env.prod
