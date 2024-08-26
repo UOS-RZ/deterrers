@@ -152,7 +152,7 @@ class FortigateWrapper(FWAbstract):
             api_endpoint = "firewall/address"
         elif type(ip) is ipaddress.IPv6Address:
             api_endpoint = "firewall/address6"
-        query_params = f"{self.query_params}&filter=name=={ip.exploded.replace('.', '-').replace(':', '-')}"
+        query_params = f"{self.query_params}&search=name=={ip.exploded.replace('.', '-').replace(':', '-')}"
         response = requests.get(
             self.rest_url+api_endpoint+query_params,
             headers=self.header,
@@ -236,7 +236,7 @@ class FortigateWrapper(FWAbstract):
         else:
             raise FortigateAPIError(f'Invalid IP version: {ip_version}')
 
-        get_addr_grp_params = f"{self.query_params}&filter=name=={addr_grp_name}"
+        get_addr_grp_params = f"{self.query_params}&search=name=={addr_grp_name}"
         get_addr_grp_url = (self.rest_url+api_endpoint+get_addr_grp_params)
         response = requests.get(
             get_addr_grp_url,
@@ -288,7 +288,7 @@ class FortigateWrapper(FWAbstract):
             srvc_prfl_addr_obj_names = self.__get_all_addr_obj_names()
             addr_grps = AddressGroup.get_addr_grps(serv_profile)
             for addr_grp in addr_grps:
-                query_params = f"{self.query_params}&filter=name=={AddressGroup.get_ipv4_name(addr_grp)}"
+                query_params = f"{self.query_params}&search=name=={AddressGroup.get_ipv4_name(addr_grp)}"
                 response = requests.get(
                     self.rest_url+api_endpoint+query_params,
                     headers=self.header,
@@ -319,7 +319,7 @@ class FortigateWrapper(FWAbstract):
             srvc_prfl_addr_obj_names = self.__get_all_addr_obj_names()
             addr_grps = AddressGroup.get_addr_grps(serv_profile)
             for addr_grp in addr_grps:
-                query_params = f"{self.query_params}&filter=name=={AddressGroup.get_ipv6_name(addr_grp)}"
+                query_params = f"{self.query_params}&search=name=={AddressGroup.get_ipv6_name(addr_grp)}"
                 response = requests.get(
                     self.rest_url+api_endpoint+query_params,
                     headers=self.header,
