@@ -433,7 +433,7 @@ class FortigateWrapper(FWAbstract):
 
                 response = requests.put(
                     put_addr_grp_url,
-                    json=addr_grp_props,
+                    json=payload,
                     headers=self.header,
                     timeout=self.TIMEOUT,
                     verify=True
