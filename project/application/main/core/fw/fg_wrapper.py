@@ -164,7 +164,7 @@ class FortigateWrapper(FWAbstract):
                 and int(data.get('http_status')) == 200):
             return None
 
-        if int(data.get('matched_count')) == 0:
+        if int(data.get('matched_count', 0)) == 0:
             return None
         elif int(data.get('matched_count')) > 1:
             logger.error(
