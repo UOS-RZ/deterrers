@@ -52,12 +52,17 @@ if settings.SCANNER_DUMMY:
 else:
     from main.core.scanner.gmp_wrapper \
         import GmpScannerWrapper as ScannerWrapper
-if settings.FIREWALL_DUMMY:
+if settings.FIREWALL_TYPE ==  'DUMMY':
     from main.core.fw.fw_mock \
         import FWMock as FWWrapper
-else:
+elif settings.FIREWALL_TYPE ==  'PaloAlto':
     from main.core.fw.pa_wrapper \
         import PaloAltoWrapper as FWWrapper
+elif settings.FIREWALL_TYPE ==  'FortiGate':
+    from main.core.fw.fg_wrapper \
+        import FortigateWrapper as FWWrapper
+else:
+    raise ImportError("Invalid firewall type!")
 
 
 from user.models import MyUser
