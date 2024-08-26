@@ -15,13 +15,13 @@ if settings.IPAM_DUMMY:
 else:
     from main.core.data_logic.ipam_wrapper \
         import ProteusIPAMWrapper as IPAMWrapper
-if settings.FIREWALL_TYPE ==  'DUMMY':
+if settings.FIREWALL_TYPE == 'DUMMY':
     from main.core.fw.fw_mock \
         import FWMock as FWWrapper
-elif settings.FIREWALL_TYPE ==  'PaloAlto':
+elif settings.FIREWALL_TYPE == 'PaloAlto':
     from main.core.fw.pa_wrapper \
         import PaloAltoWrapper as FWWrapper
-elif settings.FIREWALL_TYPE ==  'FortiGate':
+elif settings.FIREWALL_TYPE == 'FortiGate':
     from main.core.fw.fg_wrapper \
         import FortigateWrapper as FWWrapper
 else:
