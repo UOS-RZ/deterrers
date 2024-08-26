@@ -1,9 +1,9 @@
-Django == 5.0.3
+Django == 5.0.8
 ldap3 == 2.9.1
 django-python3-ldap == 0.15.5
 requests
 gunicorn
-python-gvm
+python-gvm == 24.6.0
 icalendar
 paramiko
 django-bootstrap5
