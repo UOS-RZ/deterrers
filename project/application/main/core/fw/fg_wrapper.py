@@ -149,10 +149,10 @@ class FortigateWrapper(FWAbstract):
             return None
 
         if type(ip) is ipaddress.IPv4Address:
-            api_endpoint = "firewall/address"
+            api_endpoint = f"firewall/address/{ip.exploded.replace('.', '-')}"
         elif type(ip) is ipaddress.IPv6Address:
-            api_endpoint = "firewall/address6"
-        query_params = f"{self.query_params}&search=name=={ip.exploded.replace('.', '-').replace(':', '-')}"
+            api_endpoint = f"firewall/address6/{ip.exploded.replace(':', '-')}"
+        query_params = f"{self.query_params}"
         response = requests.get(
             self.rest_url+api_endpoint+query_params,
             headers=self.header,
@@ -236,7 +236,7 @@ class FortigateWrapper(FWAbstract):
         else:
             raise FortigateAPIError(f'Invalid IP version: {ip_version}')
 
-        get_addr_grp_params = f"{self.query_params}&search=name=={addr_grp_name}"
+        get_addr_grp_params = f"{self.query_params}"
         get_addr_grp_url = (self.rest_url+api_endpoint+get_addr_grp_params)
         response = requests.get(
             get_addr_grp_url,
@@ -283,14 +283,14 @@ class FortigateWrapper(FWAbstract):
         try:
             ip_addrs = set()
             # get all IPv4 addresses
-            api_endpoint = "firewall/addrgrp"
+            api_endpoint = "firewall/addrgrp/"
             # map service profile to address groups
             srvc_prfl_addr_obj_names = self.__get_all_addr_obj_names()
             addr_grps = AddressGroup.get_addr_grps(serv_profile)
             for addr_grp in addr_grps:
-                query_params = f"{self.query_params}&search=name=={AddressGroup.get_ipv4_name(addr_grp)}"
+                query_params = f"{self.query_params}"
                 response = requests.get(
-                    self.rest_url+api_endpoint+query_params,
+                    self.rest_url+api_endpoint+str({AddressGroup.get_ipv4_name(addr_grp)})+query_params,
                     headers=self.header,
                     verify=True
                 )
@@ -314,14 +314,14 @@ class FortigateWrapper(FWAbstract):
                     pass
 
             # get all IPv6 addresses
-            api_endpoint = "firewall/addrgrp6"
+            api_endpoint = "firewall/addrgrp6/"
             # map service profile to address groups
             srvc_prfl_addr_obj_names = self.__get_all_addr_obj_names()
             addr_grps = AddressGroup.get_addr_grps(serv_profile)
             for addr_grp in addr_grps:
-                query_params = f"{self.query_params}&search=name=={AddressGroup.get_ipv6_name(addr_grp)}"
+                query_params = f"{self.query_params}"
                 response = requests.get(
-                    self.rest_url+api_endpoint+query_params,
+                    self.rest_url+api_endpoint+str(AddressGroup.get_ipv6_name(addr_grp))+query_params,
                     headers=self.header,
                     verify=True
                 )
