@@ -1,5 +1,5 @@
 import logging
-import requests
+import requests, json
 from enum import Enum
 import ipaddress
 
@@ -289,13 +289,17 @@ class FortigateWrapper(FWAbstract):
             srvc_prfl_addr_obj_names = self.__get_all_addr_obj_names()
             addr_grps = AddressGroup.get_addr_grps(serv_profile)
             for addr_grp in addr_grps:
-                query_params = f"{self.query_params}"
                 response = requests.get(
-                    self.rest_url+api_endpoint+str({AddressGroup.get_ipv4_name(addr_grp)})+query_params,
+                    self.rest_url+api_endpoint+AddressGroup.get_ipv4_name(addr_grp)+self.query_params,
                     headers=self.header,
                     verify=True
                 )
                 data = response.json()
+                try:
+                    data.get('results')[0].get('member')
+                except TypeError:
+                    logger.warning("Could not get members of AddressGroup '%s'", str(addr_grp))
+                    continue
                 addr_grp_addr_obj_names = {
                     obj.get('name')
                     for obj in data.get('results')[0].get('member')
@@ -320,13 +324,17 @@ class FortigateWrapper(FWAbstract):
             srvc_prfl_addr_obj_names = self.__get_all_addr_obj_names()
             addr_grps = AddressGroup.get_addr_grps(serv_profile)
             for addr_grp in addr_grps:
-                query_params = f"{self.query_params}"
                 response = requests.get(
-                    self.rest_url+api_endpoint+str(AddressGroup.get_ipv6_name(addr_grp))+query_params,
+                    self.rest_url+api_endpoint+AddressGroup.get_ipv6_name(addr_grp)+self.query_params,
                     headers=self.header,
                     verify=True
                 )
                 data = response.json()
+                try:
+                    data.get('results')[0].get('member')
+                except TypeError:
+                    logger.warning("Could not get members of AddressGroup '%s'", str(addr_grp))
+                    continue
                 addr_grp_addr_obj_names = {
                     obj.get('name')
                     for obj in data.get('results')[0].get('member')
@@ -345,7 +353,7 @@ class FortigateWrapper(FWAbstract):
                     pass
 
             return ip_addrs
-        except (FortigateAPIError, requests.exceptions.JSONDecodeError):
+        except (FortigateAPIError, json.decoder.JSONDecodeError):
             logger.exception("Couldn't get AddressObjects of AddressGroup %s",
                              addr_grp.value)
             return set()
@@ -446,7 +454,7 @@ class FortigateWrapper(FWAbstract):
                         + f"Status code: {response.status_code}. "
                         + f"Status: {data.get('status')}")
 
-        except (FortigateAPIError, requests.exceptions.JSONDecodeError):
+        except (FortigateAPIError, json.decoder.JSONDecodeError):
             logger.exception("Couldn't add AddressObjects to AddressGroups!")
             return False
 
@@ -533,7 +541,7 @@ class FortigateWrapper(FWAbstract):
                         + f"Status code: {response.status_code}. "
                         + f"Status: {data.get('status')}")
 
-        except (FortigateAPIError, requests.exceptions.JSONDecodeError):
+        except (FortigateAPIError, json.decoder.JSONDecodeError):
             logger.exception("Couldn't remove AddressObjects from "
                              + "AddressGroups!")
             return False
@@ -570,7 +578,7 @@ class FortigateWrapper(FWAbstract):
             # if addr_obj is not member of any addr_grp than it is offline
             return HostStatus.BLOCKED
 
-        except (FortigateAPIError, requests.exceptions.JSONDecodeError):
+        except (FortigateAPIError, json.decoder.JSONDecodeError):
             logger.exception(
                 "Couldn't remove AddressObject from AddressGroups!"
             )
@@ -581,12 +589,12 @@ class FortigateWrapper(FWAbstract):
 #     logging.basicConfig(level=logging.INFO)
 #     import getpass
 #     password = getpass.getpass()
-#     with FortigateWrapper('deterrers', password, 'https://131.173.23.2') as fw:
-#         fw.allow_service_profile_for_ips(['1.1.1.1'], HostServiceProfile.HTTP)
+#     with FortigateWrapper('deterrers', '<API_KEY>', 'https://fg-3201.net.uos.de') as fw:
+#         fw.allow_service_profile_for_ips(['131.173.61.174', '2001:638:508:3d0::83ad:3dae'], HostServiceProfile.SSH)
 #         fw.allow_service_profile_for_ips(['1.2.3.4'], HostServiceProfile.SSH)
 #         fw.allow_service_profile_for_ips(['1.1.1.2'], HostServiceProfile.HTTP_SSH)
 #         fw.allow_service_profile_for_ips(['1.2.3.5'], HostServiceProfile.MULTIPURPOSE)
-#         # logger.info('Test get_addrs_in_service_profile')
+#         logger.info('Test get_addrs_in_service_profile')
 #         logger.info('HTTP')
 #         logger.info(fw.get_addrs_in_service_profile(HostServiceProfile.HTTP))
 #         logger.info('SSH')
@@ -606,3 +614,7 @@ class FortigateWrapper(FWAbstract):
 #         # logger.info(fw.get_host_status('1.1.1.3'))
 
 #         # logger.info(fw._FortigateWrapper__get_all_addr_obj_names())
+
+
+# test connection to FW: curl --insecure -H "Accept: application/json" -H "Authorization: Bearer <API_KEY>" https://fg-3201.net.uos.de/api/v2/cmdb/firewall/addrgrp/FWP2-SSH-DETERRERS-v4?vdom=Uni
+
