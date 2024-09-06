@@ -298,6 +298,7 @@ FIREWALL_USERNAME = os.environ.get('FIREWALL_USERNAME', '')
 FIREWALL_SECRET_KEY = os.environ.get('FIREWALL_SECRET_KEY', '')
 
 DJANGO_SUPERUSER_USERNAME = os.environ.get('DJANGO_SUPERUSER_USERNAME', '')
+DJANGO_SUPERUSER_EMAIL = os.environ.get('DJANGO_SUPERUSER_EMAIL', '')
 
 # Risk assessment thresholds
 REGI_HIGH_CVSS_T = float(os.environ.get("REGI_HIGH_CVSS_T", 8.5))
