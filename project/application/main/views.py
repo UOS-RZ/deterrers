@@ -1551,7 +1551,7 @@ def scanner_periodic_alert(request):
 
                 # send complete report to DETERRERS admin
                 report_html = None
-                admin_addrs = [settings.DJANGO_SUPERUSER_EMAIL+"@uos.de"]
+                admin_addrs = [settings.DJANGO_SUPERUSER_EMAIL]
                 __send_report_email(
                     report_html,
                     f"DETERRERS - Admin report [{task_uuid}]",
