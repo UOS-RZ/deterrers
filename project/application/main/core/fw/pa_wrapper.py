@@ -7,7 +7,7 @@ import ipaddress
 
 from main.core.fw.fw_abstract import FWAbstract
 from main.core.contracts import (HostStatus,
-                                      HostServiceProfile)
+                                 HostServiceProfile)
 
 
 logger = logging.getLogger(__name__)
@@ -240,7 +240,6 @@ class PaloAltoWrapper(FWAbstract):
         Returns:
             set[str]: Returns a set of strings.
         """
-
         get_address_params = f"location={self.LOCATION}"
         get_address_url = (self.rest_url
                            + "Objects/Addresses?"
@@ -373,7 +372,7 @@ class PaloAltoWrapper(FWAbstract):
         """
         try:
             ip_addrs = set()
-            # map service profile to address groups in Palo Altoaddr_grp
+            # map service profile to address groups in Palo Alto addr_grp
             srvc_prfl_addr_obj_names = self.__get_all_addr_obj_names()
             in_addr_grps = AddressGroup.get_addr_grps(service_profile)
             for addr_grp in in_addr_grps:

@@ -31,7 +31,7 @@ DEBUG = os.environ.get('DJANGO_DEBUG', '') == 'True'
 DEV_MODE = os.environ.get('DEV_MODE', '') == 'True'
 IPAM_DUMMY = os.environ.get('IPAM_DUMMY', '') == 'True'
 SCANNER_DUMMY = os.environ.get('SCANNER_DUMMY', '') == 'True'
-FIREWALL_DUMMY = os.environ.get('FIREWALL_DUMMY', '') == 'True'
+FIREWALL_TYPE = os.environ.get('FIREWALL_TYPE', '')
 SMTP_DUMMY = os.environ.get('SMTP_DUMMY', '') == 'True'
 USE_LDAP = os.environ.get('USE_LDAP', '') == 'True'
 
