@@ -2,7 +2,7 @@ from abc import (ABC, abstractmethod)
 import ipaddress
 
 from main.core.contracts import (HostStatus,
-                                      HostServiceProfile)
+                                 HostServiceProfile)
 
 
 class FWAbstract(ABC):
