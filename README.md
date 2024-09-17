@@ -50,7 +50,7 @@ A deployment is currently only possible in conjunction with the following compon
 
     Vulnerability Scanner: Greenbone GMP version 22.4
 
-    Perimeter Firewall: Palo Alto with REST and XML API version v10.1
+    Perimeter Firewall: Palo Alto with REST and XML API version v10.1 or FortiGate with ForitOS 7.4.3 via REST API
 
     User/Access Management: LDAP directory
 
