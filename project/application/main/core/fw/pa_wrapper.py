@@ -325,7 +325,7 @@ class PaloAltoWrapper(FWAbstract):
         if response.status_code != 200:
             raise PaloAltoAPIError("Could not cancel commit!")
 
-    def commit_changes(self) -> None:
+    def commit_changes(self) -> bool:
         """
         Commit changes of current user.
 

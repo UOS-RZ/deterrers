@@ -260,11 +260,11 @@ class FortigateWrapper(FWAbstract):
         addr_grp_props = data.get('results')[0]
         return addr_grp_props
 
-    def commit_changes(self) -> None:
+    def commit_changes(self) -> bool:
         """
         Not applicable to Fortigate. Does nothing.
         """
-        pass
+        return True
 
     def get_addrs_in_service_profile(
         self,
