@@ -28,7 +28,7 @@ class FWAbstract(ABC):
         pass
 
     @abstractmethod
-    def commit_changes(self) -> None:
+    def commit_changes(self) -> bool:
         """
         Initiate commit if FW works with commits.
         """
