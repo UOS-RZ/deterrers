@@ -4,6 +4,8 @@ This is the repository for the <em>automate</em>D<em> n</em>ET<em>work p</em>ER<
 
 It started as the master's thesis of nwintering and is now maintained as an open source project.
 
+A paper on the project was published in the Proceedings of the 1st Workshop on Network Security Operations in conjunction with the 20th International Conference on Network and Service Management (CNSM) and can be accessed [here](https://opendl.ifip-tc6.org/db/conf/cnsm/cnsm2024/1571071907.pdf).
+
 
 ## Test Setup
 
