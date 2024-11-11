@@ -404,6 +404,10 @@ def hostadmin_init_view(request):
     context = {
         'form': form,
     }
+    if hostadmin.email == "":
+        logout(request)
+        messages.info(request,"Something went wrong, please contact an admin")
+        return HttpResponseRedirect('')
     return render(request, 'hostadmin_init.html', context)
 
 
@@ -1226,9 +1230,15 @@ def scanner_registration_alert(request):
                         # get all department names for use below
                         departments = ipam.get_department_names()
                         # deduce admin email addr and filter out departments
-                        admin_addresses = [admin_id + "@uos.de"
-                                           for admin_id in host.admin_ids
-                                           if admin_id not in departments]
+                        admin_addresses = []
+                        for admin_id in host.admin_ids:
+                            if admin_id not in departments:
+                                try:
+                                    user = get_object_or_404(MyUser,username = admin_id)
+                                except Http404:
+                                    continue
+                                if user.email != "":
+                                    admin_addresses.append(user.email)
                         max_sev = max(
                             [v.cvss_base_score for v in vulnerabilities],
                             default=None
@@ -1347,9 +1357,15 @@ def scanner_scan_alert(request):
                 # get HTML report and send via e-mail to admin
                 report_html = scanner.get_report_html(report_uuid)
                 # deduce admin email addr and filter out departments
-                admin_addresses = [admin_id + "@uos.de"
-                                   for admin_id in host.admin_ids
-                                   if admin_id not in departments]
+                admin_addresses = []
+                for admin_id in host.admin_ids:
+                    if admin_id not in departments:
+                        try:
+                            user = get_object_or_404(MyUser,username = admin_id)
+                        except Http404:
+                            continue
+                        if user.email != "":
+                            admin_addresses.append(user.email)
                 # get highest CVSS
                 max_sev = -1
                 for host_ipv4, vulnerabilities in results.items():
@@ -1500,9 +1516,15 @@ def scanner_periodic_alert(request):
                             # deduce admin email addr and filter out
                             # departments
                             departments = ipam.get_department_names()
-                            admin_addrs = [admin_id + "@uos.de"
-                                           for admin_id in host.admin_ids
-                                           if admin_id not in departments]
+                            admin_addrs = []
+                            for admin_id in host.admin_ids:
+                                if admin_id not in departments:
+                                    try:
+                                        user = get_object_or_404(MyUser,username = admin_id)
+                                    except Http404:
+                                        continue
+                                if user.email != "":
+                                    admin_addrs.append(user.email)
                             email_body = periodic_mail_body(
                                 host,
                                 block_reasons,
@@ -1528,9 +1550,15 @@ def scanner_periodic_alert(request):
                         # only send mail if not block
                         elif len(notify_reasons) != 0:
                             departments = ipam.get_department_names()
-                            admin_addrs = [admin_id + "@uos.de"
-                                           for admin_id in host.admin_ids
-                                           if admin_id not in departments]
+                            admin_addrs = []
+                            for admin_id in host.admin_ids:
+                                if admin_id not in departments:
+                                    try:
+                                        user = get_object_or_404(MyUser, username = admin_id)
+                                    except Http404:
+                                        continue
+                                if user.email != "":
+                                    admin_addrs.append(user.email)
                             email_body = periodic_mail_body(
                                 host,
                                 block_reasons,
