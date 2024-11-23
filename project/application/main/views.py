@@ -1243,7 +1243,7 @@ def scanner_registration_alert(request):
 
                         # get HTML report and send via e-mail to admin
                         report_html = scanner.get_report_html(report_uuid)
-                        create_db_entry(reporthtml=report_html,entity_id=host.entity_id)
+                        create_db_entry(reporthtml=report_html,hostid=host.entity_id)
                         # get all department names for use below
                         departments = ipam.get_department_names()
                         # deduce admin email addr and filter out departments
@@ -1373,7 +1373,7 @@ def scanner_scan_alert(request):
 
                 # get HTML report and send via e-mail to admin
                 report_html = scanner.get_report_html(report_uuid)
-                create_db_entry(reporthtml=report_html,entity_id=host.entity_id)
+                create_db_entry(reporthtml=report_html,hostid=host.entity_id)
                 # deduce admin email addr and filter out departments
                 admin_addresses = []
                 for admin_id in host.admin_ids:
@@ -1602,7 +1602,7 @@ def scanner_periodic_alert(request):
 
                 # send complete report to DETERRERS admin
                 report_html = None
-                create_db_entry(reporthtml="",entity_id=host.entity_id)
+                create_db_entry(reporthtml="",hostid=host.entity_id)
                 admin_addrs = [settings.DJANGO_SUPERUSER_EMAIL]
                 __send_report_email(
                     report_html,
