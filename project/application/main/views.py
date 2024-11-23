@@ -74,12 +74,12 @@ logger = logging.getLogger(__name__)
 
 def create_db_entry(reporthtml,hostid):
     try:
-        host = Host_scan.objects.get(entitiy_id = hostid)
+        host = Host_scan.objects.get(entity_id = hostid)
 
     except ObjectDoesNotExist:
         newhost = Host_scan(entity_id = hostid)
         newhost.save()
-        host = Host_scan.objects.get(entitiy_id = hostid)
+        host = Host_scan.objects.get(entity_id = hostid)
     
     prev_scan = host.last_scan
     new_scan = Scan(report_html = reporthtml,previous_scan = prev_scan)
