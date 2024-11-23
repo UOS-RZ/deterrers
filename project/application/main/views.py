@@ -66,9 +66,24 @@ else:
 
 
 from user.models import MyUser
+from scan_model.models import Host_scan,Scan
+from django.db import models
+from django.core.exceptions import ObjectDoesNotExist
 
 logger = logging.getLogger(__name__)
 
+def create_db_entry(reporthtml,hostid):
+    try:
+        host = Host_scan.objects.get(entitiy_id = hostid)
+
+    except ObjectDoesNotExist:
+        newhost = Host_scan(entity_id = hostid)
+        newhost.save()
+        host = Host_scan.objects.get(entitiy_id = hostid)
+    
+    prev_scan = host.last_scan
+    new_scan = Scan(report_html = reporthtml,previous_scan = prev_scan)
+    new_scan.save()
 
 def __send_report_email(
     report_html: str | None,
@@ -1224,9 +1239,11 @@ def scanner_registration_alert(request):
                             )
                             if not set_host_offline(host):
                                 raise RuntimeError("Couldn't block host")
+                            
 
                         # get HTML report and send via e-mail to admin
                         report_html = scanner.get_report_html(report_uuid)
+                        create_db_entry(reporthtml=report_html,entity_id=host.entity_id)
                         # get all department names for use below
                         departments = ipam.get_department_names()
                         # deduce admin email addr and filter out departments
@@ -1356,6 +1373,7 @@ def scanner_scan_alert(request):
 
                 # get HTML report and send via e-mail to admin
                 report_html = scanner.get_report_html(report_uuid)
+                create_db_entry(reporthtml=report_html,entity_id=host.entity_id)
                 # deduce admin email addr and filter out departments
                 admin_addresses = []
                 for admin_id in host.admin_ids:
@@ -1584,6 +1602,7 @@ def scanner_periodic_alert(request):
 
                 # send complete report to DETERRERS admin
                 report_html = None
+                create_db_entry(reporthtml="",entity_id=host.entity_id)
                 admin_addrs = [settings.DJANGO_SUPERUSER_EMAIL]
                 __send_report_email(
                     report_html,

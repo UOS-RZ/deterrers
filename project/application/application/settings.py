@@ -129,6 +129,7 @@ INSTALLED_APPS = [
     # Custom applications
     'main.apps.MainConfig',
     'user.apps.UserConfig',
+    'scan_model.apps.ScanModelConfig'
 ]
 
 MIDDLEWARE = [
