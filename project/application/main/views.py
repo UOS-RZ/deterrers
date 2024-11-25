@@ -84,6 +84,8 @@ def create_db_entry(reporthtml,hostid):
     prev_scan = host.last_scan
     new_scan = Scan(report_html = reporthtml,previous_scan = prev_scan)
     new_scan.save()
+    host.last_scan = new_scan
+    host.save()
 
 def __send_report_email(
     report_html: str | None,
