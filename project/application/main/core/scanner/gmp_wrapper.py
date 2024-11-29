@@ -73,8 +73,8 @@ class GmpScannerWrapper(ScannerAbstract):
     Communication uses the python-gvm API package.
     """
     TIMEOUT = 60*15
-
-    PERIODIC_TASK_NAME = "DETERRERS - Periodic"
+    PERIODIC_TASK_NAME_UNIQUE_IDENTIFIER = os.environ.get('PERIODIC_TASK_NAME_UNIQUE_IDENTIFIER')
+    PERIODIC_TASK_NAME = "DETERRERS - Periodic - Instance : " + PERIODIC_TASK_NAME_UNIQUE_IDENTIFIER
     PERIODIC_CVE_TASK_SUFFIX = " (CVE Scan only)"
     PERIODIC_STASH_SUFFIX = " (Stash)"
 
