@@ -406,7 +406,7 @@ def hostadmin_init_view(request):
     }
     if hostadmin.email == "":
         logout(request)
-        messages.info(request,"Something went wrong, please contact an admin")
+        messages.info(request,"Authentication backend did not provide an e-mail address. Please contact an admin!")
         return HttpResponseRedirect('')
     return render(request, 'hostadmin_init.html', context)
 
@@ -1234,7 +1234,7 @@ def scanner_registration_alert(request):
                         for admin_id in host.admin_ids:
                             if admin_id not in departments:
                                 try:
-                                    user = get_object_or_404(MyUser,username = admin_id)
+                                    user = get_object_or_404(MyUser, username=admin_id)
                                 except Http404:
                                     continue
                                 if user.email != "":
@@ -1361,7 +1361,7 @@ def scanner_scan_alert(request):
                 for admin_id in host.admin_ids:
                     if admin_id not in departments:
                         try:
-                            user = get_object_or_404(MyUser,username = admin_id)
+                            user = get_object_or_404(MyUser, username=admin_id)
                         except Http404:
                             continue
                         if user.email != "":
@@ -1523,8 +1523,8 @@ def scanner_periodic_alert(request):
                                         user = get_object_or_404(MyUser,username = admin_id)
                                     except Http404:
                                         continue
-                                if user.email != "":
-                                    admin_addrs.append(user.email)
+                                    if user.email != "":
+                                        admin_addrs.append(user.email)
                             email_body = periodic_mail_body(
                                 host,
                                 block_reasons,
@@ -1557,8 +1557,8 @@ def scanner_periodic_alert(request):
                                         user = get_object_or_404(MyUser, username = admin_id)
                                     except Http404:
                                         continue
-                                if user.email != "":
-                                    admin_addrs.append(user.email)
+                                    if user.email != "":
+                                        admin_addrs.append(user.email)
                             email_body = periodic_mail_body(
                                 host,
                                 block_reasons,
