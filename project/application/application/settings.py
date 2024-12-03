@@ -18,7 +18,7 @@ import ssl
 DOMAIN_NAME = os.environ.get('DOMAIN_NAME', 'localhost')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # second parameter is a default key which is only for development
@@ -89,7 +89,7 @@ LOGGING = {
             "filename": os.path.join(
                     os.environ.get(
                         'MICRO_SERVICE',
-                        BASE_DIR
+                        BASE_DIR.parent
                     ), "logs/deterrers-app.log"
                 ),
             "backupCount": 4,
@@ -163,7 +163,7 @@ ROOT_URLCONF = 'application.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'application/templates'), ],
+        'DIRS': [os.path.join(BASE_DIR, 'templates'), ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -210,7 +210,7 @@ DATABASES = {
         'NAME': os.path.join(
             os.environ.get(
                 'MICRO_SERVICE',
-                BASE_DIR
+                BASE_DIR.parent
             ), 'db/db.sqlite3'
         ),
     }
