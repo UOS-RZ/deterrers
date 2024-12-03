@@ -18,22 +18,22 @@ import ssl
 DOMAIN_NAME = os.environ.get('DOMAIN_NAME', 'localhost')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # second parameter is a default key which is only for development
-SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'UNSAFE_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DJANGO_DEBUG', '') == 'True'
 
 # parse dev flags
 DEV_MODE = os.environ.get('DEV_MODE', '') == 'True'
-IPAM_DUMMY = os.environ.get('IPAM_DUMMY', '') == 'True'
-SCANNER_DUMMY = os.environ.get('SCANNER_DUMMY', '') == 'True'
-FIREWALL_TYPE = os.environ.get('FIREWALL_TYPE', '')
-SMTP_DUMMY = os.environ.get('SMTP_DUMMY', '') == 'True'
-USE_LDAP = os.environ.get('USE_LDAP', '') == 'True'
+IPAM_DUMMY = os.environ.get('IPAM_DUMMY', 'True') == 'True'
+SCANNER_DUMMY = os.environ.get('SCANNER_DUMMY', 'True') == 'True'
+FIREWALL_TYPE = os.environ.get('FIREWALL_TYPE', 'DUMMY')
+SMTP_DUMMY = os.environ.get('SMTP_DUMMY', 'True') == 'True'
+USE_LDAP = os.environ.get('USE_LDAP', 'False') == 'True'
 
 WSGI_APPLICATION = 'application.wsgi.application'
 
@@ -163,7 +163,7 @@ ROOT_URLCONF = 'application.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates'), ],
+        'DIRS': [os.path.join(BASE_DIR, 'application/templates'), ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
