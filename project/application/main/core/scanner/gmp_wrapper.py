@@ -5,6 +5,7 @@ import icalendar
 from base64 import b64decode
 import os
 import ipaddress
+from application.settings import DEPLOYMENT_UNIQUE_IDENTIFIER
 
 from gvm.protocols.gmp import Gmp
 from gvm.connections import SSHConnection
@@ -74,7 +75,7 @@ class GmpScannerWrapper(ScannerAbstract):
     """
     TIMEOUT = 60*15
 
-    PERIODIC_TASK_NAME = "DETERRERS - Periodic"
+    PERIODIC_TASK_NAME = "DETERRERS - Periodic - Instance : " + DEPLOYMENT_UNIQUE_IDENTIFIER
     PERIODIC_CVE_TASK_SUFFIX = " (CVE Scan only)"
     PERIODIC_STASH_SUFFIX = " (Stash)"
 
