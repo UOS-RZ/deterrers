@@ -305,3 +305,6 @@ REGI_HIGH_CVSS_T = float(os.environ.get("REGI_HIGH_CVSS_T", 8.5))
 REGI_MEDIUM_CVSS_T = float(os.environ.get("REGI_MEDIUM_CVSS_T", 5.0))
 PERIO_HIGH_CVSS_T = float(os.environ.get("PERIO_HIGH_CVSS_T", 8.5))
 PERIO_MEDIUM_CVSS_T = float(os.environ.get("PERIO_MEDIUM_CVSS_T", 6.0))
+
+# get deployment identifier
+DEPLOYMENT_UNIQUE_IDENTIFIER = os.environ.get('DEPLOYMENT_UNIQUE_IDENTIFIER')
