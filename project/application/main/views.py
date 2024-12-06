@@ -66,26 +66,40 @@ else:
 
 
 from user.models import MyUser
-from scan_model.models import Host_scan,Scan
+from scan_model.models import Vulnerability,Host_Silenced_Vulnerabilities,Scan_report
 from django.db import models
 from django.core.exceptions import ObjectDoesNotExist
 
 logger = logging.getLogger(__name__)
 
-def create_db_entry(reporthtml,hostid):
-    try:
-        host = Host_scan.objects.get(entity_id = hostid)
+def create_vulnerability_object(result,time,host_ip,report_id,task_id):
+    for v in result[host_ip]:
+        new_vulnerability = Vulnerability(
+            uuid=v.uuid,
+            host_ipv4 = host_ip,
+            port = v.port,
+            proto = v.proto,
+            hostname = v.hostname,
+            nvt_name = v.nvt_name,
+            nvt_oid = v.nvt_oid,
+            qod = v.qod,
+            cvss_version = v.cvss_version,
+            cvss_base_score = v.cvss_base_score,
+            cvss_base_vector = v.cvss_base_vector,
+            description = v.description,
+            refs = json.dumps(v.refs),
+            overrides = json.dumps(v.overrides),
+            date_time = time,
+            task_id = task_id,
+            report_id = report_id
+        )
+        new_vulnerability.save()
 
-    except ObjectDoesNotExist:
-        newhost = Host_scan(entity_id = hostid)
-        newhost.save()
-        host = Host_scan.objects.get(entity_id = hostid)
-    
-    prev_scan = host.last_scan
-    new_scan = Scan(report_html = reporthtml,previous_scan = prev_scan)
+def create_scan(report_xml,report_id):
+    new_scan = Scan_report(report_xml = report_xml,report_id=report_id)
     new_scan.save()
-    host.last_scan = new_scan
-    host.save()
+
+
 
 def __send_report_email(
     report_html: str | None,
@@ -1245,7 +1259,21 @@ def scanner_registration_alert(request):
 
                         # get HTML report and send via e-mail to admin
                         report_html = scanner.get_report_html(report_uuid)
-                        create_db_entry(reporthtml=report_html,hostid=host.entity_id)
+                        
+                        #create db entries for each vulerability found and for the performed scan
+                        report_xml = scanner.__get_report_xml(report_uuid)
+                        create_vulnerability_object(
+                            result=scan_results,
+                            time=scan_end,
+                            host_ip=host_ipv4,
+                            report_id=report_uuid,
+                            task_id=task_uuid
+                            )
+                        create_scan(
+                            report_xml=report_xml,
+                            report_id=report_uuid
+                        )
+
                         # get all department names for use below
                         departments = ipam.get_department_names()
                         # deduce admin email addr and filter out departments
@@ -1375,7 +1403,19 @@ def scanner_scan_alert(request):
 
                 # get HTML report and send via e-mail to admin
                 report_html = scanner.get_report_html(report_uuid)
-                create_db_entry(reporthtml=report_html,hostid=host.entity_id)
+                report_xml = scanner.__get_report_xml(report_uuid)
+                #create db entries for each vulerability found and for the performed sc
+                create_vulnerability_object(
+                    result=results,
+                    time = scan_end,
+                    host_ip = host.ipv4_addr,
+                    report_id = report_uuid,
+                    task_id = task_uuid 
+                )
+                create_scan(
+                     report_xml = report_xml,
+                     report_id = report_uuid
+                )
                 # deduce admin email addr and filter out departments
                 admin_addresses = []
                 for admin_id in host.admin_ids:
@@ -1512,6 +1552,13 @@ def scanner_periodic_alert(request):
                             continue
                         if len(host.admin_ids) == 0:
                             continue
+                        create_vulnerability_object(
+                            result = scan_results,
+                            time = scan_end,
+                            host_ip = host_ipv4,
+                            report_id = report_uuid,
+                            task_id = task_uuid
+                            )
                         block_reasons, notify_reasons = assess_host_risk(
                             host,
                             vulnerabilities,
@@ -1604,7 +1651,6 @@ def scanner_periodic_alert(request):
 
                 # send complete report to DETERRERS admin
                 report_html = None
-                create_db_entry(reporthtml="",hostid=host.entity_id)
                 admin_addrs = [settings.DJANGO_SUPERUSER_EMAIL]
                 __send_report_email(
                     report_html,
