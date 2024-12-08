@@ -75,7 +75,7 @@ class GmpScannerWrapper(ScannerAbstract):
     """
     TIMEOUT = 60*15
 
-    PERIODIC_TASK_NAME = "DETERRERS - Periodic - Instance : " + DEPLOYMENT_UNIQUE_IDENTIFIER
+    PERIODIC_TASK_NAME = "DETERRERS - Periodic (Instance: " + DEPLOYMENT_UNIQUE_IDENTIFIER)
     PERIODIC_CVE_TASK_SUFFIX = " (CVE Scan only)"
     PERIODIC_STASH_SUFFIX = " (Stash)"
 

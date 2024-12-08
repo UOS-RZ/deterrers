@@ -307,4 +307,4 @@ PERIO_HIGH_CVSS_T = float(os.environ.get("PERIO_HIGH_CVSS_T", 8.5))
 PERIO_MEDIUM_CVSS_T = float(os.environ.get("PERIO_MEDIUM_CVSS_T", 6.0))
 
 # get deployment identifier
-DEPLOYMENT_UNIQUE_IDENTIFIER = os.environ.get('DEPLOYMENT_UNIQUE_IDENTIFIER')
+DEPLOYMENT_UNIQUE_IDENTIFIER = os.environ.get('DEPLOYMENT_UNIQUE_IDENTIFIER', 'Unknown')
