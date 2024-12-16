@@ -6,6 +6,7 @@ python manage.py makemigrations main --noinput
 python manage.py makemigrations user --noinput
 python manage.py makemigrations scan_model --noinput
 python manage.py migrate --noinput
+python manage.py migrate --database=scan_model_db 
 python manage.py collectstatic --noinput
 python manage.py clearsessions
 python manage.py add_ssh_fingerprints

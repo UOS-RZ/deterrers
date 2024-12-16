@@ -214,8 +214,21 @@ DATABASES = {
                 BASE_DIR.parent
             ), 'db/db.sqlite3'
         ),
+    },
+    'scan_model_db':{
+        'ENGINE' : 'django.db.backends.sqlite3',
+        'NAME' : os.path.join(
+                os.environ.get(
+                'MICRO_SERVICE',
+                BASE_DIR.parent
+            ), 'db/db_scan_model.sqlite3'
+
+        ),
+
     }
-}
+} 
+
+DATABASE_ROUTERS = ['application.routers.db_router.Scan_modelRouter']
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
