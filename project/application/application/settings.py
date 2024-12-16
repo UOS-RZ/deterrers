@@ -227,7 +227,7 @@ DATABASES = {
 
     }
 } 
-
+# Specify the Database Routers
 DATABASE_ROUTERS = ['application.routers.db_router.Scan_modelRouter']
 
 # Default primary key field type
