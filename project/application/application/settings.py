@@ -22,18 +22,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # second parameter is a default key which is only for development
-SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'UNSAFE_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DJANGO_DEBUG', '') == 'True'
 
 # parse dev flags
 DEV_MODE = os.environ.get('DEV_MODE', '') == 'True'
-IPAM_DUMMY = os.environ.get('IPAM_DUMMY', '') == 'True'
-SCANNER_DUMMY = os.environ.get('SCANNER_DUMMY', '') == 'True'
-FIREWALL_TYPE = os.environ.get('FIREWALL_TYPE', '')
-SMTP_DUMMY = os.environ.get('SMTP_DUMMY', '') == 'True'
-USE_LDAP = os.environ.get('USE_LDAP', '') == 'True'
+IPAM_DUMMY = os.environ.get('IPAM_DUMMY', 'True') == 'True'
+SCANNER_DUMMY = os.environ.get('SCANNER_DUMMY', 'True') == 'True'
+FIREWALL_TYPE = os.environ.get('FIREWALL_TYPE', 'DUMMY')
+SMTP_DUMMY = os.environ.get('SMTP_DUMMY', 'True') == 'True'
+USE_LDAP = os.environ.get('USE_LDAP', 'False') == 'True'
 
 WSGI_APPLICATION = 'application.wsgi.application'
 
@@ -89,7 +89,7 @@ LOGGING = {
             "filename": os.path.join(
                     os.environ.get(
                         'MICRO_SERVICE',
-                        BASE_DIR
+                        BASE_DIR.parent
                     ), "logs/deterrers-app.log"
                 ),
             "backupCount": 4,
@@ -211,7 +211,7 @@ DATABASES = {
         'NAME': os.path.join(
             os.environ.get(
                 'MICRO_SERVICE',
-                BASE_DIR
+                BASE_DIR.parent
             ), 'db/db.sqlite3'
         ),
     }
@@ -306,3 +306,6 @@ REGI_HIGH_CVSS_T = float(os.environ.get("REGI_HIGH_CVSS_T", 8.5))
 REGI_MEDIUM_CVSS_T = float(os.environ.get("REGI_MEDIUM_CVSS_T", 5.0))
 PERIO_HIGH_CVSS_T = float(os.environ.get("PERIO_HIGH_CVSS_T", 8.5))
 PERIO_MEDIUM_CVSS_T = float(os.environ.get("PERIO_MEDIUM_CVSS_T", 6.0))
+
+# get deployment identifier
+DEPLOYMENT_UNIQUE_IDENTIFIER = os.environ.get('DEPLOYMENT_UNIQUE_IDENTIFIER', 'Unknown')
