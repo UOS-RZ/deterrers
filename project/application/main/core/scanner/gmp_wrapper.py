@@ -654,7 +654,7 @@ class GmpScannerWrapper(ScannerAbstract):
                  + f"Status: {response_status}")
             )
 
-    def __get_report_xml(
+    def get_report_xml(
         self,
         report_uuid: str,
         min_qod: int = 70,
@@ -1352,7 +1352,7 @@ class GmpScannerWrapper(ScannerAbstract):
             On error, (None, None, None) is returned.
         """
         try:
-            report = self.__get_report_xml(
+            report = self.get_report_xml(
                 report_uuid,
                 min_qod,
                 ReportFormat.XML_UUID.value
