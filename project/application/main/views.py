@@ -1264,7 +1264,7 @@ def scanner_registration_alert(request):
                         report_html = scanner.get_report_html(report_uuid)
                         
                         #create db entries for each vulerability found and for the performed scan
-                        report_xml = scanner.__get_report_xml(report_uuid)
+                        report_xml = scanner.get_report_xml(report_uuid)
                         create_vulnerability_object(
                             result=scan_results,
                             time=scan_end,
@@ -1406,7 +1406,7 @@ def scanner_scan_alert(request):
 
                 # get HTML report and send via e-mail to admin
                 report_html = scanner.get_report_html(report_uuid)
-                report_xml = scanner.__get_report_xml(report_uuid)
+                report_xml = scanner.get_report_xml(report_uuid)
                 #create db entries for each vulerability found and for the performed sc
                 create_vulnerability_object(
                     result=results,
