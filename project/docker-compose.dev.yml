@@ -16,6 +16,18 @@ services:
       - ./dev-db:/home/app/microservice/db
       - ./dev-logs:/home/app/microservice/logs
     restart: "on-failure"
+    depends_on:
+      - postgres
 
+  postgres:
+    image: postgres
+    restart: "on-failure"
+    env_file:
+      - ./.dev.env
+    ports:
+      - 5432:5432
+    volumes:
+     - ./dev-db/postgres:/var/lib/postgresql/data
+     
 volumes:
  static_volume:

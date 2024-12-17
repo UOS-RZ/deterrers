@@ -9,7 +9,6 @@ https://docs.djangoproject.com/en/4.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
-
 import os
 from pathlib import Path
 import ssl
@@ -204,6 +203,12 @@ USE_TZ = True
 
 """ SETUP DATABASE """
 
+# get Postgresql configuration
+POSTGRESQL_USER = os.environ.get('POSTGRES_USER','')
+POSTGRESQL_PASSWORD = os.environ.get('POSTGRES_PASSWORD','')
+POSTGRESQL_HOST = os.environ.get('POSTGRES_HOST','')
+POSTGRESQL_PORT = os.environ.get('POSTGRES_PORT','')
+POSTGRESQL_DB = os.environ.get('POSTGRES_DB','')
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 DATABASES = {
     'default': {
@@ -215,15 +220,13 @@ DATABASES = {
             ), 'db/db.sqlite3'
         ),
     },
-    'scan_model_db':{
-        'ENGINE' : 'django.db.backends.sqlite3',
-        'NAME' : os.path.join(
-                os.environ.get(
-                'MICRO_SERVICE',
-                BASE_DIR.parent
-            ), 'db/db_scan_model.sqlite3'
-
-        ),
+    'postgres':{
+        'ENGINE' : 'django.db.backends.postgresql',
+        'NAME' : POSTGRESQL_DB,
+        'USER' : POSTGRESQL_USER,
+        'PASSWORD' : POSTGRESQL_PASSWORD,
+        'HOST' : POSTGRESQL_HOST,
+        'PORT' : POSTGRESQL_PORT,
 
     }
 } 
@@ -322,3 +325,4 @@ PERIO_MEDIUM_CVSS_T = float(os.environ.get("PERIO_MEDIUM_CVSS_T", 6.0))
 
 # get deployment identifier
 DEPLOYMENT_UNIQUE_IDENTIFIER = os.environ.get('DEPLOYMENT_UNIQUE_IDENTIFIER', 'Unknown')
+
