@@ -26,7 +26,7 @@ class Vulnerability(models.Model):
 
 class Scan_report(models.Model):
     report_xml = models.TextField()
-    report_id = models.IntegerField(primary_key=True)
+    report_id = models.CharField(max_length= 128,primary_key=True)
 
 class Host_Silenced_Vulnerabilities(models.Model):
     entity_id = models.IntegerField(primary_key=True)
