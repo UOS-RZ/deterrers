@@ -8,8 +8,8 @@ import logging
 class Vulnerability(models.Model):
     uuid = models.CharField(max_length= 128)
     host_ipv4 = models.CharField(max_length=32)
-    port = models.CharField(max_length=16)
-    proto = models.TextField()
+    port = models.CharField(max_length=16,null=True)
+    proto = models.TextField(null=True)
     hostname = models.TextField()
     nvt_name = models.TextField()
     nvt_oid = models.TextField()
@@ -17,9 +17,9 @@ class Vulnerability(models.Model):
     cvss_version = models.IntegerField()
     cvss_base_score = models.FloatField()
     cvss_base_vector = models.TextField()
-    description = models.TextField()
-    refs = models.TextField() #json
-    overrides = models.TextField() #json
+    description = models.TextField(null=True)
+    refs = models.TextField(null=True) #json
+    overrides = models.TextField(null=True) #json
     date_time = models.TextField()
     task_id = models.CharField(max_length= 128)
     report_id = models.CharField(max_length= 128)
