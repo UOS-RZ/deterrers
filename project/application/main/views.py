@@ -1411,7 +1411,7 @@ def scanner_scan_alert(request):
                 create_vulnerability_object(
                     result=results,
                     time = scan_end,
-                    host_ip = host.ipv4_addr,
+                    host_ip = str(host.ipv4_addr),
                     report_id = report_uuid,
                     task_id = task_uuid 
                 )
