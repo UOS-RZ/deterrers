@@ -1273,7 +1273,7 @@ def scanner_registration_alert(request):
                             task_id=task_uuid
                             )
                         create_scan(
-                            report_xml=report_xml,
+                            report_xml=str(report_xml),
                             report_id=report_uuid
                         )
 
@@ -1416,7 +1416,7 @@ def scanner_scan_alert(request):
                     task_id = task_uuid 
                 )
                 create_scan(
-                     report_xml = report_xml,
+                     report_xml = str(report_xml),
                      report_id = report_uuid
                 )
                 # deduce admin email addr and filter out departments
