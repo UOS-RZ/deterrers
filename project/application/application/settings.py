@@ -212,13 +212,13 @@ POSTGRESQL_DB = os.environ.get('POSTGRES_DB','')
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(
-            os.environ.get(
-                'MICRO_SERVICE',
-                BASE_DIR.parent
-            ), 'db/db.sqlite3'
-        ),
+        'ENGINE' : 'django.db.backends.postgresql',
+        'NAME' : "default",
+        'USER' : POSTGRESQL_USER,
+        'PASSWORD' : POSTGRESQL_PASSWORD,
+        'HOST' : 'default',
+        'PORT' : POSTGRESQL_PORT,
+
     },
     'postgres':{
         'ENGINE' : 'django.db.backends.postgresql',
