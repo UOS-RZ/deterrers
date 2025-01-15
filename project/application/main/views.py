@@ -93,11 +93,21 @@ def create_vulnerability_object(result,time,host_ip,report_id,task_id):
             task_id = task_id,
             report_id = report_id
         )
-        new_vulnerability.save()
+        try:
+            new_vulnerability.save()
+        except Exception:
+            logger.info("caught Exception while saving vulnerability object !")
+            continue
+
 
 def create_scan(report_xml,report_id):
     new_scan = Scan_report(report_xml = report_xml,report_id=report_id)
-    new_scan.save()
+    try:
+        new_scan.save()
+    except Exception:
+        logger.info("caught Exception while saving scan object !")
+        
+
 
 
 
