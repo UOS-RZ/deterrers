@@ -7,6 +7,7 @@ import logging
 
 class Vulnerability(models.Model):
     uuid = models.CharField(max_length= 128)
+    vulnerability_name = models.TextField()
     host_ipv4 = models.CharField(max_length=32)
     port = models.CharField(max_length=16)
     proto = models.TextField()
@@ -36,6 +37,6 @@ class Host_Silenced_Vulnerabilities(models.Model):
 # logs just saved Vulnerability for debugging purpose
 def print_saved_instance(sender,instance, **kwargs):
     logger = logging.getLogger("post_save_logger")
-    logger.info("uuid: %s ,report_id: %s , nvt_oid: %s",instance.uuid,instance.report_id,instance.nvt_oid)
+    logger.info("uuid: %s ,report_id: %s , nvt_oid: %s , name: %s",instance.uuid,instance.report_id,instance.nvt_oid,instance.vulnerability_name)
 
 post_save.connect(print_saved_instance,sender=Vulnerability)

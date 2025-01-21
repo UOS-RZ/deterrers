@@ -76,6 +76,7 @@ def create_vulnerability_object(result,time,host_ip,report_id,task_id):
     for v in result[host_ip]:
         new_vulnerability = Vulnerability(
             uuid=v.uuid,
+            vulnerability_name = v.vulnerability_name,
             host_ipv4 = host_ip,
             port = v.port,
             proto = v.proto,
