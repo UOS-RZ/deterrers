@@ -21,7 +21,7 @@ services:
       - ./.prod.env
     image: deterrers-application
     volumes:
-      - .:/microservice:rw # map data and files from parent directory in host to microservice directory in docker containe
+      - .:/microservice:rw # map data and files from parent directory in host to microservice directory in docker container
       - static_volume:/home/app/microservice/static
       - ./db:/home/app/microservice/db
       - ./logs:/home/app/microservice/logs
@@ -38,7 +38,8 @@ services:
     env_file:
       - ./.prod.env
     volumes:
-      - .:/microservice:rw # map data and files from parent directory in host to microservice directory in docker containe
+      - .:/microservice:rw # map data and files from parent directory in host to microservice directory in docker container
+      - ./db:/home/app/microservice/db
       - ./logs:/home/app/microservice/logs
     restart: "on-failure"
 
