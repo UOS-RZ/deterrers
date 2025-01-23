@@ -85,15 +85,13 @@ LOGGING = {
             "formatter": "verbose",
         },
         "web_app_log_file": {
-            "class": "logging.handlers.TimedRotatingFileHandler",
+            "class": "logging.handlers.WatchedFileHandler",
             "filename": os.path.join(
                     os.environ.get(
                         'MICRO_SERVICE',
                         BASE_DIR.parent
                     ), "logs/deterrers-app.log"
                 ),
-            "backupCount": 4,
-            "when": "W3",
             "formatter": "verbose",
         },
     },
