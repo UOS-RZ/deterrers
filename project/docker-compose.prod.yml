@@ -9,6 +9,8 @@ services:
       - static_volume:/home/app/microservice/static
       - /etc/ssl:/etc/ssl
     restart: "on-failure"
+    networks:
+      - deterrers
 
   web:
     depends_on:
@@ -28,6 +30,8 @@ services:
     expose:
       - 8000
     restart: "on-failure"
+    networks:
+      - deterrers
 
   supercronic:
     depends_on:
@@ -45,3 +49,12 @@ services:
 
 volumes:
   static_volume:
+
+networks:
+  deterrers:
+    enable_ipv6: true
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.1.0/24
