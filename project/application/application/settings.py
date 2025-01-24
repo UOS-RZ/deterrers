@@ -306,3 +306,7 @@ PERIO_MEDIUM_CVSS_T = float(os.environ.get("PERIO_MEDIUM_CVSS_T", 6.0))
 
 # get deployment identifier
 DEPLOYMENT_UNIQUE_IDENTIFIER = os.environ.get('DEPLOYMENT_UNIQUE_IDENTIFIER', 'Unknown')
+
+RZ_INTERN_RANGES = os.environ.get('RZ_INTERN_RANGES', '').split()
+VM_INTERN_RANGES = os.environ.get('VM_INTERN_RANGES', '').split()
+IT_ADMIN_VPN_RANGES = os.environ.get('IT_ADMIN_VPN_RANGES', '').split()

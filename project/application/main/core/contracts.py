@@ -1,5 +1,6 @@
 from enum import Enum
 
+from django.conf import settings
 
 class HostBasedPolicySrc(Enum):
     """
@@ -8,42 +9,19 @@ class HostBasedPolicySrc(Enum):
     """
     ANY = {
         'name': 'Any',
-        'range': ['0.0.0.0/0']
+        'range': ['0.0.0.0/0', '::/0']
     }
     RZ_INTERN = {
         'name': 'RZ Intern',
-        'range': ['131.173.61.0/24', '131.173.245.32/27']
+        'range': settings.RZ_INTERN_RANGES
     }
     VM_INTERN = {
         'name': 'Uni Intern',
-        'range': [
-            '131.173.0.0/19',
-            '131.173.32.0/20',
-            '131.173.56.0/22',
-            '131.173.60.0/23',
-            '131.173.63.0/24',
-            '131.173.128.0/20',
-            '131.173.144.0/21',
-            '131.173.160.0/19',
-            '131.173.192.0/20',
-            '131.173.208.0/21',
-            '131.173.224.0/21',
-            '131.173.244.0/23',
-            '131.173.248.0/23',
-            '131.173.252.0/22',
-            '193.175.2.48/28',
-            '2001:638:508::/48',
-            '172.16.0.0/12',
-        ]
+        'range': settings.VM_INTERN_RANGES
     }
     IT_ADMIN_VPN = {
         'name': 'IT Admin VPN',
-        'range': [
-            '131.173.16.48/32',
-            '2001:638:508:FE30::/64',
-            '2001:638:508:FE31::/64',
-            '2001:638:508:FE32::/64',
-            ]
+        'range': settings.IT_ADMIN_VPN_RANGES
     }
 
     def display(self):
