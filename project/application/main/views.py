@@ -66,8 +66,70 @@ else:
 
 
 from user.models import MyUser
+from scan_model.models import Vulnerability,Scan_report
+from django.db import models
+from django.core.exceptions import ObjectDoesNotExist
+import datetime
 
 logger = logging.getLogger(__name__)
+
+def seperate_time_date(date_time):
+    if date_time != "":
+        try:
+            date,time = date_time.split('T')
+            time_t = time.split('Z')
+            time_t = time_t[0].split(':')
+            date_d = date.split('-')
+            date_d = date_d + time_t
+            return date_d
+        except Exception:
+            return ["","","","","",""]
+    else:
+        return ["","","","","",""]
+
+
+    
+
+
+def create_vulnerability_object(result,host_ip,report_id,task_id):
+    for v in result[host_ip]:
+        ti = seperate_time_date(v.time_of_detection)
+        new_vulnerability = Vulnerability(
+            uuid=v.uuid,
+            vulnerability_name = v.vulnerability_name,
+            host_ipv4 = host_ip,
+            port = v.port,
+            proto = v.proto,
+            hostname = v.hostname,
+            nvt_name = v.nvt_name,
+            nvt_oid = v.nvt_oid,
+            qod = v.qod,
+            cvss_version = v.cvss_version,
+            cvss_base_score = v.cvss_base_score,
+            cvss_base_vector = v.cvss_base_vector,
+            description = v.description,
+            refs = json.dumps(v.refs),
+            overrides = json.dumps(v.overrides),
+            date_time = datetime.datetime(ti[0],ti[1],ti[2],ti[3],ti[4],ti[5]),
+            task_id = task_id,
+            report_id = report_id
+        )
+        try:
+            new_vulnerability.save()
+        except Exception:
+            logger.info("caught Exception while saving vulnerability object !")
+            continue
+
+
+def create_scan(report_xml,report_id):
+    new_scan = Scan_report(report_xml = report_xml,report_id=report_id)
+    try:
+        new_scan.save()
+    except Exception:
+        logger.info("caught Exception while saving scan object !")
+        
+
+
 
 
 def __send_report_email(
@@ -1227,9 +1289,24 @@ def scanner_registration_alert(request):
                             )
                             if not set_host_offline(host):
                                 raise RuntimeError("Couldn't block host")
+                            
 
                         # get HTML report and send via e-mail to admin
                         report_html = scanner.get_report_html(report_uuid)
+                        
+                        #create db entries for each vulerability found and for the performed scan
+                        report_xml = scanner.get_report_xml(report_uuid)
+                        create_vulnerability_object(
+                            result=scan_results,
+                            host_ip=host_ipv4,
+                            report_id=report_uuid,
+                            task_id=task_uuid
+                            )
+                        create_scan(
+                            report_xml=str(report_xml),
+                            report_id=report_uuid
+                        )
+
                         # get all department names for use below
                         departments = ipam.get_department_names()
                         # deduce admin email addr and filter out departments
@@ -1359,6 +1436,18 @@ def scanner_scan_alert(request):
 
                 # get HTML report and send via e-mail to admin
                 report_html = scanner.get_report_html(report_uuid)
+                report_xml = scanner.get_report_xml(report_uuid)
+                #create db entries for each vulerability found and for the performed sc
+                create_vulnerability_object(
+                    result=results,
+                    host_ip = str(host.ipv4_addr),
+                    report_id = report_uuid,
+                    task_id = task_uuid 
+                )
+                create_scan(
+                     report_xml = str(report_xml),
+                     report_id = report_uuid
+                )
                 # deduce admin email addr and filter out departments
                 admin_addresses = []
                 for admin_id in host.admin_ids:
@@ -1495,6 +1584,12 @@ def scanner_periodic_alert(request):
                             continue
                         if len(host.admin_ids) == 0:
                             continue
+                        create_vulnerability_object(
+                            result = scan_results,
+                            host_ip = host_ipv4,
+                            report_id = report_uuid,
+                            task_id = task_uuid
+                            )
                         block_reasons, notify_reasons = assess_host_risk(
                             host,
                             vulnerabilities,
