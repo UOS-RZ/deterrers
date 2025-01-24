@@ -66,14 +66,34 @@ else:
 
 
 from user.models import MyUser
-from scan_model.models import Vulnerability,Host_Silenced_Vulnerabilities,Scan_report
+from scan_model.models import Vulnerability,Scan_report
 from django.db import models
 from django.core.exceptions import ObjectDoesNotExist
+import datetime
 
 logger = logging.getLogger(__name__)
 
-def create_vulnerability_object(result,time,host_ip,report_id,task_id):
+def seperate_time_date(date_time):
+    if date_time != "":
+        try:
+            date,time = date_time.split('T')
+            time_t = time.split('Z')
+            time_t = time_t[0].split(':')
+            date_d = date.split('-')
+            date_d = date_d + time_t
+            return date_d
+        except Exception:
+            return ["","","","","",""]
+    else:
+        return ["","","","","",""]
+
+
+    
+
+
+def create_vulnerability_object(result,host_ip,report_id,task_id):
     for v in result[host_ip]:
+        ti = seperate_time_date(v.time_of_detection)
         new_vulnerability = Vulnerability(
             uuid=v.uuid,
             vulnerability_name = v.vulnerability_name,
@@ -90,7 +110,7 @@ def create_vulnerability_object(result,time,host_ip,report_id,task_id):
             description = v.description,
             refs = json.dumps(v.refs),
             overrides = json.dumps(v.overrides),
-            date_time = time,
+            date_time = datetime.datetime(ti[0],ti[1],ti[2],ti[3],ti[4],ti[5]),
             task_id = task_id,
             report_id = report_id
         )
@@ -1278,7 +1298,6 @@ def scanner_registration_alert(request):
                         report_xml = scanner.get_report_xml(report_uuid)
                         create_vulnerability_object(
                             result=scan_results,
-                            time=scan_end,
                             host_ip=host_ipv4,
                             report_id=report_uuid,
                             task_id=task_uuid
@@ -1421,7 +1440,6 @@ def scanner_scan_alert(request):
                 #create db entries for each vulerability found and for the performed sc
                 create_vulnerability_object(
                     result=results,
-                    time = scan_end,
                     host_ip = str(host.ipv4_addr),
                     report_id = report_uuid,
                     task_id = task_uuid 
@@ -1568,7 +1586,6 @@ def scanner_periodic_alert(request):
                             continue
                         create_vulnerability_object(
                             result = scan_results,
-                            time = scan_end,
                             host_ip = host_ipv4,
                             report_id = report_uuid,
                             task_id = task_uuid

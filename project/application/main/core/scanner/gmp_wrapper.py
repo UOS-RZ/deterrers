@@ -1380,6 +1380,7 @@ class GmpScannerWrapper(ScannerAbstract):
                     qod = result_xml.xpath('qod/value')[0].text
                     severities = result_xml.xpath('nvt/severities/severity')
                     vulnerability_name = result_xml.xpath('name')[0].text
+                    time_of_detection = result_xml.xpath('creation_time')[0].text
                     try:
                         overrides = []
                         ors = result_xml.xpath('overrides/override')
@@ -1438,6 +1439,7 @@ class GmpScannerWrapper(ScannerAbstract):
                 res = VulnerabilityScanResult(
                     uuid=result_uuid,
                     vulnerability_name=vulnerability_name,
+                    time_of_detection=time_of_detection,
                     host_ip=host_ip,
                     port=port,
                     proto=proto,
