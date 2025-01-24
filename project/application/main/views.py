@@ -233,6 +233,11 @@ def host_detail_view(request, ipv4: str, tab: str = 'general'):
         # check if user is admin of this host
         if hostadmin.username not in host.admin_ids:
             raise Http404()
+        
+        try:
+            vulner = Vulnerability.objects.filter(host_ipv4=ipv4)
+        except ObjectDoesNotExist:
+            logger.info("Exception while retrieving vulnerabilities")
 
         # parse form data and update host on POST
         if request.method == 'POST':
@@ -271,6 +276,7 @@ def host_detail_view(request, ipv4: str, tab: str = 'general'):
     context = {
         'active_tab': tab,
         'hostadmin': hostadmin,
+        'vulner_list':vulner,
         'host_detail': host,
         'host_ipv4': str(host.ipv4_addr),
         'host_rules': [

@@ -1,0 +1,53 @@
+
+{% load django_bootstrap5 %}
+
+{% block content %}
+
+	<h1>List of Vulnerabilities detected</h1>
+	<p>The following hosts are managed by me:</p>
+	{% if vulner_list %}
+	<table id=vulnerabilities style="width:100%">
+		<thead>
+			<tr>
+				<th><a href='#sort:0:asc'>UUID</a></th>
+				<th><a href='#sort:1:asc'>Port</a></th>
+				<th><a href='#sort:2:asc'>Nvt_Name</a></th>
+				<th><a href='#sort:3:asc'>Nvt_oid</a></th>
+				<th><a href='#sort:4:asc'>Qod</a></th>
+				<th><a href='#sort:5:asc'>Silence</a></th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for vul in vulner_list %}
+			<tr>
+				<td>{{vul.uuid}}</td>
+				<td>{{vul.port}}</td>
+				<td>{{vul.nvt_name}}</td>
+				<td>{{vul.nvt_oid}}</td>
+				<td>{{vul.qod}}</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+	{% else %}
+		<p>There are no hosts for this administrator.</p>
+	{% endif %}
+	{% if is_paginated %}
+		<div class="pagination">
+			<span class="page-links">
+				{% if page_obj.has_previous %}
+					<a href="{{ request.path }}?page={{ page_obj.previous_page_number }}">Previous</a>
+				{% endif %}
+				<span class="page-current">
+					Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+				</span>
+				{% if page_obj.has_next %}
+					<a href="{{ request.path }}?page={{ page_obj.next_page_number }}">Next</a>
+				{% endif %}
+			</span>
+		</div>
+	{% endif %}
+{% endblock %}
+
+{% block pagination %}
+{% endblock %}
