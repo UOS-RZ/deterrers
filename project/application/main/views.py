@@ -6,6 +6,8 @@ import os
 import markdown
 import pathlib
 import json
+from application.settings import TIME_ZONE
+from zoneinfo import ZoneInfo
 
 from django.contrib.auth.decorators import login_required
 from django.http import (Http404,
@@ -112,7 +114,7 @@ def create_vulnerability_object(result,host_ip,report_id,task_id):
             description = v.description,
             refs = json.dumps(v.refs),
             overrides = json.dumps(v.overrides),
-            date_time = datetime.datetime(ti[0],ti[1],ti[2],ti[3],ti[4],ti[5]),
+            date_time = datetime.datetime(ti[0],ti[1],ti[2],ti[3],ti[4],ti[5],tzinfo=ZoneInfo(TIME_ZONE)),
             task_id = task_id,
             report_id = report_id
         )
