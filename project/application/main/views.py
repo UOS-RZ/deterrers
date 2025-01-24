@@ -81,6 +81,8 @@ def seperate_time_date(date_time):
             time_t = time_t[0].split(':')
             date_d = date.split('-')
             date_d = date_d + time_t
+            for i in range(len(date_d)):
+                date_d[i] = int(date_d[i])
             return date_d
         except Exception:
             return ["0","0","0","0","0","0"]
@@ -110,14 +112,14 @@ def create_vulnerability_object(result,host_ip,report_id,task_id):
             description = v.description,
             refs = json.dumps(v.refs),
             overrides = json.dumps(v.overrides),
-            date_time = datetime.datetime(int(ti[0]),int(ti[1]),int(ti[2]),int(ti[3]),int(ti[4]),int(ti[5])),
+            date_time = datetime.datetime(ti[0],ti[1],ti[2],ti[3],ti[4],ti[5]),
             task_id = task_id,
             report_id = report_id
         )
         try:
             new_vulnerability.save()
         except Exception:
-            logger.info("caught Exception while saving vulnerability object !")
+            logger.exception("caught Exception while saving vulnerability object !")
             continue
 
 
@@ -126,7 +128,7 @@ def create_scan(report_xml,report_id):
     try:
         new_scan.save()
     except Exception:
-        logger.info("caught Exception while saving scan object !")
+        logger.exception("caught Exception while saving scan object !")
         
 
 
