@@ -30,10 +30,3 @@ class Scan_report(models.Model):
     report_id = models.CharField(max_length= 128,primary_key=True)
 
 
-
-# logs just saved Vulnerability for debugging purpose
-def print_saved_instance(sender,instance, **kwargs):
-    logger = logging.getLogger("post_save_logger")
-    logger.info("uuid: %s ,report_id: %s , nvt_oid: %s , name: %s, time: %s",instance.uuid,instance.report_id,instance.nvt_oid,instance.vulnerability_name,instance.date_time)
-
-post_save.connect(print_saved_instance,sender=Vulnerability)

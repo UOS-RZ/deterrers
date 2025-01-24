@@ -98,27 +98,28 @@ def seperate_time_date(date_time):
 def create_vulnerability_object(result,host_ip,report_id,task_id):
     for v in result[host_ip]:
         ti = seperate_time_date(v.time_of_detection)
-        new_vulnerability = Vulnerability(
-            uuid=v.uuid,
-            vulnerability_name = v.vulnerability_name,
-            host_ipv4 = host_ip,
-            port = v.port,
-            proto = v.proto,
-            hostname = v.hostname,
-            nvt_name = v.nvt_name,
-            nvt_oid = v.nvt_oid,
-            qod = v.qod,
-            cvss_version = v.cvss_version,
-            cvss_base_score = v.cvss_base_score,
-            cvss_base_vector = v.cvss_base_vector,
-            description = v.description,
-            refs = json.dumps(v.refs),
-            overrides = json.dumps(v.overrides),
-            date_time = datetime.datetime(ti[0],ti[1],ti[2],ti[3],ti[4],ti[5],tzinfo=ZoneInfo(TIME_ZONE)),
-            task_id = task_id,
-            report_id = report_id
-        )
         try:
+            new_vulnerability = Vulnerability(
+                uuid=v.uuid,
+                vulnerability_name = v.vulnerability_name,
+                host_ipv4 = host_ip,
+                port = v.port,
+                proto = v.proto,
+                hostname = v.hostname,
+                nvt_name = v.nvt_name,
+                nvt_oid = v.nvt_oid,
+                qod = v.qod,
+                cvss_version = v.cvss_version,
+                cvss_base_score = v.cvss_base_score,
+                cvss_base_vector = v.cvss_base_vector,
+                description = v.description,
+                refs = json.dumps(v.refs),
+                overrides = json.dumps(v.overrides),
+                date_time = datetime.datetime(ti[0],ti[1],ti[2],ti[3],ti[4],ti[5],tzinfo=ZoneInfo(TIME_ZONE)),
+                task_id = task_id,
+                report_id = report_id
+            )
+        
             new_vulnerability.save()
         except Exception:
             logger.exception("caught Exception while saving vulnerability object !")
