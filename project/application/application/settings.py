@@ -9,7 +9,6 @@ https://docs.djangoproject.com/en/4.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
-
 import os
 from pathlib import Path
 import ssl
@@ -127,6 +126,7 @@ INSTALLED_APPS = [
     # Custom applications
     'main.apps.MainConfig',
     'user.apps.UserConfig',
+    'scan_model.apps.ScanModelConfig'
 ]
 
 MIDDLEWARE = [
@@ -201,18 +201,35 @@ USE_TZ = True
 
 """ SETUP DATABASE """
 
+# get Postgresql configuration
+POSTGRESQL_USER = os.environ.get('POSTGRES_USER','')
+POSTGRESQL_PASSWORD = os.environ.get('POSTGRES_PASSWORD','')
+POSTGRESQL_HOST = os.environ.get('POSTGRES_HOST','')
+POSTGRESQL_PORT = os.environ.get('POSTGRES_PORT','')
+POSTGRESQL_DB = os.environ.get('POSTGRES_DB','')
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(
-            os.environ.get(
-                'MICRO_SERVICE',
-                BASE_DIR.parent
-            ), 'db/db.sqlite3'
-        ),
+        'ENGINE' : 'django.db.backends.postgresql',
+        'NAME' : "default",
+        'USER' : POSTGRESQL_USER,
+        'PASSWORD' : POSTGRESQL_PASSWORD,
+        'HOST' : 'default',
+        'PORT' : POSTGRESQL_PORT,
+
+    },
+    'postgres':{
+        'ENGINE' : 'django.db.backends.postgresql',
+        'NAME' : POSTGRESQL_DB,
+        'USER' : POSTGRESQL_USER,
+        'PASSWORD' : POSTGRESQL_PASSWORD,
+        'HOST' : POSTGRESQL_HOST,
+        'PORT' : POSTGRESQL_PORT,
+
     }
-}
+} 
+# Specify the Database Routers
+DATABASE_ROUTERS = ['application.routers.db_router.Scan_modelRouter']
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field

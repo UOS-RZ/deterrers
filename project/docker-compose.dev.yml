@@ -18,7 +18,53 @@ services:
     restart: "on-failure"
     networks:
       - deterrers
+    depends_on:
+      postgres:
+        condition: service_healthy
+        restart: true
+      default:
+        condition: service_healthy
+        restart: true
 
+
+  postgres:
+    image: postgres
+    restart: "on-failure"
+    env_file:
+      - ./.dev.env
+    expose:
+      - 5432:5432
+    volumes:
+     - ./dev-db/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    networks:
+      - deterrers
+
+  default:
+    image: postgres
+    restart: "on-failure"
+    environment:
+      POSTGRES_DB: default
+    env_file:
+      - ./.dev.env
+    expose:
+      - 5431:5432
+    volumes:
+     - ./dev-db/default:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    networks:
+      - deterrers
+     
 volumes:
  static_volume:
 
