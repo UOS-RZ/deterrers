@@ -17,8 +17,13 @@ services:
       - ./dev-logs:/home/app/microservice/logs
     restart: "on-failure"
     depends_on:
-      - postgres
-      - default
+      postgres:
+        condition: service_healthy
+        restart: true
+      default:
+        condition: service_healthy
+        restart: true
+
 
   postgres:
     image: postgres
@@ -29,6 +34,12 @@ services:
       - 5432:5432
     volumes:
      - ./dev-db/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
 
   default:
     image: postgres
@@ -42,6 +53,12 @@ services:
       - 5431:5432
     volumes:
      - ./dev-db/default:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
      
 volumes:
  static_volume:
