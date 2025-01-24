@@ -83,9 +83,9 @@ def seperate_time_date(date_time):
             date_d = date_d + time_t
             return date_d
         except Exception:
-            return ["","","","","",""]
+            return ["0","0","0","0","0","0"]
     else:
-        return ["","","","","",""]
+        return ["0","0","0","0","0","0"]
 
 
     
@@ -110,7 +110,7 @@ def create_vulnerability_object(result,host_ip,report_id,task_id):
             description = v.description,
             refs = json.dumps(v.refs),
             overrides = json.dumps(v.overrides),
-            date_time = datetime.datetime(ti[0],ti[1],ti[2],ti[3],ti[4],ti[5]),
+            date_time = datetime.datetime(int(ti[0]),int(ti[1]),int(ti[2]),int(ti[3]),int(ti[4]),int(ti[5])),
             task_id = task_id,
             report_id = report_id
         )
