@@ -16,6 +16,17 @@ services:
       - ./dev-db:/home/app/microservice/db
       - ./dev-logs:/home/app/microservice/logs
     restart: "on-failure"
+    networks:
+      - deterrers
 
 volumes:
  static_volume:
+
+networks:
+  deterrers:
+    enable_ipv6: true
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.1.0/24
