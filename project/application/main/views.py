@@ -262,7 +262,7 @@ def host_detail_view(request, ipv4: str, tab: str = 'general'):
         try:
             vulner = Vulnerability.objects.filter(host_ipv4=ipv4)
         except ObjectDoesNotExist:
-            logger.info("Exception while retrieving vulnerabilities")
+            logger.exception("Exception while retrieving vulnerabilities")
 
         # parse form data and update host on POST
         if request.method == 'POST':
@@ -297,9 +297,21 @@ def host_detail_view(request, ipv4: str, tab: str = 'general'):
             ("Host is currently being scanned. "
              + "During this process, no actions are available for the host.")
         )
+    PAGINATE = 200
+    paginator = Paginator(vulner, PAGINATE)
+    page = request.GET.get('page', 1)
+    try:
+        vulner = paginator.page(page)
+    except PageNotAnInteger:
+        vulner = paginator.page(1)
+    except EmptyPage:
+        vulner = paginator.page(paginator.num_pages)
+
 
     context = {
         'active_tab': tab,
+        'is_paginated': True,
+        'page_obj': vulner,
         'hostadmin': hostadmin,
         'vulner_list':vulner,
         'host_detail': host,

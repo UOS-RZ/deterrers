@@ -11,10 +11,12 @@
 			<tr>
 				<th><a href='#sort:0:asc'>UUID</a></th>
 				<th><a href='#sort:1:asc'>Port</a></th>
-				<th><a href='#sort:2:asc'>Nvt_Name</a></th>
-				<th><a href='#sort:3:asc'>Nvt_oid</a></th>
-				<th><a href='#sort:4:asc'>Qod</a></th>
-				<th><a href='#sort:5:asc'>Silence</a></th>
+				<th><a href='#sort:2:asc'>Protocol</a></th>
+				<th><a href='#sort:3:asc'></a>Vulnerability Name</th>
+				<th><a href='#sort:4:asc'></a>CVSS Base Score</th>
+				<th><a href='#sort:5:asc'></a>CVSS Base Vector</th>
+				<th><a href='#sort:6:asc'></a>Time of Detection</th>
+
 			</tr>
 		</thead>
 		<tbody>
@@ -22,9 +24,12 @@
 			<tr>
 				<td>{{vul.uuid}}</td>
 				<td>{{vul.port}}</td>
-				<td>{{vul.nvt_name}}</td>
-				<td>{{vul.nvt_oid}}</td>
-				<td>{{vul.qod}}</td>
+				<td>{{vul.proto}}</td>
+				<td>{{vul.vulnerability_name}}</td>
+				<td>{{vul.cvss_base_score}}</td>
+				<td>{{vul.cvss_base_vector}}</td>
+				<td>{{vul.date_time}}</td>
+
 			</tr>
 			{% endfor %}
 		</tbody>
@@ -44,7 +49,7 @@
 				{% if page_obj.has_next %}
 					<a href="{{ request.path }}?page={{ page_obj.next_page_number }}">Next</a>
 				{% endif %}
-			</span>
+				</span>
 		</div>
 	{% endif %}
 {% endblock %}
