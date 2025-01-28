@@ -83,8 +83,7 @@ logger = logging.getLogger(__name__)
 def create_vulnerability_object(result,host_ip,report_id,task_id):
     for v in result[host_ip]:
         try:
-            time = datetime.datetime.strptime(v.time_of_detection,"%Y-%m-%dT%H:%M:%SZ")
-            time.replace(tzinfo = ZoneInfo(TIME_ZONE))
+            t = datetime.datetime.strptime(v.time_of_detection,"%Y-%m-%dT%H:%M:%SZ")
             new_vulnerability = Vulnerability(
                 uuid=v.uuid,
                 vulnerability_name = v.vulnerability_name,
@@ -101,7 +100,7 @@ def create_vulnerability_object(result,host_ip,report_id,task_id):
                 description = v.description,
                 refs = json.dumps(v.refs),
                 overrides = json.dumps(v.overrides),
-                date_time = time,
+                date_time = datetime.datetime(t.year,t.month,t.day,t.hour,t.minute,t.second,tzinfo=ZoneInfo(TIME_ZONE)),
                 task_id = task_id,
                 report_id = report_id,
                 is_silenced = False
