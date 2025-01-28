@@ -75,21 +75,6 @@ import datetime
 
 logger = logging.getLogger(__name__)
 
-def seperate_time_date(date_time):
-    if date_time != "":
-        try:
-            date,time = date_time.split('T')
-            time_t = time.split('Z')
-            time_t = time_t[0].split(':')
-            date_d = date.split('-')
-            date_d = date_d + time_t
-            for i in range(len(date_d)):
-                date_d[i] = int(date_d[i])
-            return date_d
-        except Exception:
-            return ["0","0","0","0","0","0"]
-    else:
-        return ["0","0","0","0","0","0"]
 
 
     
@@ -97,7 +82,6 @@ def seperate_time_date(date_time):
 
 def create_vulnerability_object(result,host_ip,report_id,task_id):
     for v in result[host_ip]:
-        ti = seperate_time_date(v.time_of_detection)
         try:
             new_vulnerability = Vulnerability(
                 uuid=v.uuid,
@@ -115,9 +99,10 @@ def create_vulnerability_object(result,host_ip,report_id,task_id):
                 description = v.description,
                 refs = json.dumps(v.refs),
                 overrides = json.dumps(v.overrides),
-                date_time = datetime.datetime(ti[0],ti[1],ti[2],ti[3],ti[4],ti[5],tzinfo=ZoneInfo(TIME_ZONE)),
+                date_time = datetime.datetime.strptime(v.time_of_detection,"%Y-%m-%dT%H:%M:%SZ"),
                 task_id = task_id,
-                report_id = report_id
+                report_id = report_id,
+                is_silenced = False
             )
         
             new_vulnerability.save()
