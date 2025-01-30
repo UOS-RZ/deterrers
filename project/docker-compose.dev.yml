@@ -28,7 +28,7 @@ services:
 
 
   postgres:
-    image: postgres
+    image: postgres:17.2-bookworm
     restart: "on-failure"
     env_file:
       - ./.dev.env
@@ -46,7 +46,7 @@ services:
       - deterrers
 
   default:
-    image: postgres
+    image: postgres:17.2-bookworm
     restart: "on-failure"
     environment:
       POSTGRES_DB: default
