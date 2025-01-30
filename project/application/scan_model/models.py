@@ -24,6 +24,7 @@ class Vulnerability(models.Model):
     date_time = models.DateTimeField(blank=True)
     task_id = models.CharField(max_length= 128,blank=True)
     report_id = models.CharField(max_length= 128,blank=True)
+    is_silenced = models.BooleanField()
 
 class Scan_report(models.Model):
     report_xml = models.TextField(blank=True)
