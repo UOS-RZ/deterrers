@@ -30,16 +30,5 @@ class Scan_report(models.Model):
     report_xml = models.TextField(blank=True)
     report_id = models.CharField(max_length= 128,primary_key=True)
 
-class Host_Silenced_Vulnerabilities(models.Model):
-    entity_id = models.IntegerField(primary_key=True)
-    uuids = models.TextField #json
-    host_ipv4 = models.CharField(max_length=128)
-
-# logs just saved Vulnerability for debugging purpose
-def print_saved_instance(sender,instance, **kwargs):
-    logger = logging.getLogger("post_save_logger")
-    logger.info("uuid: %s ,report_id: %s , nvt_oid: %s",instance.uuid,instance.report_id,instance.nvt_oid)
-
-post_save.connect(print_saved_instance,sender=Vulnerability)
 
 
