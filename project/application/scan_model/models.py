@@ -30,4 +30,6 @@ class Scan_report(models.Model):
     report_xml = models.TextField(blank=True)
     report_id = models.CharField(max_length= 128,primary_key=True)
 
-
+class Host_Silenced_Vulnerabilities(models.Model):
+    nvt_oid = models.TextField()
+    host_ipv4 = models.GenericIPAddressField(protocol='IPv4')
