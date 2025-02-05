@@ -148,3 +148,24 @@ code {
 .column {
     flex: 50%;
 }
+.hover-des{
+    color: rgba(255, 184, 5, 1);  
+}
+.show{
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    color: white;
+    background-color: rgba(41, 68, 68, 1);
+    font-size: 16px;
+    white-space: normal;
+    width: 800px;
+    padding: 8px;
+}
+.link-to:hover .show{
+    display: inline-block;
+}
+.link-to {
+    position: relative;
+}

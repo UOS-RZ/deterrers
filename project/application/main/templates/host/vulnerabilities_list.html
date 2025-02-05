@@ -9,9 +9,9 @@
 	<table id=vulnerabilities style="width:100%">
 		<thead>
 			<tr>
-				<th><a href='#sort:0:asc'>UUID</a></th>
-				<th><a href='#sort:1:asc'>Port</a></th>
-				<th><a href='#sort:2:asc'>Protocol</a></th>
+				<th><a href='#sort:0:asc'></a>ID</th>
+				<th><a href='#sort:1:asc'></a>Port</th>
+				<th><a href='#sort:2:asc'></a>Protocol</th>
 				<th><a href='#sort:3:asc'></a>Vulnerability Name</th>
 				<th><a href='#sort:4:asc'></a>CVSS Base Score</th>
 				<th><a href='#sort:5:asc'></a>CVSS Base Vector</th>
@@ -22,7 +22,13 @@
 		<tbody>
 			{% for vul in vulner_list %}
 			<tr>
-				<td>{{vul.nvt_oid}}</td>
+
+				<td>
+					<div class="link-to">
+						<a href='#' class="hover-des">{{vul.nvt_oid}}</a>
+							<div class='show'>{{vul.description}}</div>
+					</div>
+				</td>
 				<td>{{vul.port}}</td>
 				<td>{{vul.proto}}</td>
 				<td>{{vul.vulnerability_name}}</td>
