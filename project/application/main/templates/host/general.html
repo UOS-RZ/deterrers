@@ -88,7 +88,7 @@
         <li>
             Add this public key to the authorized keys of user <code>greenbone</code>:<br>
             <code>
-                sudo bash -c "mkdir -p /home/greenbone/.ssh && chown -R greenbone:greenbone /home/greenbone/.ssh && chmod 700 /home/greenbone/.ssh && touch /home/greenbone/.ssh/authorized_keys && cat scanner.pub >> /home/greenbone/.ssh/authorized_keys"
+                sudo bash -c "mkdir -p /home/greenbone/.ssh && chmod 0700 /home/greenbone/.ssh && touch /home/greenbone/.ssh/authorized_keys && cat scanner.pub >> /home/greenbone/.ssh/authorized_keys && chown -R greenbone:greenbone /home/greenbone/.ssh && chmod 0600 /home/greenbone/.ssh/authorized_keys"
             </code>
         </li>
         <li>In case you restricted the allowed users for SSH you should add the user <code>greenbone</code> to the AllowUsers list in <code>/etc/ssh/sshdconfig</code>.</li>
