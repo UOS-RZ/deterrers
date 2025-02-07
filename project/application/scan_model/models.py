@@ -33,3 +33,5 @@ class Scan_report(models.Model):
 class Host_Silenced_Vulnerabilities(models.Model):
     nvt_oid = models.TextField()
     host_ipv4 = models.GenericIPAddressField(protocol='IPv4')
+    date_time = models.DateTimeField(blank=True)
+    user = models.TextField()
