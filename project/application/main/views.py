@@ -68,7 +68,7 @@ else:
 
 
 from user.models import MyUser
-from scan_model.models import Vulnerability,Scan_report
+from scan_model.models import Vulnerability,Scan_report,Host_Silenced_Vulnerabilities
 from django.db import models
 from django.core.exceptions import ObjectDoesNotExist
 import datetime
@@ -82,9 +82,14 @@ logger = logging.getLogger(__name__)
 
 def create_vulnerability_object(result,host_ip,report_id,task_id):
     for v in result[host_ip]:
-        try:
-            t = datetime.datetime.strptime(v.time_of_detection,"%Y-%m-%dT%H:%M:%SZ")
-            new_vulnerability = Vulnerability(
+            try:
+                update = Host_Silenced_Vulnerabilities.objects.get(host_ipv4=str(host_ip),nvt_oid=v.nvt_oid)
+                value = True
+            except ObjectDoesNotExist:
+                value = False
+            try:
+                t = datetime.datetime.strptime(v.time_of_detection,"%Y-%m-%dT%H:%M:%SZ")
+                new_vulnerability = Vulnerability(
                 uuid=v.uuid,
                 vulnerability_name = v.vulnerability_name,
                 host_ipv4 = host_ip,
@@ -103,13 +108,12 @@ def create_vulnerability_object(result,host_ip,report_id,task_id):
                 date_time = datetime.datetime(t.year,t.month,t.day,t.hour,t.minute,t.second,tzinfo=ZoneInfo(TIME_ZONE)),
                 task_id = task_id,
                 report_id = report_id,
-                is_silenced = False
-            )
-        
-            new_vulnerability.save()
-        except Exception:
-            logger.exception("caught Exception while saving vulnerability object !")
-            continue
+                is_silenced = value
+                )
+                new_vulnerability.save()
+            except Exception:
+                logger.exception("caught Exception while saving vulnerability object !")
+                continue
 
 
 def create_scan(report_xml,report_id):
@@ -245,10 +249,22 @@ def host_detail_view(request, ipv4: str, tab: str = 'general'):
         if hostadmin.username not in host.admin_ids:
             raise Http404()
         
+
         try:
-            vulner = Vulnerability.objects.filter(host_ipv4=ipv4)
+            
+            values = Vulnerability.objects.filter(host_ipv4=ipv4).values_list("nvt_oid").distinct().order_by("nvt_oid")
+            vulner = []
+            time_dict = {}
+            for a in values:
+                vul_filter = Vulnerability.objects.filter(host_ipv4=ipv4,nvt_oid = a[0]).order_by("date_time")
+                time_dict[vul_filter[len(vul_filter)-1]]=vul_filter[0].date_time
+                vulner.append(vul_filter[len(vul_filter)-1])
+               
         except ObjectDoesNotExist:
             logger.exception("Exception while retrieving vulnerabilities")
+
+
+
 
         # parse form data and update host on POST
         if request.method == 'POST':
@@ -283,7 +299,7 @@ def host_detail_view(request, ipv4: str, tab: str = 'general'):
             ("Host is currently being scanned. "
              + "During this process, no actions are available for the host.")
         )
-    PAGINATE = 200
+    PAGINATE = 100
     paginator = Paginator(vulner, PAGINATE)
     page = request.GET.get('page', 1)
     try:
@@ -297,9 +313,10 @@ def host_detail_view(request, ipv4: str, tab: str = 'general'):
     context = {
         'active_tab': tab,
         'is_paginated': True,
-        'page_obj': vulner,
+        'page_obj': time_dict,
         'hostadmin': hostadmin,
-        'vulner_list':vulner,
+        'timedict':time_dict,
+        'vulner_list':time_dict,
         'host_detail': host,
         'host_ipv4': str(host.ipv4_addr),
         'host_rules': [
@@ -1714,3 +1731,47 @@ Admin copy:
     t.start()
 
     return HttpResponse("Success!", status=200)
+
+def host_detail_view_vulner_update(request):
+    if request.method == 'POST':
+        list = request.POST.getlist("hosts")
+        url = request.META.get('HTTP_REFERER')
+        list_changed_host = []
+        for a in list:
+            try: 
+               host =  Vulnerability.objects.get(id=str(a))
+               if (host.nvt_oid,host.host_ipv4) in list_changed_host:
+                   continue
+               list_of_host = Vulnerability.objects.filter(host_ipv4 = host.host_ipv4,nvt_oid = host.nvt_oid)
+               if (host.is_silenced == True):
+                   for b in list_of_host:
+                    try:
+                       b.is_silenced = False
+                       b.save()
+                    except Exception:
+                        continue
+                    try:
+                           update = Host_Silenced_Vulnerabilities.objects.filter(host_ipv4 = host.host_ipv4,nvt_oid = host.nvt_oid)
+                           update.delete()
+                    except Exception:
+                           logger.exception("Exception while deleting Host_silenced_vulnerability object")
+                    list_changed_host.append((host.nvt_oid,host.host_ipv4))
+               elif (host.is_silenced == False):
+                   for b in list_of_host:
+                    try:
+                       b.is_silenced = True
+                       b.save()
+                    except Exception:
+                        continue
+                    try:
+                           update = Host_Silenced_Vulnerabilities(host_ipv4 = host.host_ipv4,nvt_oid = host.nvt_oid)
+                           update.save()
+                    except Exception:
+                           logger.exception("Exception while saving Host_silenced_vulnerability object")
+                    list_changed_host.append((host.nvt_oid,host.host_ipv4))
+                        
+            except Exception:
+                continue
+        return HttpResponseRedirect(url)
+    else:
+        return HttpResponseRedirect(url)

@@ -16,7 +16,6 @@ class IPPathConverter:
 
 
 register_converter(IPPathConverter, 'esc_ip')
-
 urlpatterns = [
     path('',
          views.hosts_list_view,
@@ -39,6 +38,9 @@ urlpatterns = [
     path('host/<esc_ip:ipv4>/detail/<str:tab>',
          views.host_detail_view,
          name='host_detail'),
+     path('host/update_vulnerabilities',
+         views.host_detail_view_vulner_update,
+         name='host_detail_vulner_update'),
     path('host/<esc_ip:ipv4>/update/general',
          views.update_host_detail,
          name='update_host_detail'),

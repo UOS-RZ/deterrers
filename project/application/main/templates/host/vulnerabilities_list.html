@@ -4,7 +4,7 @@
 {% block content %}
 
 	<h1>List of Vulnerabilities detected</h1>
-	<p>The following hosts are managed by me:</p>
+	<p>The following following Vulnerabilities have been found on the host:{{host_ipv4}}:</p>
 	{% if vulner_list %}
 	<table id=vulnerabilities style="width:100%">
 		<thead>
@@ -15,12 +15,17 @@
 				<th><a href='#sort:3:asc'></a>Vulnerability Name</th>
 				<th><a href='#sort:4:asc'></a>CVSS Base Score</th>
 				<th><a href='#sort:5:asc'></a>CVSS Base Vector</th>
-				<th><a href='#sort:6:asc'></a>Time of Detection</th>
+				<th><a href='#sort:6:asc'></a>Time of First Detection</th>
+				<th><a href='#sort:7:asc'></a>Time of Detection</th>
+				<th><a href='#sort:8:asc'></a>Is Silenced</th>
+				<th><a href='#sort:9:asc'></a>Change Silences Status</th>
 
 			</tr>
 		</thead>
 		<tbody>
-			{% for vul in vulner_list %}
+			{% for vul,value in vulner_list.items %}
+			<form action="{% url 'host_detail_vulner_update' %}" method="post">
+				{% csrf_token %}
 			<tr>
 
 				<td>
@@ -34,11 +39,21 @@
 				<td>{{vul.vulnerability_name}}</td>
 				<td>{{vul.cvss_base_score}}</td>
 				<td>{{vul.cvss_base_vector}}</td>
+				<td>{{ value }}</td>
 				<td>{{vul.date_time}}</td>
+				<td>{{vul.is_silenced}}</td>
+				<td>
+					<input type="checkbox" name="hosts" value="{{vul.id}}" >
+				</td>
 
 			</tr>
 			{% endfor %}
+		
 		</tbody>
+		<tr>
+			<input type="submit" value="Submit"style='padding: 5px 10px;margin: 10px 0;'>
+		</tr>
+		</form>
 	</table>
 	{% else %}
 		<p>There are no hosts for this administrator.</p>
