@@ -23,27 +23,27 @@
 			</tr>
 		</thead>
 		<tbody>
-			{% for vul,value in vulner_list.items %}
+			{% for vul in vulner_list %}
 			<form action="{% url 'host_detail_vulner_update' %}" method="post">
 				{% csrf_token %}
 			<tr>
 
 				<td>
 					<div class="link-to">
-						<a href='#' class="hover-des">{{vul.nvt_oid}}</a>
-							<div class='show'>{{vul.description}}</div>
+						<a href='#' class="hover-des">{{vul.0.nvt_oid}}</a>
+							<div class='show'>{{vul.0.description}}</div>
 					</div>
 				</td>
-				<td>{{vul.port}}</td>
-				<td>{{vul.proto}}</td>
-				<td>{{vul.vulnerability_name}}</td>
-				<td>{{vul.cvss_base_score}}</td>
-				<td>{{vul.cvss_base_vector}}</td>
-				<td>{{ value }}</td>
-				<td>{{vul.date_time}}</td>
-				<td>{{vul.is_silenced}}</td>
+				<td>{{vul.0.port}}</td>
+				<td>{{vul.0.proto}}</td>
+				<td>{{vul.0.vulnerability_name}}</td>
+				<td>{{vul.0.cvss_base_score}}</td>
+				<td>{{vul.0.cvss_base_vector}}</td>
+				<td>{{ vul.1 }}</td>
+				<td>{{vul.0.date_time}}</td>
+				<td>{{vul.0.is_silenced}}</td>
 				<td>
-					<input type="checkbox" name="hosts" value="{{vul.id}}" >
+					<input type="checkbox" name="hosts" value="{{vul.0.id}}" >
 				</td>
 
 			</tr>
@@ -59,7 +59,7 @@
 		<p>There are no hosts for this administrator.</p>
 	{% endif %}
 	{% if is_paginated %}
-		<div class="pagination">
+	<div class="pagination">
 			<span class="page-links">
 				{% if page_obj.has_previous %}
 					<a href="{{ request.path }}?page={{ page_obj.previous_page_number }}">Previous</a>
@@ -70,10 +70,9 @@
 				{% if page_obj.has_next %}
 					<a href="{{ request.path }}?page={{ page_obj.next_page_number }}">Next</a>
 				{% endif %}
-				</span>
-		</div>
-	{% endif %}
+			</span>
+	</div>
+{% endif %}
 {% endblock %}
 
-{% block pagination %}
-{% endblock %}
+
