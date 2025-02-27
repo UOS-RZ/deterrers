@@ -477,10 +477,17 @@ def hostadmin_init_view(request):
         if request.method == 'POST':
             form = HostadminForm(request.POST, choices=department_choices)
             if form.is_valid():
+                try:
+                    list = form.cleaned_data['department']
+                    hostadmin.departments = list
+                    hostadmin.save()
+                    model_updated = True
+                except Exception:
+                    model_updated = False   
                 if ipam.create_admin(
                     hostadmin.username,
                     form.cleaned_data['department']
-                ):
+                ) and model_updated:
                     return HttpResponseRedirect(reverse('hosts_list'))
             else:
                 logger.error("Invalid form!")

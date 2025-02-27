@@ -5,7 +5,7 @@
 {% block title %} <title>DETERRERS - Hostadmin initialization</title> {% endblock %}
 
 {% block content %}
-	<h1>Please choose your department:</h1>
+	<h1>Please choose your departments:</h1>
 	<form action='{% url 'hostadmin_init' %}' method="post" class="form">
         {% csrf_token %}
         {% bootstrap_field form.department show_label=False %}

@@ -10,10 +10,11 @@ class HostadminForm(forms.Form):
     def __init__(self, *args, **kwargs):
         choices = kwargs.pop('choices')
         super(HostadminForm, self).__init__(*args, **kwargs)
-        self.fields["department"] = forms.ChoiceField(
+        self.fields["department"] = forms.MultipleChoiceField(
             choices=[(c, c) for c in choices],
             required=True,
-            label='Departments:'
+            label='Departments:',
+            widget=forms.CheckboxSelectMultiple()
         )
 
 

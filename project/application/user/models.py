@@ -1,4 +1,6 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.contrib.postgres.fields import ArrayField
+from django.db import models
 
 # Create your models here.
 
@@ -42,7 +44,7 @@ class MyUser(AbstractUser):
     """
     Custom user model which can be extended by custom fields if needed.
     """
-    pass
+    departments = ArrayField(models.TextField(), null=True)
     # add additional fields in here
 
     def __str__(self):
