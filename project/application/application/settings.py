@@ -126,7 +126,7 @@ INSTALLED_APPS = [
     # Custom applications
     'main.apps.MainConfig',
     'user.apps.UserConfig',
-    'scan_model.apps.ScanModelConfig'
+    'vulnerability-management.apps.ScanModelConfig'
 ]
 
 MIDDLEWARE = [
@@ -201,30 +201,30 @@ USE_TZ = True
 
 """ SETUP DATABASE """
 
-# get Postgresql configuration
-POSTGRESQL_USER = os.environ.get('POSTGRES_USER','')
-POSTGRESQL_PASSWORD = os.environ.get('POSTGRES_PASSWORD','')
-POSTGRESQL_HOST = os.environ.get('POSTGRES_HOST','')
-POSTGRESQL_PORT = os.environ.get('POSTGRES_PORT','')
-POSTGRESQL_DB = os.environ.get('POSTGRES_DB','')
+# Get Postgresql configuration
+POSTGRESQL_USER = os.environ.get('POSTGRES_USER', '')
+POSTGRESQL_PASSWORD = os.environ.get('POSTGRES_PASSWORD', '')
+POSTGRESQL_HOST = os.environ.get('POSTGRES_HOST', 'postgres')
+POSTGRESQL_PORT = os.environ.get('POSTGRES_PORT', '5432')
+POSTGRESQL_DB = os.environ.get('POSTGRES_DB', 'postgres')
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 DATABASES = {
     'default': {
-        'ENGINE' : 'django.db.backends.postgresql',
-        'NAME' : "default",
-        'USER' : POSTGRESQL_USER,
-        'PASSWORD' : POSTGRESQL_PASSWORD,
-        'HOST' : 'default',
-        'PORT' : POSTGRESQL_PORT,
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': "default",
+        'USER': POSTGRESQL_USER,
+        'PASSWORD': POSTGRESQL_PASSWORD,
+        'HOST': 'default',
+        'PORT': POSTGRESQL_PORT,
 
     },
-    'postgres':{
-        'ENGINE' : 'django.db.backends.postgresql',
-        'NAME' : POSTGRESQL_DB,
-        'USER' : POSTGRESQL_USER,
-        'PASSWORD' : POSTGRESQL_PASSWORD,
-        'HOST' : POSTGRESQL_HOST,
-        'PORT' : POSTGRESQL_PORT,
+    'postgres': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': POSTGRESQL_DB,
+        'USER': POSTGRESQL_USER,
+        'PASSWORD': POSTGRESQL_PASSWORD,
+        'HOST': POSTGRESQL_HOST,
+        'PORT': POSTGRESQL_PORT,
 
     }
 } 
@@ -322,7 +322,10 @@ PERIO_HIGH_CVSS_T = float(os.environ.get("PERIO_HIGH_CVSS_T", 8.5))
 PERIO_MEDIUM_CVSS_T = float(os.environ.get("PERIO_MEDIUM_CVSS_T", 6.0))
 
 # get deployment identifier
-DEPLOYMENT_UNIQUE_IDENTIFIER = os.environ.get('DEPLOYMENT_UNIQUE_IDENTIFIER', 'Unknown')
+DEPLOYMENT_UNIQUE_IDENTIFIER = os.environ.get(
+    'DEPLOYMENT_UNIQUE_IDENTIFIER',
+    'Unknown'
+      )
 
 RZ_INTERN_RANGES = os.environ.get('RZ_INTERN_RANGES', '').split()
 VM_INTERN_RANGES = os.environ.get('VM_INTERN_RANGES', '').split()

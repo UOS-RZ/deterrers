@@ -68,9 +68,7 @@ else:
 
 
 from user.models import MyUser
-from scan_model.models import Vulnerability,Scan_report
-from django.db import models
-from django.core.exceptions import ObjectDoesNotExist
+from vulnerability-management.models import Vulnerability,ScanReport
 import datetime
 
 logger = logging.getLogger(__name__)
@@ -113,7 +111,7 @@ def create_vulnerability_object(result,host_ip,report_id,task_id):
 
 
 def create_scan(report_xml,report_id):
-    new_scan = Scan_report(report_xml = report_xml,report_id=report_id)
+    new_scan = ScanReport(report_xml = report_xml,report_id=report_id)
     try:
         new_scan.save()
     except Exception:
