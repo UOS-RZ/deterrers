@@ -126,7 +126,7 @@ INSTALLED_APPS = [
     # Custom applications
     'main.apps.MainConfig',
     'user.apps.UserConfig',
-    'vulnerability-management.apps.ScanModelConfig'
+    'vulnerability_mgmt.apps.ScanModelConfig'
 ]
 
 MIDDLEWARE = [
@@ -204,9 +204,9 @@ USE_TZ = True
 # Get Postgresql configuration
 POSTGRESQL_USER = os.environ.get('POSTGRES_USER', '')
 POSTGRESQL_PASSWORD = os.environ.get('POSTGRES_PASSWORD', '')
-POSTGRESQL_HOST = os.environ.get('POSTGRES_HOST', 'postgres')
-POSTGRESQL_PORT = os.environ.get('POSTGRES_PORT', '5432')
-POSTGRESQL_DB = os.environ.get('POSTGRES_DB', 'postgres')
+POSTGRESQL_HOST = os.environ.get('POSTGRES_HOST', '')
+POSTGRESQL_PORT = os.environ.get('POSTGRES_PORT', '')
+POSTGRESQL_DB = os.environ.get('POSTGRES_DB', '')
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 DATABASES = {
     'default': {
@@ -227,7 +227,7 @@ DATABASES = {
         'PORT': POSTGRESQL_PORT,
 
     }
-} 
+}
 # Specify the Database Routers
 DATABASE_ROUTERS = ['application.routers.db_router.Scan_modelRouter']
 

@@ -4,7 +4,7 @@ python manage.py check --deploy
 python manage.py makemigrations --noinput
 python manage.py makemigrations main --noinput
 python manage.py makemigrations user --noinput
-python manage.py makemigrations scan_model --noinput
+python manage.py makemigrations vulnerability_mgmt --noinput
 python manage.py migrate --noinput
 python manage.py migrate --database=postgres
 python manage.py collectstatic --noinput
