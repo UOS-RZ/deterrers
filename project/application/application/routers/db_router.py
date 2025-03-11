@@ -1,18 +1,17 @@
-
 # Database Router to sort models defined in vulnerability_mgmt into
-# postgres and all other models into the default Database
-class ScanModelRouter:
+# vulnerability_mgmt and all other models into the default Database
+class DatabaseRouter:
 
     labels = {'vulnerability_mgmt'}
 
     def db_for_read(self, model, **hints):
         if model._meta.app_label in self.labels:
-            return 'postgres'
+            return 'vulnerability_mgmt'
         return 'default'
 
     def db_for_write(self, model, **hints):
         if model._meta.app_label in self.labels:
-            return 'postgres'
+            return 'vulnerability_mgmt'
         return 'default'
 
     def allow_relation(self, obj1, obj2, **hints):
@@ -26,5 +25,5 @@ class ScanModelRouter:
             **hints
               ):
         if app_label in self.labels:
-            return scan_model_db == 'postgres'
+            return scan_model_db == 'vulnerability_mgmt'
         return scan_model_db == 'default'

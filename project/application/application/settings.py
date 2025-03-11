@@ -126,7 +126,7 @@ INSTALLED_APPS = [
     # Custom applications
     'main.apps.MainConfig',
     'user.apps.UserConfig',
-    'vulnerability_mgmt.apps.ScanModelConfig'
+    'vulnerability_mgmt.apps.VulnerabilityMgmtConfig'
 ]
 
 MIDDLEWARE = [
@@ -206,7 +206,7 @@ POSTGRESQL_USER = os.environ.get('POSTGRES_USER', '')
 POSTGRESQL_PASSWORD = os.environ.get('POSTGRES_PASSWORD', '')
 POSTGRESQL_HOST = os.environ.get('POSTGRES_HOST', '')
 POSTGRESQL_PORT = os.environ.get('POSTGRES_PORT', '')
-POSTGRESQL_DB = os.environ.get('POSTGRES_DB', '')
+POSTGRESQL_VULNERABILITY_MGMT_DB = os.environ.get('POSTGRES_VULNERABILITY_MGMT_DB', '')
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 DATABASES = {
     'default': {
@@ -218,9 +218,9 @@ DATABASES = {
         'PORT': POSTGRESQL_PORT,
 
     },
-    'postgres': {
+    'vulnerability_mgmt': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': POSTGRESQL_DB,
+        'NAME': POSTGRESQL_VULNERABILITY_MGMT_DB,
         'USER': POSTGRESQL_USER,
         'PASSWORD': POSTGRESQL_PASSWORD,
         'HOST': POSTGRESQL_HOST,
@@ -229,7 +229,7 @@ DATABASES = {
     }
 }
 # Specify the Database Routers
-DATABASE_ROUTERS = ['application.routers.db_router.Scan_modelRouter']
+DATABASE_ROUTERS = ['application.routers.db_router.DatabaseRouter']
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
@@ -325,7 +325,7 @@ PERIO_MEDIUM_CVSS_T = float(os.environ.get("PERIO_MEDIUM_CVSS_T", 6.0))
 DEPLOYMENT_UNIQUE_IDENTIFIER = os.environ.get(
     'DEPLOYMENT_UNIQUE_IDENTIFIER',
     'Unknown'
-      )
+)
 
 RZ_INTERN_RANGES = os.environ.get('RZ_INTERN_RANGES', '').split()
 VM_INTERN_RANGES = os.environ.get('VM_INTERN_RANGES', '').split()
