@@ -75,8 +75,8 @@ import datetime
 logger = logging.getLogger(__name__)
 
 
-def create_vulnerability_object(result, host_ip, report_id, task_id):
-    for v in result[host_ip]:
+def __create_vulnerability_objects(results, host_ip, report_id, task_id):
+    for v in results[host_ip]:
         try:
             t = datetime.datetime.strptime(
                 v.time_of_detection,
@@ -120,7 +120,7 @@ def create_vulnerability_object(result, host_ip, report_id, task_id):
             continue
 
 
-def create_scan(report_xml, report_id):
+def __create_scan_object(report_xml, report_id):
     new_scan = ScanReport(report_xml=report_xml, report_id=report_id)
     try:
         new_scan.save()
@@ -1289,13 +1289,13 @@ def scanner_registration_alert(request):
                         report_html = scanner.get_report_html(report_uuid)
                         # Create db entries for each vulerability found
                         report_xml = scanner.get_report_xml(report_uuid)
-                        create_vulnerability_object(
-                            result=scan_results,
+                        __create_vulnerability_objects(
+                            results=scan_results,
                             host_ip=host_ipv4,
                             report_id=report_uuid,
                             task_id=task_uuid
                             )
-                        create_scan(
+                        __create_scan_object(
                             report_xml=str(report_xml),
                             report_id=report_uuid
                         )
@@ -1431,13 +1431,13 @@ def scanner_scan_alert(request):
                 report_html = scanner.get_report_html(report_uuid)
                 report_xml = scanner.get_report_xml(report_uuid)
                 # Create db entries for each vulerability found
-                create_vulnerability_object(
-                    result=results,
+                __create_vulnerability_objects(
+                    results=results,
                     host_ip=str(host.ipv4_addr),
                     report_id=report_uuid,
                     task_id=task_uuid
                 )
-                create_scan(
+                __create_scan_object(
                      report_xml=str(report_xml),
                      report_id=report_uuid
                 )
@@ -1577,8 +1577,8 @@ def scanner_periodic_alert(request):
                             continue
                         if len(host.admin_ids) == 0:
                             continue
-                        create_vulnerability_object(
-                            result=scan_results,
+                        __create_vulnerability_objects(
+                            results=scan_results,
                             host_ip=host_ipv4,
                             report_id=report_uuid,
                             task_id=task_uuid
