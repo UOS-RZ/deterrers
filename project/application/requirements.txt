@@ -14,3 +14,4 @@ cvss
 markdown
 django-maintenance-mode
 flake8
+psycopg[binary]
