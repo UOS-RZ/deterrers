@@ -2,6 +2,10 @@
 
 FROM python:3.10-slim-bullseye
 
+# install openssh-client for ssh-keyscan
+RUN apt-get update
+RUN apt-get openssh-client
+
 ENV MICRO_SERVICE=/home/app/microservice
 RUN mkdir -p $MICRO_SERVICE
 RUN mkdir -p $MICRO_SERVICE/static
