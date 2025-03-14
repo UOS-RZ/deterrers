@@ -1,11 +1,11 @@
 # Dockerfile
 
-FROM python:3.10-slim-bullseye
+FROM python:3.13-slim-bullseye
 
 
-# install cron
+# install util packages
 RUN apt-get update
-RUN apt-get -y install cron curl
+RUN apt-get -y install cron curl openssh-client
 
 # install supercronic
 # Latest releases available at https://github.com/aptible/supercronic/releases

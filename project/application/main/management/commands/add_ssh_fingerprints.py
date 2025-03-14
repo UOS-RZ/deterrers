@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
-import paramiko
 import os
+
+from django.conf import settings
 
 
 class Command(BaseCommand):
@@ -11,18 +12,12 @@ class Command(BaseCommand):
         pass
 
     def handle(self, *args, **options):
-        scanner_url = os.environ['SCANNER_HOSTNAME']
-        port = 22
         known_hosts = f'{os.environ["MICRO_SERVICE"]}/known_hosts'
-        if not os.path.isfile(known_hosts):
-            open(known_hosts, 'x').close()
 
-        transport = paramiko.Transport(scanner_url + ':' + str(port))
-        transport.connect()
-        key = transport.get_remote_server_key()
-        transport.close()
-
-        hostfile = paramiko.HostKeys(filename=known_hosts)
-        hostfile.add(hostname=scanner_url, key=key, keytype=key.get_name())
-
-        hostfile.save(filename=known_hosts)
+        if settings.SCANNER_DUMMY:
+            pass
+        else:
+            scanner_url = os.environ['SCANNER_HOSTNAME']
+            port = 22
+            # recreate known_hosts file every time
+            os.system(f"ssh-keyscan -p {port} {scanner_url} > {known_hosts}")
