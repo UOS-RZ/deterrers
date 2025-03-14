@@ -1,6 +1,6 @@
 # Dockerfile
 
-FROM python:3.10-slim-bullseye
+FROM python:3.13-slim-bullseye
 
 # install openssh-client for ssh-keyscan
 RUN apt-get update
