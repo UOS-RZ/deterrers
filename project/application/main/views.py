@@ -69,63 +69,86 @@ else:
 
 
 from user.models import MyUser
-from scan_model.models import Vulnerability,Scan_report,Host_Silenced_Vulnerabilities
-from django.db import models
-from django.core.exceptions import ObjectDoesNotExist
+from vulnerability_mgmt.models import Vulnerability
+from vulnerability_mgmt.models import ScanReport
+from vulnerability_mgmt.models import HostSilencedVulnerabilities
 import datetime
+from django.core.exceptions import ObjectDoesNotExist
 
 logger = logging.getLogger(__name__)
 
 
+def __create_vulnerability_objects(results, host_ip, report_id, task_id):
+    """
+    Method to save scan results as vulnerability-objects
 
-    
-
-
-def create_vulnerability_object(result,host_ip,report_id,task_id):
-    for v in result[host_ip]:
-            try:
-                update = Host_Silenced_Vulnerabilities.objects.get(host_ipv4=str(host_ip), nvt_oid=v.nvt_oid,is_active=True)
-                value = True
-            except ObjectDoesNotExist:
-                value = False
-            try:
-                t = datetime.datetime.strptime(v.time_of_detection, "%Y-%m-%dT%H:%M:%SZ")
-                new_vulnerability = Vulnerability(
-                uuid=v.uuid,
-                vulnerability_name = v.vulnerability_name,
-                host_ipv4 = host_ip,
-                port = v.port,
-                proto = v.proto,
-                hostname = v.hostname,
-                nvt_name = v.nvt_name,
-                nvt_oid = v.nvt_oid,
-                qod = v.qod,
-                cvss_version = v.cvss_version,
-                cvss_base_score = v.cvss_base_score,
-                cvss_base_vector = v.cvss_base_vector,
-                description = v.description,
-                refs = json.dumps(v.refs),
-                overrides = json.dumps(v.overrides),
-                date_time = datetime.datetime(t.year,t.month,t.day,t.hour,t.minute,t.second,tzinfo=ZoneInfo(TIME_ZONE)),
-                task_id = task_id,
-                report_id = report_id,
-                is_silenced = value
+    Args:
+        result (dict): A dictionary containig the scan results.
+        host_ip (str): Ip Address of the host.
+        report_id (str): report_id of the results.
+        task_id (str): task_id of the scan.
+    """
+    for v in results[host_ip]:
+        try:
+            HostSilencedVulnerabilities.objects.get(
+                host_ipv4=str(host_ip),
+                nvt_oid=v.nvt_oid,
+                is_active=True
                 )
-                new_vulnerability.save()
-            except Exception:
-                logger.exception("caught Exception while saving vulnerability object !")
-                continue
+            value = True
+        except ObjectDoesNotExist:
+            value = False
+        try:
+            t = datetime.datetime.strptime(v.time_of_detection, "%Y-%m-%dT%H:%M:%SZ")
+            new_vulnerability = Vulnerability(
+                uuid=v.uuid,
+                vulnerability_name=v.vulnerability_name,
+                host_ipv4=host_ip,
+                port=v.port,
+                proto=v.proto,
+                hostname=v.hostname,
+                nvt_name=v.nvt_name,
+                nvt_oid=v.nvt_oid,
+                qod=v.qod,
+                cvss_version=v.cvss_version,
+                cvss_base_score=v.cvss_base_score,
+                cvss_base_vector=v.cvss_base_vector,
+                description=v.description,
+                refs=json.dumps(v.refs),
+                overrides=json.dumps(v.overrides),
+                date_time=datetime.datetime(
+                    t.year,
+                    t.month,
+                    t.day,
+                    t.hour,
+                    t.minute,
+                    t.second,
+                    tzinfo=ZoneInfo(TIME_ZONE)
+                    ),
+                task_id=task_id,
+                report_id=report_id,
+                is_silenced=value
+                )
+            new_vulnerability.save()
+        except Exception:
+            logger.exception("caught Exception while saving vulnerability object !")
+            continue
 
 
-def create_scan(report_xml,report_id):
-    new_scan = Scan_report(report_xml = report_xml,report_id=report_id)
+def __create_scan_object(report_xml, report_id):
+
+    """
+    Method to save the report-xml of the scan
+
+    Args:
+        result_xml (str): Xml file of the scan results.
+        report-id (str): report_id of the scan.
+    """
+    new_scan = ScanReport(report_xml=report_xml, report_id=report_id)
     try:
         new_scan.save()
     except Exception:
         logger.exception("caught Exception while saving scan object !")
-        
-
-
 
 
 def __send_report_email(
@@ -1313,20 +1336,17 @@ def scanner_registration_alert(request):
                             )
                             if not set_host_offline(host):
                                 raise RuntimeError("Couldn't block host")
-                            
-
-                        # get HTML report and send via e-mail to admin
+                        # Get HTML report and send via e-mail to admin
                         report_html = scanner.get_report_html(report_uuid)
-                        
-                        #create db entries for each vulerability found and for the performed scan
+                        # Create db entries for each vulerability found
                         report_xml = scanner.get_report_xml(report_uuid)
-                        create_vulnerability_object(
-                            result=scan_results,
+                        __create_vulnerability_objects(
+                            results=scan_results,
                             host_ip=host_ipv4,
                             report_id=report_uuid,
                             task_id=task_uuid
                             )
-                        create_scan(
+                        __create_scan_object(
                             report_xml=str(report_xml),
                             report_id=report_uuid
                         )
@@ -1458,19 +1478,19 @@ def scanner_scan_alert(request):
                     # get all department names for use below
                     departments = ipam.get_department_names()
 
-                # get HTML report and send via e-mail to admin
+                # Get HTML report and send via e-mail to admin
                 report_html = scanner.get_report_html(report_uuid)
                 report_xml = scanner.get_report_xml(report_uuid)
-                #create db entries for each vulerability found and for the performed sc
-                create_vulnerability_object(
-                    result=results,
-                    host_ip = str(host.ipv4_addr),
-                    report_id = report_uuid,
-                    task_id = task_uuid 
+                # Create db entries for each vulerability found
+                __create_vulnerability_objects(
+                    results=results,
+                    host_ip=str(host.ipv4_addr),
+                    report_id=report_uuid,
+                    task_id=task_uuid
                 )
-                create_scan(
-                     report_xml = str(report_xml),
-                     report_id = report_uuid
+                __create_scan_object(
+                     report_xml=str(report_xml),
+                     report_id=report_uuid
                 )
                 # deduce admin email addr and filter out departments
                 admin_addresses = []
@@ -1608,11 +1628,11 @@ def scanner_periodic_alert(request):
                             continue
                         if len(host.admin_ids) == 0:
                             continue
-                        create_vulnerability_object(
-                            result = scan_results,
-                            host_ip = host_ipv4,
-                            report_id = report_uuid,
-                            task_id = task_uuid
+                        __create_vulnerability_objects(
+                            results=scan_results,
+                            host_ip=host_ipv4,
+                            report_id=report_uuid,
+                            task_id=task_uuid
                             )
                         block_reasons, notify_reasons = assess_host_risk(
                             host,
@@ -1703,6 +1723,17 @@ def scanner_periodic_alert(request):
 
 
                             """
+                report_xml = scanner.get_report_xml(report_uuid)
+                if (report_xml):
+                    __create_scan_object(
+                        report_xml=scanner.get_report_xml(report_uuid),
+                        report_id=report_uuid
+                        )
+                else:
+                    __create_scan_object(
+                        report_xml="",
+                        report_id=report_uuid
+                        )
 
                 # send complete report to DETERRERS admin
                 report_html = None

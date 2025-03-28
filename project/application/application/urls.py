@@ -28,7 +28,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('hostadmin/', include('main.urls')),
     path('', RedirectView.as_view(url='hostadmin/', permanent=True)),
-    path('scan_test/',include('scan_model.urls')),
 ]
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
