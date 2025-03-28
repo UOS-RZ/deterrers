@@ -206,7 +206,7 @@ POSTGRESQL_USER = os.environ.get('POSTGRES_USER', '')
 POSTGRESQL_PASSWORD = os.environ.get('POSTGRES_PASSWORD', '')
 POSTGRESQL_HOST = os.environ.get('POSTGRES_HOST', '')
 POSTGRESQL_PORT = os.environ.get('POSTGRES_PORT', '')
-POSTGRESQL_VULNERABILITY_MGMT_DB = os.environ.get('POSTGRES_VULNERABILITY_MGMT_DB', '')
+POSTGRESQL_VULNERABILITY_MGMT_DB = os.environ.get('POSTGRES_DB', '')
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 DATABASES = {
     'default': {

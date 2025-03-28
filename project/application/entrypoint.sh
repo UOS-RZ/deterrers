@@ -6,7 +6,7 @@ python manage.py makemigrations main --noinput
 python manage.py makemigrations user --noinput
 python manage.py makemigrations vulnerability_mgmt --noinput
 python manage.py migrate --noinput
-python manage.py migrate --database=postgres
+python manage.py migrate --database=vulnerability_mgmt
 python manage.py collectstatic --noinput
 python manage.py clearsessions
 python manage.py add_ssh_fingerprints
