@@ -76,6 +76,15 @@ logger = logging.getLogger(__name__)
 
 
 def __create_vulnerability_objects(results, host_ip, report_id, task_id):
+    """
+    Method to save scan results as vulnerability-objects
+
+    Args:
+        result (dict): A dictionary containig the scan results.
+        host_ip (str): Ip Address of the host.
+        report_id (str): report_id of the results.
+        task_id (str): task_id of the scan.
+    """
     for v in results[host_ip]:
         try:
             t = datetime.datetime.strptime(
@@ -121,6 +130,14 @@ def __create_vulnerability_objects(results, host_ip, report_id, task_id):
 
 
 def __create_scan_object(report_xml, report_id):
+
+    """
+    Method to save the report-xml of the scan
+
+    Args:
+        result_xml (str): Xml file of the scan results.
+        report-id (str): report_id of the scan.
+    """
     new_scan = ScanReport(report_xml=report_xml, report_id=report_id)
     try:
         new_scan.save()
@@ -1672,6 +1689,17 @@ def scanner_periodic_alert(request):
 
 
                             """
+                report_xml = scanner.get_report_xml(report_uuid)
+                if (report_xml):
+                    __create_scan_object(
+                        report_xml=scanner.get_report_xml(report_uuid),
+                        report_id=report_uuid
+                        )
+                else:
+                    __create_scan_object(
+                        report_xml="",
+                        report_id=report_uuid
+                        )
 
                 # send complete report to DETERRERS admin
                 report_html = None
