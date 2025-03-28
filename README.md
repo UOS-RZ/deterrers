@@ -60,7 +60,8 @@ A deployment is currently only possible in conjunction with the following compon
 
 - access credentials for external endpoints (IPAM, Vulnerability Scanner, perimeter FW, LDAP) are set in .env-files
 - general settings/"contracts" are defined as Enums in <code>project/application/main/core/contracts.py</code>
-- interface-specific settings (e.g. Greenbone GMP configurations UUIDs or AddressGroup-names of the Palo Alto FW) are defined with the respective API-wrappers
+- interface-specific settings (e.g. Greenbone GMP configurations UUIDs or AddressGroup-names of the perimeter FW) are defined with the respective API-wrappers
+- if the vulnerability scanner should perform authenticated scans on target its public key can be provided in <code>project/application/main/static/files/</code>
 
 
 ## Development
