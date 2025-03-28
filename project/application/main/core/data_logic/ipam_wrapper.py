@@ -188,14 +188,16 @@ class ProteusIPAMWrapper(DataAbstract):
             self.__tag_group_id = data["id"]
         return self.__tag_group_id
 
-    def __get_tag_id(self, tag_name: str) -> str:
+    def __get_tag_id(self, tag_name: str) -> list[str]:
+        tags = []
         for d_tag in self.__get_department_tags():
             if d_tag['name'] == tag_name:
                 return d_tag['id']
             admin_tags = self.__get_child_tags(d_tag['id'])
             for a_tag in admin_tags:
                 if a_tag.get('name') == tag_name:
-                    return a_tag['id']
+                    tags.append(a_tag['id'])
+        return tags
 
     def __get_child_tags(self, parent_id: str) -> list[dict]:
         get_entities_parameters = ("count=1000"
@@ -701,7 +703,7 @@ class ProteusIPAMWrapper(DataAbstract):
     def create_admin(
         self,
         admin_name: str,
-        department_name: str
+        department_names: list[str]
     ) -> bool:
         """
         Create an admin tag object under some existing department tag.
@@ -714,31 +716,40 @@ class ProteusIPAMWrapper(DataAbstract):
         Returns:
             bool: Returns True on success and False if something goes wrong.
         """
+        amout_of_dep_tags = len(department_names)
         try:
             admin_name = self.__escape_user_input(admin_name)
             # get tag_id of department tag
             for department_tag in self.__get_department_tags():
-                if department_tag.get('name') == department_name:
-                    department_tag_id = department_tag.get('id')
-                    break
-            # create admin tag under given department tag
-            addtag_params = (f"name={admin_name}"
-                             + f"&parentId={department_tag_id}")
-            addtag_url = (self.main_url
-                          + "addTag?"
-                          + addtag_params)
-            response = requests.post(addtag_url,
-                                     headers=self.header,
-                                     timeout=self.TIMEOUT)
-            if response.status_code != 200:
-                raise RuntimeError(
-                    f"Status code of {addtag_url}: {response.status_code}"
-                )
+                for department_name in department_names:
+                    if department_tag.get('name') == department_name:
+                        department_tag_id = department_tag.get('id')
+                        # create admin tag under given department tag
+                        addtag_params = (
+                            f"name={admin_name}"
+                            + f"&parentId={department_tag_id}"
+                            )
+                        addtag_url = (
+                            self.main_url
+                            + "addTag?"
+                            + addtag_params
+                            )
+                        response = requests.post(
+                            addtag_url,
+                            headers=self.header,
+                            timeout=self.TIMEOUT
+                            )
+                        if response.status_code != 200:
+                            logger.exception(
+                                f"Status code of {addtag_url}: {response.status_code}\nCouldn't create a tag({department_tag_id}) for admin {admin_name}!"
+                            )
+                        amout_of_dep_tags = amout_of_dep_tags - 1
+                        if (amout_of_dep_tags == 0):
+                            break
 
             return True
         except Exception:
-            logger.exception("Couldn't create a tag for admin %s!",
-                             admin_name)
+            logger.exception("Exception in while creating Admin")
 
         return False
 
