@@ -99,7 +99,10 @@ def __create_vulnerability_objects(results, host_ip, report_id, task_id):
         except ObjectDoesNotExist:
             value = False
         try:
-            t = datetime.datetime.strptime(v.time_of_detection, "%Y-%m-%dT%H:%M:%SZ")
+            t = datetime.datetime.strptime(
+                v.time_of_detection,
+                "%Y-%m-%dT%H:%M:%SZ"
+                )
             new_vulnerability = Vulnerability(
                 uuid=v.uuid,
                 vulnerability_name=v.vulnerability_name,
@@ -131,7 +134,9 @@ def __create_vulnerability_objects(results, host_ip, report_id, task_id):
                 )
             new_vulnerability.save()
         except Exception:
-            logger.exception("caught Exception while saving vulnerability object !")
+            logger.exception(
+                "caught Exception while saving vulnerability object !"
+                )
             continue
 
 
@@ -272,19 +277,26 @@ def host_detail_view(request, ipv4: str, tab: str = 'general'):
         # check if user is admin of this host
         if hostadmin.username not in host.admin_ids:
             raise Http404()
-        
+
         time_dict = []
         if (tab == "vulerabilities"):
             try:   
                 values = Vulnerability.objects.filter(host_ipv4=ipv4).values_list("nvt_oid").distinct()
                 for nvt_oid in values:
-                    vul_filter = Vulnerability.objects.filter(host_ipv4=ipv4,nvt_oid = nvt_oid[0]).order_by("date_time")
-                    time_dict.append((vul_filter[len(vul_filter)-1],vul_filter[0].date_time))
-               
+                    vul_filter = Vulnerability.objects.filter(host_ipv4=ipv4, nvt_oid=nvt_oid[0]).order_by("date_time")
+                    time_dict.append(
+                        (vul_filter[len(vul_filter)-1],
+                         vul_filter[0].date_time)
+                         )
+
             except ObjectDoesNotExist:
                 logger.exception("Exception while retrieving vulnerabilities")
             PAGINATE = 100
-            time_dict = sorted(time_dict, key=lambda vul: vul[0].date_time, reverse=True)
+            time_dict = sorted(
+                time_dict,
+                key=lambda vul: vul[0].date_time,
+                reverse=True
+                )
             paginator = Paginator(time_dict, PAGINATE)
             page = request.GET.get('page', 1)
             try:
@@ -293,8 +305,6 @@ def host_detail_view(request, ipv4: str, tab: str = 'general'):
                 time_dict = paginator.page(1)
             except EmptyPage:
                 time_dict = paginator.page(paginator.num_pages)
-
-
 
         # parse form data and update host on POST
         if request.method == 'POST':
@@ -330,14 +340,13 @@ def host_detail_view(request, ipv4: str, tab: str = 'general'):
              + "During this process, no actions are available for the host.")
         )
 
-
     context = {
         'active_tab': tab,
         'is_paginated': True,
         'page_obj': time_dict,
         'hostadmin': hostadmin,
-        'timedict':time_dict,
-        'vulner_list':time_dict,
+        'timedict': time_dict,
+        'vulner_list': time_dict,
         'host_detail': host,
         'host_ipv4': str(host.ipv4_addr),
         'host_rules': [
@@ -1764,7 +1773,7 @@ Admin copy:
 
 @require_http_methods(['POST',])
 def host_detail_view_vulner_update(request):
-    
+
     list = request.POST.getlist("hosts")
     url = request.META.get('HTTP_REFERER')
     user = request.user.username
@@ -1773,27 +1782,40 @@ def host_detail_view_vulner_update(request):
         with transaction.atomic('postgres'):
             for id in list:
                 host = Vulnerability.objects.get(id=str(id))
-                
+
                 if (host.nvt_oid, host.host_ipv4) in list_changed_host:
                     continue
-                list_of_host = Vulnerability.objects.filter(host_ipv4=host.host_ipv4, nvt_oid=host.nvt_oid)
-                if (host.is_silenced == True):
+                list_of_host = Vulnerability.objects.filter(
+                    host_ipv4=host.host_ipv4,
+                    nvt_oid=host.nvt_oid
+                    )
+                if host.is_silenced is True:
                     for vulner_with_same_nvt_oid in list_of_host:
-                        
+
                         vulner_with_same_nvt_oid.is_silenced = False
                         vulner_with_same_nvt_oid.save()
-                    update = Host_Silenced_Vulnerabilities.objects.filter(host_ipv4=host.host_ipv4, nvt_oid=host.nvt_oid, is_active=True)
+                    update = HostSilencedVulnerabilities.objects.filter(
+                        host_ipv4=host.host_ipv4,
+                        nvt_oid=host.nvt_oid,
+                        is_active=True
+                        )
                     update = update[0]
                     update.is_active = False
                     update.save()
                     list_changed_host.append((host.nvt_oid, host.host_ipv4))
-                
-                elif (host.is_silenced == False):
+
+                elif host.is_silenced is False:
                     for vulner_with_same_nvt_oid in list_of_host:
-                            
+
                         vulner_with_same_nvt_oid.is_silenced = True
                         vulner_with_same_nvt_oid.save()
-                    update = Host_Silenced_Vulnerabilities(host_ipv4 = host.host_ipv4,nvt_oid = host.nvt_oid,user=user,date_time=datetime.datetime.now(), is_active=True)
+                    update = HostSilencedVulnerabilities(
+                        host_ipv4=host.host_ipv4,
+                        nvt_oid=host.nvt_oid,
+                        user=user,
+                        date_time=datetime.datetime.now(),
+                        is_active=True
+                        )
                     update.save()
                     list_changed_host.append((host.nvt_oid, host.host_ipv4))
             messages.success(request, 'Success')
