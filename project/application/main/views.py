@@ -405,7 +405,7 @@ def hosts_list_view(request):
         if hostadmin.departments is None:
             departments = ipam.get_department_to_admin(hostadmin.username)
             if departments is not None:
-                hostadmin.departments = [departments,]
+                hostadmin.departments = departments
                 hostadmin.save()
             else:
                 logger.exception(
