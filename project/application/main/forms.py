@@ -23,11 +23,17 @@ class AddHostForm(forms.Form):
         choices = kwargs.pop('choices')
         super(AddHostForm, self).__init__(*args, **kwargs)
         self.fields["admin_tag"] = forms.ChoiceField(
-            choices=[(c, c) for c in choices],
+            choices=[(c, c) for c in choices[0]],
             required=True,
             label='Admin(s):',
             help_text=("Are you the only admin or should other admins "
                        + "from your department have the same access as you.")
+        )
+        self.fields["department"] = forms.ChoiceField(
+            choices=[(c, c) for c in choices[1]],
+            required=True,
+            label="Role",
+            help_text="Select your Role meaning for which department will you be administrating this host"
         )
 
     ipv4_addr = forms.GenericIPAddressField(
@@ -37,6 +43,7 @@ class AddHostForm(forms.Form):
         help_text='IPv4 address of the host.',
         required=True,
     )
+
 
 
 class ChangeHostDetailForm(forms.Form):
