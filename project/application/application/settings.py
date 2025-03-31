@@ -204,8 +204,12 @@ USE_TZ = True
 # Get Postgresql configuration
 POSTGRESQL_USER = os.environ.get('POSTGRES_USER', '')
 POSTGRESQL_PASSWORD = os.environ.get('POSTGRES_PASSWORD', '')
-POSTGRESQL_HOST = os.environ.get('POSTGRES_HOST', '')
-POSTGRESQL_PORT = os.environ.get('POSTGRES_PORT', '')
+# If you do not change the name of the vulnerability_mgmt docker container then using the name(postgres) as Host works
+POSTGRESQL_HOST = os.environ.get('POSTGRES_HOST', 'postgres')
+# The default port for postgresql is 5432 and therefore is the default value hier
+POSTGRESQL_PORT = os.environ.get('POSTGRES_PORT', '5432')
+# If no name is provided postgres uses the user name as name
+# The name for the default database is set in dockercompose.dev.yml and is 'default'
 POSTGRESQL_VULNERABILITY_MGMT_DB = os.environ.get('POSTGRES_DB', '')
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 DATABASES = {
