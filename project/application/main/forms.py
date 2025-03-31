@@ -29,12 +29,20 @@ class AddHostForm(forms.Form):
             help_text=("Are you the only admin or should other admins "
                        + "from your department have the same access as you.")
         )
-        self.fields["department"] = forms.ChoiceField(
-            choices=[(c, c) for c in choices[1]],
-            required=True,
-            label="Role",
-            help_text="Select your Role meaning for which department will you be administrating this host"
-        )
+        if choices[1] is None:
+            self.fields["department"] = forms.ChoiceField(
+                choices=[],
+                required=True,
+                label="Role",
+                help_text="Select your Role meaning for which department will you be administrating this host. If this field is empty please contact an admin"
+            )
+        else:
+            self.fields["department"] = forms.ChoiceField(
+                choices=[(c, c) for c in choices[1]],
+                required=True,
+                label="Role",
+                help_text="Select your Role meaning for which department will you be administrating this host"
+            )
 
     ipv4_addr = forms.GenericIPAddressField(
         protocol='IPv4',
