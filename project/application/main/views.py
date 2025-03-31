@@ -409,10 +409,8 @@ def hosts_list_view(request):
             else:
                 logout(request)
                 return HttpResponse(status=401)
-        tag_choices = [[
-            hostadmin.username,
-            ipam.get_department_to_admin(hostadmin.username)
-        ], hostadmin.departments]
+        tag_choices0 = ipam.get_department_to_admin(hostadmin.username) + hostadmin.username
+        tag_choices = [tag_choices0, hostadmin.departments]
         if request.method == 'POST':
             form = AddHostForm(request.POST, choices=tag_choices)
             if form.is_valid():
