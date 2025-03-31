@@ -34,14 +34,14 @@ class AddHostForm(forms.Form):
                 choices=[],
                 required=True,
                 label="Role",
-                help_text="Select your Role meaning for which department will you be administrating this host. If this field is empty please contact an admin"
+                help_text="Select your Role meaning for which department will you be administrating this host. Please contact an admin because no department is connected with this user Profile"
             )
         else:
             self.fields["department"] = forms.ChoiceField(
                 choices=[(c, c) for c in choices[1]],
                 required=True,
                 label="Role",
-                help_text="Select your Role meaning for which department will you be administrating this host"
+                help_text="Select your Role meaning for which department will you be administrating this host."
             )
 
     ipv4_addr = forms.GenericIPAddressField(
