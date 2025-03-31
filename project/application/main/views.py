@@ -357,14 +357,17 @@ def hosts_list_view(request):
     ) as ipam:
         if not ipam.enter_ok:
             return HttpResponse(status=500)
-        #Checks if user.departments is blank if it is then the depatmentname will be added to the user
+        # Checks if user.departments is blank
+        # if it is then the depatmentname will be added to the user
         if hostadmin.departments is None:
             departments = ipam.get_department_to_admin(hostadmin.username)
             if departments is not None:
                 hostadmin.departments = [departments,]
                 hostadmin.save()
             else:
-                logger.exception("Could not add departments to user please logout and try again")
+                logger.exception(
+                    "Could not add departments to user please logout and try again"
+                    )
         # if for this admin no tag exists yet, they should be redirected
         # to the init page
         if not ipam.is_admin(hostadmin.username):
