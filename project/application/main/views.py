@@ -416,7 +416,7 @@ def hosts_list_view(request):
         if hostadmin is not None:
             tag_choices = [tag_choice0, hostadmin.departments]
         else:
-            tag_choices = [tag_choice0, [None,]]
+            tag_choices = [tag_choice0, []]
         if request.method == 'POST':
             form = AddHostForm(request.POST, choices=tag_choices)
             if form.is_valid():
