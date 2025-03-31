@@ -426,7 +426,7 @@ def hosts_list_view(request):
             if form.is_valid():
                 tag_name = form.cleaned_data['admin_tag']
                 host_ipv4 = form.cleaned_data['ipv4_addr']
-                department = form.changed_data['department']
+                department = form.cleaned_data['department']
                 host = ipam.get_host_info_from_ip(host_ipv4)
                 if not host:
                     form.add_error(
