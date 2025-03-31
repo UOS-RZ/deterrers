@@ -44,7 +44,7 @@ class MyUser(AbstractUser):
     """
     Custom user model which can be extended by custom fields if needed.
     """
-    departments = ArrayField(models.TextField(), null=True)
+    departments = ArrayField(models.TextField(), blank=True, null=True)
     # add additional fields in here
 
     def __str__(self):
