@@ -426,6 +426,7 @@ def hosts_list_view(request):
             if form.is_valid():
                 tag_name = form.cleaned_data['admin_tag']
                 host_ipv4 = form.cleaned_data['ipv4_addr']
+                department = form.changed_data['department']
                 host = ipam.get_host_info_from_ip(host_ipv4)
                 if not host:
                     form.add_error(
@@ -438,7 +439,7 @@ def hosts_list_view(request):
                         "Host not valid!"
                     )
                 else:
-                    code = ipam.add_admin_to_host(tag_name, host)
+                    code = ipam.add_admin_to_host(tag_name, host,department=department)
                     # NOTE: return codes are not well defined by Proteus
                     # but any 2xx is fine
                     if code in range(200, 205, 1):
