@@ -555,12 +555,13 @@ class ProteusIPAMWrapper(DataAbstract):
 
         hosts = []
         try:
-            admin_tag_id = self.__get_tag_id(admin_name)
-            department_tag_id = self.__get_parent_tag(admin_tag_id)['id']
-            # get all linked hosts to this admin tag
-            hosts += __get_linked_hosts(admin_tag_id)
-            # get all linked hosts to the parent tag
-            hosts += __get_linked_hosts(department_tag_id)
+            admin_tag_ids = self.__get_tag_id(admin_name)
+            for admin_tag_id in admin_tag_ids:
+                department_tag_id = self.__get_parent_tag(admin_tag_id)['id']
+                # get all linked hosts to this admin tag
+                hosts += __get_linked_hosts(admin_tag_id)
+                # get all linked hosts to the parent tag
+                hosts += __get_linked_hosts(department_tag_id)
 
         except requests.exceptions.ConnectTimeout:
             logger.exception('Connection to %s timed out!', self.main_url)
@@ -648,7 +649,7 @@ class ProteusIPAMWrapper(DataAbstract):
                 names.append(dep_tag.get('name'))
         return names
 
-    def get_department_to_admin(self, admin_name: str) -> str | None:
+    def get_department_to_admin(self, admin_name: str) -> list[str] | None:
         """
         Query the name of the department an admin belongs to.
 
@@ -656,10 +657,11 @@ class ProteusIPAMWrapper(DataAbstract):
             admin_name (str): Name of the admin tag.
 
         Returns:
-            str | None: Returns the name of a department or None if something
+            list[str] | None: Returns the names of the departments or None if something
             went wrong.
         """
         try:
+            departments = []
             for department_tag_entity in self.__get_department_tags():
                 department_tag_id = department_tag_entity['id']
                 # query whether admin tag exists under this department tag
@@ -675,7 +677,9 @@ class ProteusIPAMWrapper(DataAbstract):
                                         timeout=self.TIMEOUT)
                 data = response.json()
                 if data['name'] == admin_name:
-                    return department_tag_entity['name']
+                    departments.append(department_tag_entity['name'])
+                
+            return departments
         except Exception:
             logger.exception("Couldn't query parent tag from IPAM!")
 
@@ -790,22 +794,43 @@ class ProteusIPAMWrapper(DataAbstract):
 
         return None
 
-    def add_admin_to_host(self, admin_name: str, host: MyHost) -> int:
+    def __get_admin_tag_for_department(self, admin_name: str, department: str) -> str:
+        """
+        Filters all admin tags to get the admin tag under the specified department.
+
+        Args:
+            admin_name (str): Tag name corresponding to admin/department.
+            department (str): Department name to specify the tag which should be retrieved
+
+        Returns:
+            str: The tag_id of the desired tag.
+        """
+        dep_tag = self.__get_tag_id(department)
+        tag_ids = self.__get_tag_id(admin_name)
+        for id in tag_ids:
+            parent = self.__get_parent_tag(id)
+            if (parent.get('id') == dep_tag[0]):
+                return id
+
+    def add_admin_to_host(self, admin_name: str, host: MyHost, department: str) -> int:
         """
         Link a tag to a IPv4Address object.
 
         Args:
             admin_name (str): Tag name corresponding to admin/department.
             host (MyHost): Host instance for which admin is added.
+            department(str): Department tag id to specifiy which tag should be added
 
         Returns:
             int: Returns HTTP status code of the response.
         """
         try:
             host_id = host.entity_id
-
             # get tag object
-            tag_id = self.__get_tag_id(admin_name)
+            tag_id = self.__get_admin_tag_for_department(admin_name, department)
+            if tag_id is None:
+                dep_tag = self.__get_tag_id(department)
+                tag_id = dep_tag[0]
             parent_tag = self.__get_parent_tag(tag_id)
 
             # check if admin or their department is already associated
@@ -867,7 +892,11 @@ class ProteusIPAMWrapper(DataAbstract):
             host_id = host.entity_id
 
             # get tag object
-            tag_id = self.__get_tag_id(admin_name)
+            tag_ids = self.__get_tag_id(admin_name)
+
+            for id in tag_ids:
+                if self.__host_is_tagged(host_id, id):
+                    tag_id = id
 
             # unlink tag from host
             linkentities_params = (f"entity1Id={host_id}"
