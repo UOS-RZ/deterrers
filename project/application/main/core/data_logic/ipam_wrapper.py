@@ -192,7 +192,7 @@ class ProteusIPAMWrapper(DataAbstract):
         tags = []
         for d_tag in self.__get_department_tags():
             if d_tag['name'] == tag_name:
-                return d_tag['id']
+                tags.append(d_tag['id'])
             admin_tags = self.__get_child_tags(d_tag['id'])
             for a_tag in admin_tags:
                 if a_tag.get('name') == tag_name:
