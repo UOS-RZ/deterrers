@@ -8,6 +8,7 @@ services:
     volumes:
       - static_volume:/home/app/microservice/static
       - /etc/ssl:/etc/ssl
+      - /etc/ssl/certs/deterrers-server-cert.pem:/etc/ssl/certs/deterrers-server-cert.pem # explicitly mount the certificate file because on Rocky Linux this is a sym-link which is not available to docker container
     restart: "on-failure"
     networks:
       - deterrers
