@@ -15,9 +15,13 @@ services:
 
   web:
     depends_on:
-      - nginx
-      - postgres
-      - default
+      nginx:
+      postgres:
+        condition: service_healthy
+        restart: true
+      default:
+        condition: service_healthy
+        restart: true
     build: 
       context: ./application
       dockerfile: Dockerfile
