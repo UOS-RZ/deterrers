@@ -9,7 +9,6 @@ https://docs.djangoproject.com/en/4.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
-
 import os
 from pathlib import Path
 import ssl
@@ -127,6 +126,7 @@ INSTALLED_APPS = [
     # Custom applications
     'main.apps.MainConfig',
     'user.apps.UserConfig',
+    'vulnerability_mgmt.apps.VulnerabilityMgmtConfig'
 ]
 
 MIDDLEWARE = [
@@ -201,18 +201,39 @@ USE_TZ = True
 
 """ SETUP DATABASE """
 
+# Get Postgresql configuration
+POSTGRESQL_USER = os.environ.get('POSTGRES_USER', '')
+POSTGRESQL_PASSWORD = os.environ.get('POSTGRES_PASSWORD', '')
+# If you do not change the name of the vulnerability_mgmt docker container then using the name(postgres) as Host works
+POSTGRESQL_HOST = os.environ.get('POSTGRES_HOST', 'postgres')
+# The default port for postgresql is 5432 and therefore is the default value hier
+POSTGRESQL_PORT = os.environ.get('POSTGRES_PORT', '5432')
+# If no name is provided postgres uses the user name as name
+# The name for the default database is set in dockercompose.dev.yml and is 'default'
+POSTGRESQL_VULNERABILITY_MGMT_DB = os.environ.get('POSTGRES_DB', '')
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(
-            os.environ.get(
-                'MICRO_SERVICE',
-                BASE_DIR.parent
-            ), 'db/db.sqlite3'
-        ),
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': "default",
+        'USER': POSTGRESQL_USER,
+        'PASSWORD': POSTGRESQL_PASSWORD,
+        'HOST': 'default',
+        'PORT': POSTGRESQL_PORT,
+
+    },
+    'vulnerability_mgmt': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': POSTGRESQL_VULNERABILITY_MGMT_DB,
+        'USER': POSTGRESQL_USER,
+        'PASSWORD': POSTGRESQL_PASSWORD,
+        'HOST': POSTGRESQL_HOST,
+        'PORT': POSTGRESQL_PORT,
+
     }
 }
+# Specify the Database Routers
+DATABASE_ROUTERS = ['application.routers.db_router.DatabaseRouter']
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
@@ -305,7 +326,10 @@ PERIO_HIGH_CVSS_T = float(os.environ.get("PERIO_HIGH_CVSS_T", 8.5))
 PERIO_MEDIUM_CVSS_T = float(os.environ.get("PERIO_MEDIUM_CVSS_T", 6.0))
 
 # get deployment identifier
-DEPLOYMENT_UNIQUE_IDENTIFIER = os.environ.get('DEPLOYMENT_UNIQUE_IDENTIFIER', 'Unknown')
+DEPLOYMENT_UNIQUE_IDENTIFIER = os.environ.get(
+    'DEPLOYMENT_UNIQUE_IDENTIFIER',
+    'Unknown'
+)
 
 RZ_INTERN_RANGES = os.environ.get('RZ_INTERN_RANGES', '').split()
 VM_INTERN_RANGES = os.environ.get('VM_INTERN_RANGES', '').split()

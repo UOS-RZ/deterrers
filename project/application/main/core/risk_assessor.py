@@ -15,6 +15,8 @@ class VulnerabilityScanResult():
     def __init__(
         self,
         uuid: str,
+        vulnerability_name: str,
+        time_of_detection: str,
         host_ip: str,
         port: str,
         proto: str,
@@ -30,7 +32,9 @@ class VulnerabilityScanResult():
         overrides: list[dict]
     ) -> None:
         self.uuid = str(uuid)
+        self.vulnerability_name = str(vulnerability_name)
         self.host_ip = str(host_ip)
+        self.time_of_detection = str(time_of_detection)
         self.port = str(port)
         self.proto = str(proto)
         self.hostname = str(hostname)
