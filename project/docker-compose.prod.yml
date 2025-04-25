@@ -16,6 +16,7 @@ services:
   web:
     depends_on:
       nginx:
+        condition: service_started
       postgres:
         condition: service_healthy
         restart: true
