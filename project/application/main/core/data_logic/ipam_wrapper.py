@@ -906,6 +906,7 @@ class ProteusIPAMWrapper(DataAbstract):
                     tag_does_not_exist = False
 
             if (tag_does_not_exist):
+                host.admin_ids.remove(admin_name)
                 return 0
 
             # unlink tag from host
