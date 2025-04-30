@@ -899,10 +899,15 @@ class ProteusIPAMWrapper(DataAbstract):
             # get tag object
             tag_ids = self.__get_tag_id(admin_name)
 
+            tag_does_not_exist = True
             for id in tag_ids:
                 if self.__host_is_tagged(host_id, id):
                     tag_id = id
-            
+                    tag_does_not_exist = False
+
+            if (tag_does_not_exist):
+                return 0
+
             # unlink tag from host
             linkentities_params = (f"entity1Id={host_id}"
                                    + f"&entity2Id={tag_id}")

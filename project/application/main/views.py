@@ -439,7 +439,7 @@ def hosts_list_view(request):
                         "Host not valid!"
                     )
                 else:
-                    code = ipam.add_admin_to_host(tag_name, host,department=department)
+                    code = ipam.add_admin_to_host(tag_name, host, department=department)
                     # NOTE: return codes are not well defined by Proteus
                     # but any 2xx is fine
                     if code in range(200, 205, 1):
