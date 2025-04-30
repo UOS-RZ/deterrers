@@ -829,7 +829,7 @@ class ProteusIPAMWrapper(DataAbstract):
             # get tag object
             tag_id = self.__get_admin_tag_for_department(admin_name, department)
             if tag_id is None:
-                dep_tag = self.__get_tag_id(department)
+                dep_tag = self.__get_tag_id(admin_name)
                 tag_id = dep_tag[0]
             parent_tag = self.__get_parent_tag(tag_id)
 
