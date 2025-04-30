@@ -852,7 +852,12 @@ class ProteusIPAMWrapper(DataAbstract):
                             raise Exception()
             else:
                 # tag is admin tag
-                if self.__host_is_tagged(host_id, tag_id):
+                tagged = False
+                admin_tags = self.__get_tag_id(admin_name)
+                for id in admin_tags:
+                    if self.__host_is_tagged(host_id, id):
+                        tagged = True
+                if tagged:
                     # admin is already tagged
                     return 200
                 if self.__host_is_tagged(host_id, parent_tag.get('id')):
@@ -897,7 +902,7 @@ class ProteusIPAMWrapper(DataAbstract):
             for id in tag_ids:
                 if self.__host_is_tagged(host_id, id):
                     tag_id = id
-
+            
             # unlink tag from host
             linkentities_params = (f"entity1Id={host_id}"
                                    + f"&entity2Id={tag_id}")
