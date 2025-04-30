@@ -141,13 +141,14 @@ class DataMockWrapper(DataAbstract):
     def get_department_to_admin(
         self,
         admin_name: str
-    ) -> str | None:
+    ) -> list[str] | None:
         with open(self.f_path, "r") as f:
             data = json.load(f)
+            departments  = []
             for department, admins in data["departments"].items():
                 if admin_name in admins:
-                    return department
-        return None
+                    departments.append(department)
+        return departments
 
     def get_all_admin_names(self) -> set[str]:
         names = set()
@@ -160,16 +161,16 @@ class DataMockWrapper(DataAbstract):
     def create_admin(
         self,
         admin_name: str,
-        department_name: str
+        department_names: list[str]
     ) -> bool:
         with open(self.f_path, "r") as f:
             data = json.load(f)
-
-        data["departments"][department_name] = list(
-            set(
-                data["departments"][department_name] + [admin_name]
+        for department in department_names:
+            data["departments"][department] = list(
+                set(
+                    data["departments"][department] + [admin_name]
+                )
             )
-        )
 
         with open(self.f_path, "w") as f:
             json.dump(data, f)
@@ -186,14 +187,16 @@ class DataMockWrapper(DataAbstract):
     def add_admin_to_host(
         self,
         admin_name: str,
-        host: MyHost
+        host: MyHost,
+        department: str
     ) -> int:
         host.admin_ids.add(admin_name)
         if admin_name in self.get_department_names():
-            host.admin_ids.update(
-                [n for n in self.get_all_admin_names()
-                 if self.get_department_to_admin(n) == admin_name]
-            )
+            for n in self.get_all_admin_names():
+                for det in self.get_department_to_admin(n):
+                    if (det == admin_name):
+                        host.admin_ids.update([n,])
+
         self.update_host_info(host)
 
         return 200
