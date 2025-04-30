@@ -11,7 +11,7 @@ from gvm.protocols.gmp import Gmp
 from gvm.connections import SSHConnection
 from gvm.transforms import EtreeCheckCommandTransform
 from gvm.errors import GvmError
-from gvm.protocols.gmp.requests.v225 import (AlertCondition,
+from gvm.protocols.gmp.requests.v226 import (AlertCondition,
                                              AlertEvent,
                                              AlertMethod,
                                              AliveTest,
