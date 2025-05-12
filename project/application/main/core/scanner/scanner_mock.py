@@ -200,7 +200,7 @@ class ScannerMock(ScannerAbstract):
     def get_report_xml(
       self,
       report_uuid: str,
-      min_qod: int = 70,
+      min_qod: int = 0,
       report_format_id: str = ""
     ):
         return '<?xml version="1.0" encoding="UTF-8" ?><body>Dummy HTML report</body>' 

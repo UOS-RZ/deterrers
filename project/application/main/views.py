@@ -75,17 +75,22 @@ import datetime
 logger = logging.getLogger(__name__)
 
 
-def __create_vulnerability_objects(results, host_ip, report_id, task_id):
+def __create_vulnerability_objects(
+    results: dict,
+    host_ip: str,
+    report_id: str,
+    task_id: str
+):
     """
-    Method to save scan results as vulnerability-objects
+    Method to save scan results as vulnerability-objects.
 
     Args:
-        result (dict): A dictionary containig the scan results.
+        results (dict): A dictionary containing the scan results.
         host_ip (str): Ip Address of the host.
         report_id (str): report_id of the results.
         task_id (str): task_id of the scan.
     """
-    for v in results[host_ip]:
+    for v in results.get(host_ip, []):
         try:
             t = datetime.datetime.strptime(
                 v.time_of_detection,
@@ -124,25 +129,25 @@ def __create_vulnerability_objects(results, host_ip, report_id, task_id):
             new_vulnerability.save()
         except Exception:
             logger.exception(
-                "caught Exception while saving vulnerability object !"
+                "Caught Exception while saving Vulnerability object!"
                 )
             continue
 
 
-def __create_scan_object(report_xml, report_id):
+def __create_scan_object(report_xml: str, report_id: str):
 
     """
-    Method to save the report-xml of the scan
+    Method to save the report-xml of the scan.
 
     Args:
         result_xml (str): Xml file of the scan results.
-        report-id (str): report_id of the scan.
+        report_id (str): report_id of the scan.
     """
-    new_scan = ScanReport(report_xml=report_xml, report_id=report_id)
     try:
+        new_scan = ScanReport(report_xml=report_xml, report_id=report_id)
         new_scan.save()
     except Exception:
-        logger.exception("caught Exception while saving scan object !")
+        logger.exception("Caught Exception while saving ScanReport object!")
 
 
 def __send_report_email(
@@ -1304,7 +1309,7 @@ def scanner_registration_alert(request):
                                 raise RuntimeError("Couldn't block host")
                         # Get HTML report and send via e-mail to admin
                         report_html = scanner.get_report_html(report_uuid)
-                        # Create db entries for each vulerability found
+                        # Create db entries for each vulnerability found
                         report_xml = scanner.get_report_xml(report_uuid)
                         __create_vulnerability_objects(
                             results=scan_results,
@@ -1692,7 +1697,7 @@ def scanner_periodic_alert(request):
                 report_xml = scanner.get_report_xml(report_uuid)
                 if (report_xml):
                     __create_scan_object(
-                        report_xml=scanner.get_report_xml(report_uuid),
+                        report_xml=report_xml,
                         report_id=report_uuid
                         )
                 else:
