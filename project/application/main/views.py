@@ -8,6 +8,7 @@ import pathlib
 import json
 from application.settings import TIME_ZONE
 from zoneinfo import ZoneInfo
+from xml.etree import ElementTree
 
 from django.contrib.auth.decorators import login_required
 from django.http import (Http404,
@@ -1318,7 +1319,7 @@ def scanner_registration_alert(request):
                             task_id=task_uuid
                             )
                         __create_scan_object(
-                            report_xml=str(report_xml),
+                            report_xml=ElementTree.tostring(report_xml, encoding='unicode'),
                             report_id=report_uuid
                         )
 
@@ -1460,7 +1461,7 @@ def scanner_scan_alert(request):
                     task_id=task_uuid
                 )
                 __create_scan_object(
-                     report_xml=str(report_xml),
+                     report_xml=ElementTree.tostring(report_xml, encoding='unicode'),
                      report_id=report_uuid
                 )
                 # deduce admin email addr and filter out departments
@@ -1697,7 +1698,7 @@ def scanner_periodic_alert(request):
                 report_xml = scanner.get_report_xml(report_uuid)
                 if (report_xml):
                     __create_scan_object(
-                        report_xml=report_xml,
+                        report_xml=ElementTree.tostring(report_xml, encoding='unicode'),
                         report_id=report_uuid
                         )
                 else:
