@@ -13,12 +13,58 @@ services:
     volumes:
       - .:/microservice:rw # map data and files from parent directory in host to microservice directory in docker containe
       - static_volume:/home/app/microservice/static
-      - ./dev-db:/home/app/microservice/db
+      # - ./dev-db:/home/app/microservice/db
       - ./dev-logs:/home/app/microservice/logs
     restart: "on-failure"
     networks:
       - deterrers
+    depends_on:
+      postgres:
+        condition: service_healthy
+        restart: true
+      default:
+        condition: service_healthy
+        restart: true
 
+
+  postgres:
+    image: postgres:17.2-bookworm
+    restart: "on-failure"
+    env_file:
+      - ./.dev.env
+    expose:
+      - 5432:5432
+    volumes:
+     - ./dev-db/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    networks:
+      - deterrers
+
+  default:
+    image: postgres:17.2-bookworm
+    restart: "on-failure"
+    environment:
+      POSTGRES_DB: default
+    env_file:
+      - ./.dev.env
+    expose:
+      - 5431:5432
+    volumes:
+     - ./dev-db/default:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    networks:
+      - deterrers
+     
 volumes:
  static_volume:
 

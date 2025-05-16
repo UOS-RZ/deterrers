@@ -8,13 +8,21 @@ services:
     volumes:
       - static_volume:/home/app/microservice/static
       - /etc/ssl:/etc/ssl
+      - /etc/ssl/certs/deterrers-server-cert.pem:/etc/ssl/certs/deterrers-server-cert.pem # explicitly mount the certificate file because on Rocky Linux this is a sym-link which is not available to docker container
     restart: "on-failure"
     networks:
       - deterrers
 
   web:
     depends_on:
-      - nginx
+      nginx:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+        restart: true
+      default:
+        condition: service_healthy
+        restart: true
     build: 
       context: ./application
       dockerfile: Dockerfile
@@ -25,11 +33,49 @@ services:
     volumes:
       - .:/microservice:rw # map data and files from parent directory in host to microservice directory in docker container
       - static_volume:/home/app/microservice/static
-      - ./db:/home/app/microservice/db
+      # - ./db:/home/app/microservice/db
       - ./logs:/home/app/microservice/logs
     expose:
       - 8000
     restart: "on-failure"
+    networks:
+      - deterrers
+  
+  postgres:
+    image: postgres:17.2-bookworm
+    restart: "on-failure"
+    env_file:
+      - ./.prod.env
+    expose:
+      - 5432:5432
+    volumes:
+     - ./db/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    networks:
+      - deterrers
+
+  default:
+    image: postgres:17.2-bookworm
+    restart: "on-failure"
+    environment:
+      POSTGRES_DB: default
+    env_file:
+      - ./.prod.env
+    expose:
+      - 5431:5432
+    volumes:
+     - ./db/default:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
     networks:
       - deterrers
 
@@ -43,7 +89,7 @@ services:
       - ./.prod.env
     volumes:
       - .:/microservice:rw # map data and files from parent directory in host to microservice directory in docker container
-      - ./db:/home/app/microservice/db
+      # - ./db:/home/app/microservice/db
       - ./logs:/home/app/microservice/logs
     restart: "on-failure"
 

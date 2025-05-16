@@ -56,6 +56,10 @@ A deployment is currently only possible in conjunction with the following compon
 
     User/Access Management: LDAP directory
 
+The nginx-Dockerfile expects a `dhparam4096.pem`-file and a `nginx.conf`-file under `project/nginx/`.
+
+The Django app expects the vulnerability scanners public SSH-key under `project/application/main/static/files/greenbone-scanner.key`.
+
 ## Configuration
 
 - access credentials for external endpoints (IPAM, Vulnerability Scanner, perimeter FW, LDAP) are set in .env-files
