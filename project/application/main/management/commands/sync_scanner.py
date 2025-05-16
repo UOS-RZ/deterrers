@@ -5,6 +5,7 @@ import logging
 from time import sleep
 
 from django.conf import settings
+from django.urls import reverse
 
 from main.core.contracts import HostStatus, HostServiceProfile
 from main.core.host import MyHost
@@ -40,7 +41,7 @@ class Command(BaseCommand):
     def __add_ip(self, scanner: ScannerWrapper, ipv4: str):
         logger.warning("IP %s is missing in scanner", str(ipv4))
         if self.sync:
-            scanner.add_host_to_periodic_scans(ipv4, '')
+            scanner.add_host_to_periodic_scans(ipv4, (settings.DOMAIN_NAME + reverse('scanner_periodic_alert')))
 
     def __rmv_ip(self, scanner: ScannerWrapper, ipv4: str):
         logger.warning("IP %s is wrongfully present in scanner", str(ipv4))
