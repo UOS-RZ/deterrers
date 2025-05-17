@@ -35,7 +35,8 @@ from main.forms import (ChangeHostDetailForm,
                         ChangeHostFirewallForm,
                         AddHostRulesForm,
                         HostadminForm,
-                        AddHostForm)
+                        AddHostForm,
+                        FilterHostForm)
 from main.core.risk_assessor import assess_host_risk
 from main.core.rule_generator import generate_fw_config
 from main.core.contracts import (HostBasedPolicySrc,
@@ -419,14 +420,19 @@ def hosts_list_view(request):
             else:
                 logout(request)
                 return HttpResponse(status=401)
-        tag_choices0 = ipam.get_department_to_admin(hostadmin.username) + [hostadmin.username,]
-        tag_choices = [tag_choices0, hostadmin.departments]
-        if request.method == 'POST':
+        tag_choices = []
+        deps = ipam.get_department_to_admin(hostadmin.username)
+        for i in range(len(deps)):
+            print(deps)
+            admin = hostadmin.username + " " + deps[i]
+            tag_choices.append(admin)
+            tag_choices.append(deps[i])
+            print(tag_choices)
+        if request.method == 'POST' and 'submit_form1' in request.POST:
             form = AddHostForm(request.POST, choices=tag_choices)
             if form.is_valid():
                 tag_name = form.cleaned_data['admin_tag']
                 host_ipv4 = form.cleaned_data['ipv4_addr']
-                department = form.cleaned_data['department']
                 host = ipam.get_host_info_from_ip(host_ipv4)
                 if not host:
                     form.add_error(
@@ -439,6 +445,15 @@ def hosts_list_view(request):
                         "Host not valid!"
                     )
                 else:
+                    is_dep = False
+                    for dep in deps:
+                        if dep in tag_name:
+                            department = dep
+                        if dep == tag_name:
+                            is_dep = True
+                    if not is_dep:
+                        tag_name = hostadmin.username
+                    
                     code = ipam.add_admin_to_host(tag_name, host, department=department)
                     # NOTE: return codes are not well defined by Proteus
                     # but any 2xx is fine
@@ -453,13 +468,31 @@ def hosts_list_view(request):
                         form.add_error(
                             None,
                             f"Couldn't add host! Code: {code}"
-                        )
+                     )
         else:
             form = AddHostForm(choices=tag_choices)
-
+        deps = ["-",] + deps 
+        
         hosts_list = ipam.get_hosts_of_admin(hostadmin.username)
 
         hosts_list = sorted(hosts_list)
+
+        if request.method == 'POST' and 'submit_form2' in request.POST:
+            form2 = FilterHostForm(request.POST, choices=deps)
+            if form2.is_valid():
+                filter = form2.cleaned_data['filter']
+                if not (filter == "-"):
+                    new_host_list = []
+                    for host in hosts_list:
+                        id = ipam.get_tag_specific_tag_id(hostadmin.username, filter)
+                        if ipam.__host_is_tagged(host.entity_id, id):
+                            new_host_list.append(host)
+                    hosts_list = new_host_list
+        else:
+            form2 = FilterHostForm(choices=deps)
+
+                    
+
 
     paginator = Paginator(hosts_list, PAGINATE)
     page = request.GET.get('page', 1)
@@ -476,7 +509,8 @@ def hosts_list_view(request):
         'hosts_list': hosts_list,
         'is_paginated': True,
         'page_obj': hosts_list,
-        'form': form,
+        'form1': form,
+        'form2': form2,
     }
     return render(request, 'hosts_list.html', context)
 

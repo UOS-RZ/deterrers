@@ -199,6 +199,17 @@ class ProteusIPAMWrapper(DataAbstract):
                     tags.append(a_tag['id'])
         return tags
 
+    def get_tag_specific_tag_id(self, tag_name: str, dept_name: str):
+        for d_tag in self.__get_department_tags():
+            if d_tag['name'] == dept_name:
+                if d_tag['name'] == tag_name:
+                    return d_tag[id]
+                else:
+                    admin_tags = self.__get_child_tags(d_tag['id'])
+                    for a_tag in admin_tags:
+                        if a_tag.get('name') == tag_name:
+                            return a_tag['id']
+
     def __get_child_tags(self, parent_id: str) -> list[dict]:
         get_entities_parameters = ("count=1000"
                                    + f"&parentId={parent_id}"

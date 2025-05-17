@@ -23,26 +23,12 @@ class AddHostForm(forms.Form):
         choices = kwargs.pop('choices')
         super(AddHostForm, self).__init__(*args, **kwargs)
         self.fields["admin_tag"] = forms.ChoiceField(
-            choices=[(c, c) for c in choices[0]],
+            choices=[(c, c) for c in choices],
             required=True,
             label='Admin(s):',
             help_text=("Are you the only admin or should other admins "
                        + "from your department have the same access as you.")
         )
-        if choices[1] is None:
-            self.fields["department"] = forms.ChoiceField(
-                choices=[],
-                required=True,
-                label="Role",
-                help_text="Select your Role meaning for which department will you be administrating this host. Please contact an admin because no department is connected with this user Profile."
-            )
-        else:
-            self.fields["department"] = forms.ChoiceField(
-                choices=[(c, c) for c in choices[1]],
-                required=True,
-                label="Role",
-                help_text="Select your Role meaning for which department will you be administrating this host. If you selected an department as an Admin then select a random field"
-            )
 
     ipv4_addr = forms.GenericIPAddressField(
         protocol='IPv4',
@@ -52,6 +38,17 @@ class AddHostForm(forms.Form):
         required=True,
     )
 
+
+class FilterHostForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        choices = kwargs.pop('choices')
+        super(FilterHostForm, self).__init__(*args, **kwargs)
+        self.fields["filter"] = forms.ChoiceField(
+            choices=[(c, c) for c in choices],
+            required=True,
+            label='Filter:',
+            help_text=("Filter the hosts by department")
+        )
 
 
 class ChangeHostDetailForm(forms.Form):

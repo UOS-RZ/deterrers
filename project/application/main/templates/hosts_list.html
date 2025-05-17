@@ -8,8 +8,8 @@
 	<h2>Add new host:</h2>
 	<form method="post" action="{% url 'hosts_list' %}">
 		{% csrf_token %}
-		{% bootstrap_form form %}
-		{% bootstrap_button button_type="submit" content="Add" button_class="btn btn-primary btn-lg" %}
+		{% bootstrap_form form1 %}
+		{% bootstrap_button button_type="submit" name='submit_form1' content="Add" button_class="btn btn-primary btn-lg" %}
 	</form>
 
 	<br>
@@ -18,6 +18,11 @@
   
 	<h1>List of my hosts</h1>
 	<p>The following hosts are managed by me:</p>
+	<form method="post" action="{% url 'hosts_list' %}">
+		{% csrf_token %}
+		{% bootstrap_form form2 %}
+		{% bootstrap_button button_type="submit" name='submit_form2' content="Filter" %}
+	</form>
 	{% if hosts_list %}
 	<table id=hosts style="width:100%">
 		<thead>
