@@ -199,7 +199,7 @@ class ProteusIPAMWrapper(DataAbstract):
                     tags.append(a_tag['id'])
         return tags
 
-    def get_tag_specific_tag_id(self, tag_name: str, dept_name: str):
+    def __get_specific_tag_id(self, tag_name: str, dept_name: str):
         for d_tag in self.__get_department_tags():
             if d_tag['name'] == dept_name:
                 if d_tag['name'] == tag_name:
@@ -416,6 +416,14 @@ class ProteusIPAMWrapper(DataAbstract):
             logger.exception("Couldn't query if host is already tagged!")
 
         return False
+    def check_if_specific_admin_tag_is_tagged(self, name_tag:str, department_tag:str, host_id:str):
+        tag_id = self.__get_specific_tag_id(name_tag, department_tag)
+        if (self.__host_is_tagged(host_id, tag_id)):
+            return True
+        else:
+            return False
+    
+        
 
     def get_host_info_from_ip(self, ipv4: str) -> MyHost | None:
         """

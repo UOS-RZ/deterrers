@@ -484,8 +484,7 @@ def hosts_list_view(request):
                 if not (filter == "-"):
                     new_host_list = []
                     for host in hosts_list:
-                        id = ipam.get_tag_specific_tag_id(hostadmin.username, filter)
-                        if ipam.__host_is_tagged(host.entity_id, id):
+                        if (ipam(hostadmin.username, filter, host.entity_id)):
                             new_host_list.append(host)
                     hosts_list = new_host_list
         else:
