@@ -1696,7 +1696,7 @@ def scanner_periodic_alert(request):
 
                             """
                 report_xml = scanner.get_report_xml(report_uuid)
-                if (report_xml):
+                if report_xml is not None:
                     __create_scan_object(
                         report_xml=ElementTree.tostring(report_xml, encoding='unicode'),
                         report_id=report_uuid
