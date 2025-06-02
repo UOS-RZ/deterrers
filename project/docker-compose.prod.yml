@@ -98,7 +98,7 @@ volumes:
 
 networks:
   deterrers:
-    enable_ipv6: true
+    # enable_ipv6: true
     driver: bridge
     ipam:
       driver: default
