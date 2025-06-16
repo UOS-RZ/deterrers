@@ -5,3 +5,4 @@
 *.sqlight
 .pip_cache/
 .env.prod
+.dev.env
