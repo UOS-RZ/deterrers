@@ -46,6 +46,42 @@
 	{% else %}
 		<p>There are no hosts for this administrator.</p>
 	{% endif %}
+
+			{% if targets_list %}
+			<table id=hosts style="width:100%">
+				<thead>
+					<tr>
+						<th><a href='#sort:0:asc'>IP Address</a></th>
+						<th><a href='#sort:1:asc'>DNS Names</a></th>
+						<th><a href='#sort:2:asc'>Comment</a></th>
+						<th><a href='#sort:3:asc'>Admin(s)</a></th>
+						<th><a href='#sort:4:asc'>Internet Service Profile</a></th>
+						<th><a href='#sort:5:asc'>Status</a></th>
+						<th><a href='#sort:6:asc'>Action</a></th>
+					</tr>
+				</thead>
+			<tbody>
+			{% for target, target_info in targets_list.items %}
+			<tr>
+				<td><a href="">{{target_info.hosts}}</a></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td>{{ target_info.status }}</td>
+				<td>
+					<form action="{% url 'delete_scan_object' %}" method="post">
+						{% csrf_token %}
+						    <input type="hidden" name="target_id" value="{{ target }}"> 
+						{% bootstrap_button name="delete_scan_object_btn" button_type="submit" content="Delete" button_class="btn btn-primary" title="Remove this Scan Object. Or Stop It Than Remove It From DETERRERS." %}
+					</form>
+				</td>
+			</tr>
+			{% endfor %}
+			{% endif %}
+			</tbody>
+			</table>
+
 	{% if is_paginated %}
 		<div class="pagination">
 			<span class="page-links">

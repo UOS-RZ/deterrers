@@ -337,6 +337,52 @@ def host_detail_view(request, ipv4: str, tab: str = 'general'):
 
     return render(request, 'host/detail.html', context)
 
+@login_required
+@require_http_methods(['POST', ])
+def delete_scan_object(request):  
+    """
+    Function-based view for deleting the target, task, report, and alert given the target id. Only available to logged
+    in users.
+
+    Args:
+        request (): Request object.
+
+    Raises:
+        Http404: When object is not available or user has no permission.
+
+    Returns:
+        Redirect to url hosts_list.
+    """
+    target_id =  request.POST.get('target_id', '')
+    if not target_id:
+        logger.error("No target id found!")
+
+    logger.info("Request: Get details for host %s for user %s", request.user.username)
+    hostadmin = get_object_or_404(MyUser, username=request.user.username)
+
+    with IPAMWrapper(
+        settings.IPAM_USERNAME,
+        settings.IPAM_SECRET_KEY,
+        settings.IPAM_URL
+    ) as ipam:
+        if not ipam.enter_ok:
+            return HttpResponse(status=500)
+        with ScannerWrapper(
+            settings.SCANNER_USERNAME,
+            settings.SCANNER_SECRET_KEY,
+            settings.SCANNER_HOSTNAME
+        ) as scanner:
+            if not scanner.enter_ok:
+                return HttpResponse(status=500)
+
+        # check if user has IPAM permission or an admin tag for them exists
+        if not ipam.is_admin(hostadmin.username):
+            raise Http404()
+        scanner.clean_up_scan_objects_by_target(target_id)
+        logger.info(f'Object Cleaned according to the Target id:{target_id}')
+
+    return redirect('hosts_list')
+    
 
 @login_required
 @require_http_methods(['GET', 'POST'])
@@ -363,6 +409,15 @@ def hosts_list_view(request):
     ) as ipam:
         if not ipam.enter_ok:
             return HttpResponse(status=500)
+        with ScannerWrapper(
+            settings.SCANNER_USERNAME,
+            settings.SCANNER_SECRET_KEY,
+            settings.SCANNER_HOSTNAME
+        ) as scanner:
+            if not scanner.enter_ok:
+                return HttpResponse(status=500)
+            targets_list = {}
+            targets_list = scanner.get_targets_list()
 
         # if for this admin no tag exists yet, they should be redirected
         # to the init page
@@ -432,6 +487,7 @@ def hosts_list_view(request):
         'is_paginated': True,
         'page_obj': hosts_list,
         'form': form,
+        'targets_list':targets_list,
     }
     return render(request, 'hosts_list.html', context)
 

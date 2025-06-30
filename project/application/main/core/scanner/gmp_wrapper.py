@@ -635,6 +635,168 @@ class GmpScannerWrapper(ScannerAbstract):
             target_uuid = None
         return task_xml, task_uuid, target_uuid
 
+
+    def get_targets_list(self) -> tuple:
+        """
+        Get a list of all the exsiting targets for current user.
+
+        Args:
+            No args
+        Raises:
+            GmpAPIError: Raised if targets could not be queried.
+
+        Returns:
+            dict inside dict: Returns Dictionary of targests, which conatins a dicttionary of hosts and task status.
+        """
+        filter_str = f' rows=-1'
+        targets_response = self.gmp.get_targets(filter_string=filter_str)
+        targets_response_status = int(targets_response.xpath('@status')[0])
+        if targets_response_status != 200:
+            raise GmpAPIError(f"Couldn't get target! Status: {targets_response_status}")
+
+        tasks_response = self.gmp.get_tasks(filter_string=filter_str)
+        tasks_response_status = int(tasks_response.xpath('@status')[0])
+        if tasks_response_status != 200:
+            raise GmpAPIError(f"Couldn't get task! Status: {tasks_response_status}")
+
+        try:
+            
+            targets_list = {}
+            for target in targets_response.findall('target'):
+                target_info = {}
+                target_id = target.get('id')
+                target_owner = target.xpath('owner/name')[0].text
+                target_hosts = target.xpath('hosts')[0].text
+                target_info['hosts']= target_hosts
+                target_info['status']= 'No Task'
+                targets_list[target_id] = target_info
+            
+            for task in tasks_response.findall('task'):
+                task_status = task.xpath('status')[0].text
+                task_target = task.xpath('target')[0]
+                task_target_id = task_target.get('id')
+                task_owner = task.xpath('owner/name')[0].text
+        
+                if task_target_id in targets_list and task_owner == self.username:
+                    targets_list[task_target_id]['status'] = task_status
+
+        except IndexError:
+            targets_list = {}
+        return targets_list
+
+
+    def clean_up_scan_objects_by_target(self, target_uuid:str):
+        """
+        Cleaning up scan objects given the target id
+        Args:
+            Target id
+
+        Returns:
+            No Returns: It just execute
+        """
+        tasks_id_list = []
+        reports_list = {}
+        alerts_list = {}
+        self.gmp.authenticate(self.username, self._password)
+
+        filter_str = f' rows=-1'
+        tasks_response = self.gmp.get_tasks(filter_string=filter_str)
+        tasks_response_status = int(tasks_response.xpath('@status')[0])
+        if tasks_response_status != 200:
+            raise GmpAPIError(f"Couldn't get tasks! Status: {tasks_response_status}")        
+        
+        reports_response = self.gmp.get_reports(filter_string=filter_str)
+        reports_response_status = int(reports_response.xpath('@status')[0])
+        if reports_response_status != 200:
+            raise GmpAPIError(f"Couldn't get reports! Status: {reports_response_status}")        
+
+        alerts_response = self.gmp.get_alerts(filter_string=filter_str)
+        alerts_response_status = int(alerts_response.xpath('@status')[0])
+        if alerts_response_status != 200:
+            raise GmpAPIError(f"Couldn't get Alerts! Status: {alerts_response_status}")        
+
+        try:
+            for task in tasks_response.findall('task'):
+                task_id = task.get('id')
+                task_target = task.xpath('target')[0]
+                task_target_id = task_target.get('id')
+                task_owner = task.xpath('owner/name')[0].text
+        
+                if task_target_id == target_uuid and task_owner == self.username:
+                    tasks_id_list.append(task_id)
+
+            for report in reports_response.findall('report'):
+                report_id = report.get('id')
+                report_owner = report.xpath('owner/name')[0].text
+                report_target = report.xpath('report/task/target')[0]
+                report_target_id = report_target.get('id')
+                report_task = report.xpath('task')[0]
+                report_task_id = report_task.get('id')
+
+                if report_target_id == target_uuid and report_owner == self.username:
+                    reports_list[report_id] = [report_target_id, report_task_id]
+
+            for alert in alerts_response.findall('alert'):
+                alert_id = alert.get('id')              
+                alert_owner = alert.xpath('owner/name')[0].text
+                alert_content = alert.xpath('method/data/text()')[0]
+                alert_contet_list = alert_content.split('&')
+                alert_task_id = ''
+                alert_target_id = ''
+                for part in alert_contet_list:
+                    if 'task_uuid=' in part:
+                        alert_task_id = part.split('task_uuid=')[1]
+                    if 'target_uuid=' in part:
+                        alert_target_id = part.split('target_uuid=')[1]
+
+                if alert_target_id == target_uuid and alert_owner == self.username:
+                    alerts_list[alert_id] = [alert_target_id, alert_task_id]
+    
+        except IndexError:
+            logger.error('There is an Error with retrieving information for the gevin target id')
+
+        if tasks_id_list:
+            try:
+                for task_uuid in tasks_id_list:
+                    task_xml = self.gmp.get_task(task_uuid)
+                    task_status = task_xml.xpath('//task/status')[0].text
+                    if task_status == "Running":
+                        self.gmp.stop_task(task_id=task_uuid)
+            except GvmError as err:
+                logger.warning("Couldn't stop task! Error: %s", str(err))
+                self.gmp.authenticate(self.username, self._password)
+        if reports_list:
+            try:
+                for report_uuid, values in reports_list.items():
+                    self.gmp.delete_report(report_uuid)
+            except GvmError as err:
+                logger.warning("Couldn't delete report! Error: %s", str(err))
+                self.gmp.authenticate(self.username, self._password)
+        if tasks_id_list:
+            try:
+                for task_uuid in tasks_id_list:
+                    self.gmp.delete_task(task_uuid, ultimate=True)
+            except GvmError as err:
+                logger.warning("Couldn't delete task! Error: %s", str(err))
+                self.gmp.authenticate(self.username, self._password)
+        if target_uuid:
+            try:
+                self.gmp.delete_target(target_id=target_uuid, ultimate=True)
+            except GvmError as err:
+                logger.warning("Couldn't delete target! Error: %s", str(err))
+                self.gmp.authenticate(self.username, self._password)
+        if alerts_list:
+            try:
+                for alert_uuid, values in alerts_list.items():
+                    if type(alert_uuid) is str:
+                        self.gmp.delete_alert(alert_uuid, ultimate=True)
+                    elif type(alert_uuid) is list:
+                        for a_uuid in alert_uuid:
+                            self.gmp.delete_alert(a_uuid, ultimate=True)
+            except GvmError as err:
+                logger.warning("Couldn't delete alert! Error: %s", str(err))
+                self.gmp.authenticate(self.username, self._password)
+
     def __set_new_target(self, task_uuid: str, new_target_uuid: str):
         """
         Set new target on a task.
