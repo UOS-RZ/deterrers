@@ -81,7 +81,10 @@ services:
 
   supercronic:
     depends_on:
-      - web
+      web:
+      default:
+        condition: service_healthy
+        restart: true
     build: 
       context: ./application
       dockerfile: Dockerfile-supercronic
@@ -92,6 +95,8 @@ services:
       # - ./db:/home/app/microservice/db
       - ./logs:/home/app/microservice/logs
     restart: "on-failure"
+    networks:
+      - deterrers
 
 volumes:
   static_volume:
@@ -99,9 +104,9 @@ volumes:
 networks:
   deterrers:
     # enable_ipv6: true
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 192.168.1.0/24
+    # driver: bridge
+    # ipam:
+    #   driver: default
+    #   config:
+    #     - subnet: 192.168.1.0/24
   default:
