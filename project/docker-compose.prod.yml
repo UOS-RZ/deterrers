@@ -81,7 +81,6 @@ services:
 
   supercronic:
     depends_on:
-      web:
       default:
         condition: service_healthy
         restart: true
