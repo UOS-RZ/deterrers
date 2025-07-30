@@ -9,7 +9,7 @@ services:
       - static_volume:/home/app/microservice/static
       - /etc/ssl:/etc/ssl
       - /etc/ssl/certs/deterrers-server-cert.pem:/etc/ssl/certs/deterrers-server-cert.pem # explicitly mount the certificate file because on Rocky Linux this is a sym-link which is not available to docker container
-    restart: "on-failure"
+    restart: "always"
     networks:
       - deterrers
 
@@ -37,13 +37,13 @@ services:
       - ./logs:/home/app/microservice/logs
     expose:
       - 8000
-    restart: "on-failure"
+    restart: "always"
     networks:
       - deterrers
   
   postgres:
     image: postgres:17.2-bookworm
-    restart: "on-failure"
+    restart: "always"
     env_file:
       - ./.prod.env
     expose:
@@ -61,7 +61,7 @@ services:
 
   default:
     image: postgres:17.2-bookworm
-    restart: "on-failure"
+    restart: "always"
     environment:
       POSTGRES_DB: default
     env_file:
@@ -93,7 +93,7 @@ services:
       - .:/microservice:rw # map data and files from parent directory in host to microservice directory in docker container
       # - ./db:/home/app/microservice/db
       - ./logs:/home/app/microservice/logs
-    restart: "on-failure"
+    restart: "always"
     networks:
       - deterrers
 

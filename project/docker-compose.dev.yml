@@ -15,7 +15,7 @@ services:
       - static_volume:/home/app/microservice/static
       # - ./dev-db:/home/app/microservice/db
       - ./dev-logs:/home/app/microservice/logs
-    restart: "on-failure"
+    restart: "always"
     networks:
       - deterrers
     depends_on:
@@ -29,7 +29,7 @@ services:
 
   postgres:
     image: postgres:17.2-bookworm
-    restart: "on-failure"
+    restart: "always"
     env_file:
       - ./.dev.env
     expose:
@@ -47,7 +47,7 @@ services:
 
   default:
     image: postgres:17.2-bookworm
-    restart: "on-failure"
+    restart: "always"
     environment:
       POSTGRES_DB: default
     env_file:
