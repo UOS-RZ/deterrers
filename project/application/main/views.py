@@ -381,7 +381,7 @@ def delete_scan_object(request):
         scanner.clean_up_scan_objects_by_target(target_id)
         logger.info(f'Object Cleaned according to the Target id:{target_id}')
 
-    return redirect('hosts_list')
+    return redirect('gsm_hosts_list')
     
 
 @login_required
@@ -491,7 +491,99 @@ def hosts_list_view(request):
     }
     return render(request, 'hosts_list.html', context)
 
+@login_required
+@require_http_methods(['GET', 'POST'])
+def gsm_hosts_list_view(request):
+    """
+    Function view showing all gsm hosts and delete them, which they are
+    administrated by the current hostadmin. Paginated to 200 entries per page.
 
+    Args:
+        request (_type_): Request object.
+
+    Returns:
+        HttpResponse: Rendered HTML page.
+    """
+    logger.info("Request: List hosts for user %s", request.user.username)
+
+    PAGINATE = 200
+    hostadmin = get_object_or_404(MyUser, username=request.user.username)
+
+    with IPAMWrapper(
+        settings.IPAM_USERNAME,
+        settings.IPAM_SECRET_KEY,
+        settings.IPAM_URL
+    ) as ipam:
+        if not ipam.enter_ok:
+            return HttpResponse(status=500)
+        with ScannerWrapper(
+            settings.SCANNER_USERNAME,
+            settings.SCANNER_SECRET_KEY,
+            settings.SCANNER_HOSTNAME
+        ) as scanner:
+            if not scanner.enter_ok:
+                return HttpResponse(status=500)
+            targets_list = {}
+            targets_list = scanner.get_targets_list()
+
+        # if for this admin no tag exists yet, they should be redirected
+        # to the init page
+        if not ipam.is_admin(hostadmin.username):
+            if ipam.user_exists(hostadmin.username):
+                return HttpResponseRedirect(reverse('hostadmin_init'))
+            else:
+                logout(request)
+                return HttpResponse(status=401)
+
+        tag_choices = [
+            hostadmin.username,
+            ipam.get_department_to_admin(hostadmin.username)
+        ]
+        if request.method == 'POST':
+            form = AddHostForm(request.POST, choices=tag_choices)
+            if form.is_valid():
+                tag_name = form.cleaned_data['admin_tag']
+                host_ipv4 = form.cleaned_data['ipv4_addr']
+                host = ipam.get_host_info_from_ip(host_ipv4)
+                if not host:
+                    form.add_error(
+                        None,
+                        "Host not found!"
+                    )
+                elif not host.is_valid():
+                    form.add_error(
+                        None,
+                        "Host not valid!"
+                    )
+                else:
+                    code = ipam.add_admin_to_host(tag_name, host)
+                    # NOTE: return codes are not well defined by Proteus
+                    # but any 2xx is fine
+                    if code in range(200, 205, 1):
+                        return HttpResponseRedirect(reverse('hosts_list'))
+                    elif code == 409:
+                        form.add_error(
+                            None,
+                            "Conflict while adding host!"
+                        )
+                    else:
+                        form.add_error(
+                            None,
+                            f"Couldn't add host! Code: {code}"
+                        )
+        else:
+            form = AddHostForm(choices=tag_choices)
+
+
+
+
+    context = {
+        'hostadmin': hostadmin,
+        'form': form,
+        'targets_list':targets_list,
+    }
+    return render(request, 'gsm_hosts_list.html', context)
+    
 @login_required
 @require_http_methods(['GET', 'POST'])
 def hostadmin_init_view(request):

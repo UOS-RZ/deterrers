@@ -19,7 +19,7 @@ from gvm.protocols.gmp.requests.v225 import (AlertCondition,
 
 from main.core.scanner.scanner_abstract import ScannerAbstract
 from main.core.risk_assessor import VulnerabilityScanResult
-
+import dns.asyncresolver 
 
 logger = logging.getLogger(__name__)
 
@@ -664,12 +664,34 @@ class GmpScannerWrapper(ScannerAbstract):
             targets_list = {}
             for target in targets_response.findall('target'):
                 target_info = {}
+                target_info['IPv4'] = ''
+                target_info['cleaned_ipv4'] = ''
+                target_info['IPv6'] = ''
+                target_info['Domain'] = ''
                 target_id = target.get('id')
                 target_owner = target.xpath('owner/name')[0].text
                 target_hosts = target.xpath('hosts')[0].text
-                target_info['hosts']= target_hosts
+                target_comment = target.xpath('comment')[0].text
+                target_info['comment']= target_comment
                 target_info['status']= 'No Task'
-                targets_list[target_id] = target_info
+                target_ips = target_hosts.split(',')
+                if target_ips:
+                    for item in target_ips:
+                        item_type = self.check_ip_version(ip_str = str(item.strip()))
+                        if item_type == 'IPv4':
+                            target_info['IPv4']= item
+                            target_info['cleaned_ipv4'] = str(item).replace('.', '_')
+                        elif item_type == 'IPv6':
+                            target_info['IPv6']= item
+                        else:
+                            target_info['Domain']= item
+                if not target_info['Domain']:
+                    if target_info['IPv4']:
+                        target_info['Domain'] = self.reverse_dns_lookup( target_info['IPv4'])
+                    elif target_info['IPv6']:
+                        target_info['Domain'] =  self.reverse_dns_lookup( target_info['IPv6'])
+                if target_owner == self.username:
+                    targets_list[target_id] = target_info
             
             for task in tasks_response.findall('task'):
                 task_status = task.xpath('status')[0].text
@@ -684,6 +706,25 @@ class GmpScannerWrapper(ScannerAbstract):
             targets_list = {}
         return targets_list
 
+    def check_ip_version(self, ip_str):
+        try:
+            ip = ipaddress.ip_address(ip_str)
+            if isinstance(ip, ipaddress.IPv4Address):
+                return "IPv4"
+            elif isinstance(ip, ipaddress.IPv6Address):
+                return "IPv6"
+            else:
+                return "Domain"
+        except Exception as e:
+            logger.warning("Error when identifying the IP! Error: %s", str(e))
+
+    def reverse_dns_lookup(self, ip_address):
+        try:
+            rev_name = dns.reversename.from_address(ip_address)
+            answer = dns.resolver.resolve(rev_name, "PTR")
+            return answer[0]
+        except Exception as e:
+            logger.warning("Couldn't find DNS for given IP! Error: %s", str(e))
 
     def clean_up_scan_objects_by_target(self, target_uuid:str):
         """

@@ -1,0 +1,75 @@
+{% extends "base_generic.html" %}
+
+{% load django_bootstrap5 %}
+
+{% block title %} <title>My Hosts</title> {% endblock %}
+
+{% block content %}
+	<h2>Add new host:</h2>
+	<form method="post" action="{% url 'hosts_list' %}">
+		{% csrf_token %}
+		{% bootstrap_form form %}
+		{% bootstrap_button button_type="submit" content="Add" button_class="btn btn-primary btn-lg" %}
+	</form>
+
+	<br>
+	<hr>
+  
+  
+	<h1>List of my GSM hosts</h1>
+	<p>The following registerd GSM hosts are managed by me:</p>
+			{% if targets_list %}
+			<table id=hosts style="width:100%">
+				<thead>
+					<tr>
+						<th><a href='#sort:0:asc'>IPv4 Address</a></th>
+						<th><a href='#sort:1:asc'>IPv6 Address</a></th>
+						<th><a href='#sort:2:asc'>DNS Names</a></th>
+						<th><a href='#sort:3:asc'>Comment</a></th>
+						<th><a href='#sort:4:asc'>Admin(s)</a></th>
+						<th><a href='#sort:5:asc'>GSM Status</a></th>
+						<th><a href='#sort:6:asc'>Action</a></th>
+					</tr>
+				</thead>
+			<tbody>
+			{% for target, target_info in targets_list.items %}
+			<tr>
+
+				<td><a href="">{{target_info.IPv4}}</a></td>
+				<td><a href="">{{target_info.IPv6}}</a></td>
+				<td>{{target_info.Domain}}</td>
+				<td>{{target_info.comment}}</td>
+				<td>{{ user.get_username }}</td>
+				<td>{{ target_info.status }}</td>
+				<td>
+					<form action="{% url 'delete_scan_object' %}" method="post">
+						{% csrf_token %}
+						    <input type="hidden" name="target_id" value="{{ target }}"> 
+						{% bootstrap_button name="delete_scan_object_btn" button_type="submit" content="Delete" button_class="btn btn-primary" title="Remove this Scan Object. Or Stop It Than Remove It From DETERRERS." %}
+					</form>
+				</td>
+			</tr>
+			{% endfor %}
+			{% endif %}
+			</tbody>
+			</table>
+
+	{% if is_paginated %}
+		<div class="pagination">
+			<span class="page-links">
+				{% if page_obj.has_previous %}
+					<a href="{{ request.path }}?page={{ page_obj.previous_page_number }}">Previous</a>
+				{% endif %}
+				<span class="page-current">
+					Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+				</span>
+				{% if page_obj.has_next %}
+					<a href="{{ request.path }}?page={{ page_obj.next_page_number }}">Next</a>
+				{% endif %}
+			</span>
+		</div>
+	{% endif %}
+{% endblock %}
+
+{% block pagination %}
+{% endblock %}

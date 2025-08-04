@@ -14,3 +14,4 @@ markdown
 django-maintenance-mode
 flake8
 psycopg[binary]
+dnspython>=2.4.2
