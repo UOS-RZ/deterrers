@@ -41,3 +41,22 @@ function sort_hosts(field, asc) {
 		body.append(row);
 	}
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+  
+const gsm_status_list = document.querySelectorAll(".gsm-status-class");
+
+gsm_status_list.forEach(gsm_status =>{
+
+if (gsm_status.textContent == "Done") {
+  gsm_status.style.backgroundColor = "#0f430f";
+} else if (gsm_status.textContent == "Running")
+{
+  gsm_status.style.backgroundColor = "#680d0d";
+} else {
+  gsm_status.style.backgroundColor = "#585858";
+  gsm_status.style.color = "white";
+}
+});
+
+});
