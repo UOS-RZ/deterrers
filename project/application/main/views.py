@@ -418,7 +418,10 @@ def hosts_list_view(request):
                 return HttpResponse(status=500)
             targets_list = {}
             targets_list = scanner.get_targets_list()
-
+            try:
+                saving_message = SavingGSMHostsLocally(request ,targets_list)
+            except Exception: 
+                logger.exception("Processing updatine DETERRERS hosts failed!")
         # if for this admin no tag exists yet, they should be redirected
         # to the init page
         if not ipam.is_admin(hostadmin.username):
@@ -642,7 +645,68 @@ def hostadmin_init_view(request):
         return HttpResponseRedirect('')
     return render(request, 'hostadmin_init.html', context)
 
+@login_required
+def SavingGSMHostsLocally(request, GSM_Hosts_List):
+    """
+    Function view for insierting all GSM hosts to detter storage of hostadmins.
 
+    Args:
+        request (_type_): List of GSM hosts for current user.
+
+    """
+    hostadmin = get_object_or_404(MyUser, username=request.user.username)
+    errors = []
+
+    with IPAMWrapper(
+        settings.IPAM_USERNAME,
+        settings.IPAM_SECRET_KEY,
+        settings.IPAM_URL
+    ) as ipam:
+        if not ipam.enter_ok:
+            return HttpResponse(status=500)
+        
+        # if for this admin no tag exists yet, they should be redirected
+        # to the init page
+        if not ipam.is_admin(hostadmin.username):
+            if ipam.user_exists(hostadmin.username):
+                return HttpResponseRedirect(reverse('hostadmin_init'))
+            else:
+                logout(request)
+                return HttpResponse(status=401)
+
+        tag_choices = [
+            hostadmin.username,
+            ipam.get_department_to_admin(hostadmin.username)
+        ]
+        if len(GSM_Hosts_List) > 0:
+            tag_name = hostadmin.username
+            for id_key, gsm_host in GSM_Hosts_List.items():
+                host_ipv4 = gsm_host['IPv4']
+                if host_ipv4:
+                    host = ipam.get_host_info_from_ip(host_ipv4)
+
+                    if not host:
+                        errors.append("Host not found!")
+
+                    elif not host.is_valid():
+                        errors.append(f"Host not valid!")
+                    else:
+                        code = ipam.add_admin_to_host(tag_name, host)
+                        # TODO
+                        # Adding message of success or Failure
+                        # NOTE: return codes are not well defined by Proteus
+                        # but any 2xx is fine
+
+                        # if code in range(200, 205, 1):
+                        #     return HttpResponseRedirect(reverse('hosts_list'))
+                        # elif code == 409:
+                        #     errors.append("Conflict while adding host!")
+                        # else:
+                        #     errors.append(f"Couldn't add host! Code: {code}")
+    if errors:
+        return errors
+    else:
+        return "Successfully added"
 @login_required
 @require_http_methods(['GET', 'POST'])
 def update_host_detail(request, ipv4: str):

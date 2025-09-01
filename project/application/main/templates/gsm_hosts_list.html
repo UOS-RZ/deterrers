@@ -5,15 +5,7 @@
 {% block title %} <title>My Hosts</title> {% endblock %}
 
 {% block content %}
-	<h2>Add new host:</h2>
-	<form method="post" action="{% url 'hosts_list' %}">
-		{% csrf_token %}
-		{% bootstrap_form form %}
-		{% bootstrap_button button_type="submit" content="Add" button_class="btn btn-primary btn-lg" %}
-	</form>
 
-	<br>
-	<hr>
   
   
 	<h1>List of my GSM hosts</h1>
@@ -35,7 +27,7 @@
 			{% for target, target_info in targets_list.items %}
 			<tr>
 
-				<td><a href="">{{target_info.IPv4}}</a></td>
+				<td><a href="{% url 'host_detail' ipv4=target_info.IPv4 %}">{{target_info.IPv4}}</a></td>
 				<td><a href="">{{target_info.IPv6}}</a></td>
 				<td>{{target_info.Domain}}</td>
 				<td>{{target_info.comment}}</td>
