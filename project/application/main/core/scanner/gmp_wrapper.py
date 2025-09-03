@@ -70,7 +70,7 @@ class GmpAPIError(Exception):
 class GmpScannerWrapper(ScannerAbstract):
     """
     Interface to the Greenbone Vulnerability Scanner via Greenbone Management
-    Protocol (GMP) v22.4.
+    Protocol (GMP) v22.7.
     Communication uses the python-gvm API package.
     """
     TIMEOUT = 60*15
