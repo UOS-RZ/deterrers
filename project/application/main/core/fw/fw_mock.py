@@ -40,8 +40,8 @@ class FWMock(FWAbstract):
     def __exit__(self, exc_type, exc_value, exc_tb):
         pass
 
-    def commit_changes(self) -> None:
-        pass
+    def commit_changes(self) -> bool:
+        return True
 
     def get_addrs_in_service_profile(
         self,
