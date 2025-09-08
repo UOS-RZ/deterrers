@@ -659,38 +659,45 @@ class GmpScannerWrapper(ScannerAbstract):
         if tasks_response_status != 200:
             raise GmpAPIError(f"Couldn't get task! Status: {tasks_response_status}")
 
+        reports_response = self.gmp.get_reports(filter_string=filter_str)
+        reports_response_status = int(reports_response.xpath('@status')[0])
+        if reports_response_status != 200:
+            raise GmpAPIError(f"Couldn't get reports! Status: {reports_response_status}")        
+
         try:
             
             targets_list = {}
             for target in targets_response.findall('target'):
                 target_info = {}
-                target_info['IPv4'] = ''
-                target_info['cleaned_ipv4'] = ''
-                target_info['IPv6'] = ''
-                target_info['Domain'] = ''
-                target_id = target.get('id')
                 target_owner = target.xpath('owner/name')[0].text
-                target_hosts = target.xpath('hosts')[0].text
-                target_comment = target.xpath('comment')[0].text
-                target_info['comment']= target_comment
-                target_info['status']= 'No Task'
-                target_ips = target_hosts.split(',')
-                if target_ips:
-                    for item in target_ips:
-                        item_type = self.check_ip_version(ip_str = str(item.strip()))
-                        if item_type == 'IPv4':
-                            target_info['IPv4']= item
-                            target_info['cleaned_ipv4'] = str(item).replace('.', '_')
-                        elif item_type == 'IPv6':
-                            target_info['IPv6']= item
-                        else:
-                            target_info['Domain']= item
-                if not target_info['Domain']:
-                    if target_info['IPv4']:
-                        target_info['Domain'] = self.reverse_dns_lookup( target_info['IPv4'])
-                    elif target_info['IPv6']:
-                        target_info['Domain'] =  self.reverse_dns_lookup( target_info['IPv6'])
                 if target_owner == self.username:
+                    target_info['IPv4'] = ''
+                    target_info['cleaned_ipv4'] = ''
+                    target_info['IPv6'] = ''
+                    target_info['Domain'] = ''
+                    target_id = target.get('id')
+                    target_hosts = target.xpath('hosts')[0].text
+                    target_comment = target.xpath('comment')[0].text
+                    target_info['comment']= target_comment
+                    target_info['status']= 'No Task'
+                    target_info['report_id']= ''
+                    target_ips = target_hosts.split(',')
+
+                    if target_ips:
+                        for item in target_ips:
+                            item_type = self.check_ip_version(ip_str = str(item.strip()))
+                            if item_type == 'IPv4':
+                                target_info['IPv4']= item
+                                target_info['cleaned_ipv4'] = str(item).replace('.', '_')
+                            elif item_type == 'IPv6':
+                                target_info['IPv6']= item
+                            else:
+                                target_info['Domain']= item
+                    if not target_info['Domain']:
+                        if target_info['IPv4']:
+                            target_info['Domain'] = self.reverse_dns_lookup( target_info['IPv4'])
+                        elif target_info['IPv6']:
+                            target_info['Domain'] =  self.reverse_dns_lookup( target_info['IPv6'])
                     targets_list[target_id] = target_info
             
             for task in tasks_response.findall('task'):
@@ -701,6 +708,16 @@ class GmpScannerWrapper(ScannerAbstract):
         
                 if task_target_id in targets_list and task_owner == self.username:
                     targets_list[task_target_id]['status'] = task_status
+        
+            for report in reports_response.findall('report'):
+                report_id = report.get('id')
+                report_owner = report.xpath('owner/name')[0].text
+                report_target = report.xpath('report/task/target')[0]
+                report_target_id = report_target.get('id')
+
+                if report_target_id in targets_list and report_owner == self.username:
+                    targets_list[report_target_id]['report_id'] = report_id
+
 
         except IndexError:
             targets_list = {}
