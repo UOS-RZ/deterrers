@@ -32,7 +32,17 @@
 				<td>{{target_info.Domain}}</td>
 				<td>{{target_info.comment}}</td>
 				<td>{{ user.get_username }}</td>
-				<td class="gsm-status-class">{{ target_info.status }}</td>
+				<td class="gsm-status-class">{{ target_info.status }}
+					<div>
+						<p>&nbsp;27.09.2025 / Sev 8.0</p>
+						<div>
+							&nbsp;
+							<a href="#">PDF</a>
+							<a href="#">HTML</a>
+							<a href="#">JSON</a>
+						</div>
+					</div>
+				</td>
 				<td>
 					<form action="{% url 'delete_scan_object' %}" method="post">
 						{% csrf_token %}
