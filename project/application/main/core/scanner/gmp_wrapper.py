@@ -794,7 +794,7 @@ class GmpScannerWrapper(ScannerAbstract):
                     alerts_list[alert_id] = [alert_target_id, alert_task_id]
     
         except IndexError:
-            logger.error('There is an Error with retrieving information for the gevin target id')
+            logger.error('There is an Error with retrieving information for the given target id')
 
         if tasks_id_list:
             try:
