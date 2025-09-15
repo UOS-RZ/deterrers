@@ -2,6 +2,7 @@ Django == 5.2.6
 ldap3 == 2.9.1
 django-python3-ldap == 0.16.1
 requests
+requests-oauthlib
 gunicorn
 python-gvm == 26.5.0
 icalendar
@@ -14,4 +15,7 @@ markdown
 django-maintenance-mode
 flake8
 psycopg[binary]
+python3-openid
+pyjwt
+python3-saml
 django-allauth[socialaccount]

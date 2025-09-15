@@ -295,7 +295,7 @@ if 'OIDC' in AUTH_METHODS:
             # credentials, or list them here:
             "VERIFIED_EMAIL": True,
             'EMAIL_AUTHENTICATION': os.environ.get('OIDC_EMAIL_AUTHENTICATION', False) == 'True',
-            'APPS': {
+            'APP': {
                 "provider_id": "keycloak",
                 "name": os.environ.get('OIDC_PROVIDER_NAME', 'OIDC Provider'),
                 'client_id': os.environ.get('OIDC_CLIENT_ID', ''),
