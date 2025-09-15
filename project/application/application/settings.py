@@ -313,6 +313,10 @@ if 'OIDC' in AUTH_METHODS:
                 },
             }
         }
+    }
+
+ACCOUNT_FORMS = {
+    'login': 'allauth.account.forms.LoginForm',
 }
 
 LOGIN_URL = '/login/'
