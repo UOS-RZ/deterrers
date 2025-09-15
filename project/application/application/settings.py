@@ -33,8 +33,6 @@ SCANNER_DUMMY = os.environ.get('SCANNER_DUMMY', 'True') == 'True'
 FIREWALL_TYPE = os.environ.get('FIREWALL_TYPE', 'DUMMY')
 SMTP_DUMMY = os.environ.get('SMTP_DUMMY', 'True') == 'True'
 AUTH_METHODS = os.environ.get('AUTH_METHODS', '').split()
-# NOTE: Deprecated: Remove in future
-USE_LDAP = os.environ.get('USE_LDAP', None) == 'True'
 
 WSGI_APPLICATION = 'application.wsgi.application'
 
@@ -249,13 +247,7 @@ DATABASE_ROUTERS = ['application.routers.db_router.DatabaseRouter']
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-""" SETUP LDAP AUTHENTICATION """
-
-if USE_LDAP is not None:
-    raise DeprecationWarning(
-        "Config 'USE_LDAP' is deprecated and should be substituted by 'AUTH_METHODS'!"
-    )
-
+""" SETUP AUTHENTICATION """
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
