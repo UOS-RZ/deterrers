@@ -41,5 +41,6 @@ urlpatterns += [
         ),
         name='login'
     ),
-    path('logout/', LogoutMessageView.as_view(), name='logout')
+    path('logout/', LogoutMessageView.as_view(), name='logout'),
+    path('accounts/', include('allauth.urls')),
 ]

@@ -14,3 +14,4 @@ markdown
 django-maintenance-mode
 flake8
 psycopg[binary]
+django-allauth[socialaccount]

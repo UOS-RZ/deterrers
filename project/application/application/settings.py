@@ -32,7 +32,9 @@ IPAM_DUMMY = os.environ.get('IPAM_DUMMY', 'True') == 'True'
 SCANNER_DUMMY = os.environ.get('SCANNER_DUMMY', 'True') == 'True'
 FIREWALL_TYPE = os.environ.get('FIREWALL_TYPE', 'DUMMY')
 SMTP_DUMMY = os.environ.get('SMTP_DUMMY', 'True') == 'True'
-USE_LDAP = os.environ.get('USE_LDAP', 'False') == 'True'
+AUTH_METHODS = os.environ.get('AUTH_METHODS', '').split()
+# NOTE: Deprecated: Remove in future
+USE_LDAP = os.environ.get('USE_LDAP', None) == 'True'
 
 WSGI_APPLICATION = 'application.wsgi.application'
 
@@ -123,6 +125,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'maintenance_mode',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount.providers.openid_connect',
     # Custom applications
     'main.apps.MainConfig',
     'user.apps.UserConfig',
@@ -137,7 +142,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'maintenance_mode.middleware.MaintenanceModeMiddleware'
+    'maintenance_mode.middleware.MaintenanceModeMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
 ]
 
 # e-mail configuration
@@ -166,6 +172,7 @@ TEMPLATES = [
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
+                # `allauth` needs this from django
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -244,11 +251,23 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 """ SETUP LDAP AUTHENTICATION """
 
-if USE_LDAP:
-    AUTHENTICATION_BACKENDS = [
+if USE_LDAP is not None:
+    raise DeprecationWarning(
+        "Config 'USE_LDAP' is deprecated and should be substituted by 'AUTH_METHODS'!"
+    )
+
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
+if 'LOCAL' in AUTH_METHODS:
+    # django.contrib.auth.backends.ModelBackend is always configured for
+    # admin access
+    pass
+if 'LDAP' in AUTH_METHODS:
+    AUTHENTICATION_BACKENDS.extend([
         "django_python3_ldap.auth.LDAPBackend",
-        'django.contrib.auth.backends.ModelBackend',
-    ]
+    ])
     LDAP_AUTH_URL = os.environ.get("LDAP_AUTH_URL", " ").split(' ')
     LDAP_AUTH_USE_TLS = True
     LDAP_AUTH_TLS_VERSION = ssl.PROTOCOL_TLSv1_2
@@ -270,10 +289,38 @@ if USE_LDAP:
     # library.
     LDAP_AUTH_CONNECT_TIMEOUT = None
     LDAP_AUTH_RECEIVE_TIMEOUT = None
-else:
-    AUTHENTICATION_BACKENDS = [
-        'django.contrib.auth.backends.ModelBackend',
-    ]
+if 'OIDC' in AUTH_METHODS:
+    AUTHENTICATION_BACKENDS.extend([
+        # `allauth` specific authentication methods, such as login by email
+        'allauth.account.auth_backends.AuthenticationBackend',
+    ])
+    # Provider specific settings
+    SOCIALACCOUNT_PROVIDERS = {
+        'openid_connect': {
+            # For each OAuth based provider, either add a ``SocialApp``
+            # (``socialaccount`` app) containing the required client
+            # credentials, or list them here:
+            "VERIFIED_EMAIL": True,
+            'EMAIL_AUTHENTICATION': os.environ.get('OIDC_EMAIL_AUTHENTICATION', False) == 'True',
+            'APPS': {
+                "provider_id": "keycloak",
+                "name": os.environ.get('OIDC_PROVIDER_NAME', 'OIDC Provider'),
+                'client_id': os.environ.get('OIDC_CLIENT_ID', ''),
+                'secret': os.environ.get('OIDC_CLIENT_SECRET', ''),
+                'key': '',
+                "settings": {
+                    "server_url": os.environ.get('OIDC_SERVER_URL', ''),
+                    "scope": [
+                        "profile",
+                        "email",
+                    ],
+                    "auth_params": {
+                        "access_type": "online",
+                    },
+                },
+            }
+        }
+}
 
 LOGIN_URL = '/login/'
 
