@@ -35,12 +35,12 @@ urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 urlpatterns += [
     # path('accounts/', include('django.contrib.auth.urls')),
-    path(
-        'login/', auth_views.LoginView.as_view(
-            redirect_authenticated_user=True
-        ),
-        name='login'
-    ),
+    # path(
+    #     'login/', auth_views.LoginView.as_view(
+    #         redirect_authenticated_user=True
+    #     ),
+    #     name='login'
+    # ),
     path('logout/', LogoutMessageView.as_view(), name='logout'),
     path('accounts/', include('allauth.urls')),
 ]
