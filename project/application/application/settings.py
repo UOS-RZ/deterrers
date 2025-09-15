@@ -125,6 +125,7 @@ INSTALLED_APPS = [
     'maintenance_mode',
     'allauth',
     'allauth.account',
+    'allauth.socialaccount',
     'allauth.socialaccount.providers.openid_connect',
     # Custom applications
     'main.apps.MainConfig',
