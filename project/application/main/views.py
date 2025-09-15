@@ -14,7 +14,8 @@ from django.contrib.auth.decorators import login_required
 from django.http import (Http404,
                          HttpResponseRedirect,
                          HttpResponse,
-                         FileResponse)
+                         FileResponse,
+                         HttpResponseBadRequest)
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
@@ -55,6 +56,8 @@ if settings.SCANNER_DUMMY:
 else:
     from main.core.scanner.gmp_wrapper \
         import GmpScannerWrapper as ScannerWrapper
+    from main.core.scanner.gmp_wrapper \
+        import ReportFormat
 if settings.FIREWALL_TYPE == 'DUMMY':
     from main.core.fw.fw_mock \
         import FWMock as FWWrapper
@@ -228,6 +231,78 @@ def api_schema(request):
         }
     return render(request, 'api_schema.html', context)
 
+@login_required
+def gsm_host_report_download(request, report_id, report_format ):
+    """
+    This function download the requested report according to the given report_id and report format. 
+    Only available to logged in users.
+
+    Args:
+        request (): Request object.
+        report_id (): Report id as string object.
+        report_format (): Report format as string e.x xml, html, or pdf.
+
+    Raises:
+        Http404: When object is not available or user has no permission.
+
+    Returns:
+        Redirect to url gsm_hosts_list with the report file.
+    """
+
+    try:
+        report_uuid = uuid.UUID(report_id)
+    except ValueError:
+        return HttpResponseBadRequest("Invalid ID format")
+    
+    ALLOWED_FORMATS = ['pdf', 'xml', 'html']
+
+    if str(report_format).lower() not in ALLOWED_FORMATS:
+        return HttpResponseBadRequest("Invalid format. Allowed: pdf, xml, html")
+
+
+
+    with IPAMWrapper(
+        settings.IPAM_USERNAME,
+        settings.IPAM_SECRET_KEY,
+        settings.IPAM_URL
+    ) as ipam:
+        if not ipam.enter_ok:
+            return HttpResponse(status=500)
+        with ScannerWrapper(
+            settings.SCANNER_USERNAME,
+            settings.SCANNER_SECRET_KEY,
+            settings.SCANNER_HOSTNAME
+        ) as scanner:
+            if not scanner.enter_ok:
+                return HttpResponse(status=500)
+    
+       
+            try:
+                if str(report_format).lower() == 'xml':
+                    report = scanner.get_report_xml(report_uuid=str(report_uuid))# XML
+
+                    response = HttpResponse(report, content_type='application/xml')
+                    response['Content-Disposition'] = f'attachment; filename="report_{report_id}.xml"'
+                    return response
+
+                elif str(report_format).lower() == 'pdf':
+                    report = scanner.get_report_pdf(report_uuid=str(report_uuid))  # PDF
+                    response = HttpResponse(report, content_type='application/pdf')
+                    response['Content-Disposition'] = f'attachment; filename="report_{report_id}.pdf"'
+                    return response
+
+                elif str(report_format).lower() == 'html':  # HTML
+                    report = scanner.get_report_html(report_uuid=str(report_uuid))  # HTML
+                    response = HttpResponse(report, content_type='text/html')
+                    response['Content-Disposition'] = f'attachment; filename="report_{report_id}.html"'
+                    return response
+                else:
+                    return None
+            
+            except Exception as e:
+                return HttpResponseBadRequest(f"Error fetching report: {str(e)}")
+
+    return redirect('gsm_hosts_list')    
 
 @login_required
 @require_http_methods(['GET', 'POST'])

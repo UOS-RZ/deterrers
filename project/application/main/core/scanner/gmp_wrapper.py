@@ -20,6 +20,7 @@ from gvm.protocols.gmp.requests.v225 import (AlertCondition,
 from main.core.scanner.scanner_abstract import ScannerAbstract
 from main.core.risk_assessor import VulnerabilityScanResult
 import dns.asyncresolver 
+from lxml import etree
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,7 @@ class ReportFormat(Enum):
     ANON_XML_UUID = "5057e5cc-b825-11e4-9d0e-28d24461215b"
     XML_UUID = "a994b278-1f62-11e1-96ac-406186ea4fc5"
     HTML_UUID = "ffa123c9-a2d2-409e-bbbb-a6c1385dbeaa"
+    PDF_UUID = "c402cc3e-b531-11e1-9163-406186ea4fc5"
 
 
 # These UUIDs are specific to the deployment
@@ -905,10 +907,14 @@ class GmpScannerWrapper(ScannerAbstract):
                 ignore_pagination=True,
                 details=True
             )
+            xml_bytes = etree.tostring(response, pretty_print=True, encoding='UTF-8', xml_declaration=True)
+
             response_status = int(response.xpath('@status')[0])
             if response_status != 200:
                 raise GmpAPIError(f"Couldn't query report {report_uuid}!")
-            return response
+            else:
+                return xml_bytes
+
         except GvmError:
             logger.exception(
                 "Couldn't fetch report with ID '%s' from GSM!",
@@ -1721,6 +1727,64 @@ class GmpScannerWrapper(ScannerAbstract):
             )
         except GmpAPIError:
             logger.exception("Get report as HTML failed.")
+        return None
+
+    def get_report_pdf(self, report_uuid: str, min_qod: int = 70) -> bytes:
+        """
+        Query the PDF report for a given report UUID.
+
+        Args:
+            report_uuid (str): UUID of the report.
+            min_qod (int): Minimum Quality of Detection (optional).
+
+        Returns:
+            bytes: PDF content as bytes.
+        """
+        rep_filter = (
+            "status=Done "
+            "apply_overrides=1 "
+            "rows=-1 "
+            f"min_qod={min_qod} "
+            "first=1 "
+            "sort-reverse=severity"
+        )
+
+        try:
+            response = self.gmp.get_report(
+                report_uuid,
+                filter_string=rep_filter,
+                report_format_id=ReportFormat.PDF_UUID.value,
+                details=True,
+                ignore_pagination=True
+            )
+
+            # The response is XML. We find the <report> / <report_format> element and its text (base64).
+            report_elem = response.find("report")
+            if report_elem is None:
+                raise RuntimeError("no <report> element in get_report response")
+
+            rf_elem = report_elem.find("report_format")
+            if rf_elem is None:
+                text_blob = "".join(report_elem.itertext())
+            else:
+                text_blob = rf_elem.tail or rf_elem.text or "".join(rf_elem.itertext())
+
+            if not text_blob:
+                raise RuntimeError("no base64 payload found in report response")
+
+            # Fix padding (common workaround for "Incorrect padding" errors)
+            text_blob += "=" * ((4 - len(text_blob) % 4) % 4)
+
+            pdf_bytes = b64decode(text_blob)
+            
+            return pdf_bytes
+        except GvmError:
+            logger.exception(
+                "Couldn't fetch PDF report with ID '%s' from GSM!",
+                report_uuid
+            )
+        except GmpAPIError:
+            logger.exception("Get report as PDF failed.")
         return None
 
     def get_periodic_scanned_hosts(self) -> set[str]:

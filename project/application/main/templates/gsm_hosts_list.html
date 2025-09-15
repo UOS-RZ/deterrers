@@ -37,9 +37,9 @@
 						<p>&nbsp;27.09.2025 / Sev 8.0</p>
 						<div>
 							&nbsp;
-							<a href="{{target_info.report_id}}">PDF</a>
-							<a href="{{target_info.report_id}}">HTML</a>
-							<a href="{{target_info.report_id}}">JSON</a>
+							<a href="{% url 'gsm_host_report_download' report_id=target_info.report_id report_format='pdf' %}" >PDF</a>
+							<a href="{% url 'gsm_host_report_download' report_id=target_info.report_id report_format='html' %}">HTML</a>
+							<a href="{% url 'gsm_host_report_download' report_id=target_info.report_id report_format='xml' %}">XML</a>
 						</div>
 					</div>
 				</td>
