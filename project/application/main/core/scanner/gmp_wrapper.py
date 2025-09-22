@@ -21,6 +21,7 @@ from main.core.scanner.scanner_abstract import ScannerAbstract
 from main.core.risk_assessor import VulnerabilityScanResult
 import dns.asyncresolver 
 from lxml import etree
+from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
 
@@ -661,7 +662,8 @@ class GmpScannerWrapper(ScannerAbstract):
         if tasks_response_status != 200:
             raise GmpAPIError(f"Couldn't get task! Status: {tasks_response_status}")
 
-        reports_response = self.gmp.get_reports(filter_string=filter_str)
+        report_filter_str = f' rows=-1 sort-reverse=finished'
+        reports_response = self.gmp.get_reports(filter_string=report_filter_str, details=True,)
         reports_response_status = int(reports_response.xpath('@status')[0])
         if reports_response_status != 200:
             raise GmpAPIError(f"Couldn't get reports! Status: {reports_response_status}")        
@@ -683,6 +685,8 @@ class GmpScannerWrapper(ScannerAbstract):
                     target_info['comment']= target_comment
                     target_info['status']= 'No Task'
                     target_info['report_id']= ''
+                    target_info['scan_end']= ''
+                    target_info['severity']= ''
                     target_ips = target_hosts.split(',')
 
                     if target_ips:
@@ -703,12 +707,15 @@ class GmpScannerWrapper(ScannerAbstract):
                     targets_list[target_id] = target_info
             
             for task in tasks_response.findall('task'):
+                task_progress = task.xpath('progress')[0].text
                 task_status = task.xpath('status')[0].text
                 task_target = task.xpath('target')[0]
                 task_target_id = task_target.get('id')
                 task_owner = task.xpath('owner/name')[0].text
         
                 if task_target_id in targets_list and task_owner == self.username:
+                    if task_status == 'Running':
+                        task_status = f"{task_status} {task_progress}%"
                     targets_list[task_target_id]['status'] = task_status
         
             for report in reports_response.findall('report'):
@@ -717,8 +724,17 @@ class GmpScannerWrapper(ScannerAbstract):
                 report_target = report.xpath('report/task/target')[0]
                 report_target_id = report_target.get('id')
 
+                report_saverity = report.xpath('report/severity/full')[0].text
+                report_scan_end = report.xpath('report/scan_end')[0].text
+                report_scan_status = report.xpath('report/scan_run_status')[0].text
+
                 if report_target_id in targets_list and report_owner == self.username:
                     targets_list[report_target_id]['report_id'] = report_id
+                    if report_scan_status == 'Done':
+                        dt = datetime.fromisoformat(report_scan_end.replace("Z", "+00:00"))
+                        report_scan_end = dt.astimezone(ZoneInfo("Europe/Berlin")).strftime("%d.%m.%Y %H:%M")
+                        targets_list[report_target_id]['scan_end'] = report_scan_end
+                        targets_list[report_target_id]['severity'] = report_saverity
 
 
         except IndexError:

@@ -34,7 +34,11 @@
 				<td>{{ user.get_username }}</td>
 				<td class="gsm-status-class">{{ target_info.status }}
 					<div>
-						<p>&nbsp;27.09.2025 / Sev 8.0</p>
+						<p>	
+							{% if target_info.severity or target_info.scan_end %}
+							&nbsp;{{target_info.scan_end}} / Sev {{target_info.severity}}
+							{% endif %}
+						</p>
 						<div>
 							&nbsp;
 							<a href="{% url 'gsm_host_report_download' report_id=target_info.report_id report_format='pdf' %}" >PDF</a>
