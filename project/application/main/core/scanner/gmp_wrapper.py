@@ -22,6 +22,7 @@ from main.core.risk_assessor import VulnerabilityScanResult
 import dns.asyncresolver 
 from lxml import etree
 from zoneinfo import ZoneInfo
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -53,8 +54,8 @@ class ReportFormat(Enum):
     ANON_XML_UUID = "5057e5cc-b825-11e4-9d0e-28d24461215b"
     XML_UUID = "a994b278-1f62-11e1-96ac-406186ea4fc5"
     HTML_UUID = "ffa123c9-a2d2-409e-bbbb-a6c1385dbeaa"
-    PDF_UUID = "c402cc3e-b531-11e1-9163-406186ea4fc5"
-
+    PDF_UUID = "dc51a40a-c022-11e9-b02d-3f7ca5bdcb11"
+    JSON_UUID = "37dad904-44d7-45f6-9b07-77089ea80689"
 
 # These UUIDs are specific to the deployment
 # TODO: make configurable
@@ -1801,6 +1802,63 @@ class GmpScannerWrapper(ScannerAbstract):
             )
         except GmpAPIError:
             logger.exception("Get report as PDF failed.")
+        return None
+
+    def get_report_json(self, report_uuid: str, min_qod: int = 70) -> dict | None:
+        """
+        Query the JSON report for a given report UUID.
+
+        Args:
+            report_uuid (str): UUID of the report.
+            min_qod (int): Minimum Quality of Detection (optional).
+
+        Returns:
+            dict | None: Report content as a parsed JSON dict, or None on failure.
+        """
+        rep_filter = (
+            "status=Done "
+            "apply_overrides=1 "
+            "rows=-1 "
+            f"min_qod={min_qod} "
+            "first=1 "
+            "sort-reverse=severity"
+        )
+
+        try:
+            response = self.gmp.get_report(
+                report_uuid,
+                filter_string=rep_filter,
+                report_format_id=ReportFormat.JSON_UUID.value,  
+                details=True,
+                ignore_pagination=True,
+            )
+
+            # Extract the <report> element
+            report_elem = response.find("report")
+            if report_elem is None:
+                raise RuntimeError("no <report> element in get_report response")
+
+            rf_elem = report_elem.find("report_format")
+            if rf_elem is None:
+                text_blob = "".join(report_elem.itertext())
+            else:
+                text_blob = rf_elem.tail or rf_elem.text or "".join(rf_elem.itertext())
+
+            if not text_blob:
+                raise RuntimeError("no base64 payload found in report response")
+
+            text_blob += "=" * ((4 - len(text_blob) % 4) % 4)
+            json_bytes = b64decode(text_blob)
+
+            return json.loads(json_bytes.decode("utf-8"))
+
+        except GvmError:
+            logger.exception("Couldn't fetch JSON report with ID '%s' from GSM!", report_uuid)
+        except GmpAPIError:
+            logger.exception("Get report as JSON failed.")
+        except Exception:
+            logger.exception("Unexpected error while fetching JSON report.")
+
         return None
 
     def get_periodic_scanned_hosts(self) -> set[str]:

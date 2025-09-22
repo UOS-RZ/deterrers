@@ -254,10 +254,10 @@ def gsm_host_report_download(request, report_id, report_format ):
     except ValueError:
         return HttpResponseBadRequest("Invalid ID format")
     
-    ALLOWED_FORMATS = ['pdf', 'xml', 'html']
+    ALLOWED_FORMATS = ['pdf', 'xml', 'html', 'json']
 
     if str(report_format).lower() not in ALLOWED_FORMATS:
-        return HttpResponseBadRequest("Invalid format. Allowed: pdf, xml, html")
+        return HttpResponseBadRequest("Invalid format. Allowed: pdf, xml, html, or json")
 
 
 
@@ -295,6 +295,12 @@ def gsm_host_report_download(request, report_id, report_format ):
                     report = scanner.get_report_html(report_uuid=str(report_uuid))  # HTML
                     response = HttpResponse(report, content_type='text/html')
                     response['Content-Disposition'] = f'attachment; filename="report_{report_id}.html"'
+                    return response
+                elif str(report_format).lower() == 'json':  # JSON
+                    report = scanner.get_report_json(report_uuid=str(report_uuid)) 
+                    report_str = json.dumps(report, indent=2)  # convert dict to pretty JSON string
+                    response = HttpResponse(report_str, content_type='application/json')
+                    response['Content-Disposition'] = f'attachment; filename="report_{report_id}.json"'
                     return response
                 else:
                     return None
