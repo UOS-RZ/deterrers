@@ -48,15 +48,27 @@ const gsm_status_list = document.querySelectorAll(".gsm-status-class");
 
 gsm_status_list.forEach(gsm_status =>{
 
-if (gsm_status.textContent == "Done") {
-  gsm_status.style.backgroundColor = "#0f430f";
-} else if (gsm_status.textContent == "Running")
-{
-  gsm_status.style.backgroundColor = "#680d0d";
-} else {
-  gsm_status.style.backgroundColor = "#585858";
-  gsm_status.style.color = "white";
-}
+  const severity_status = gsm_status.firstElementChild.getAttribute("severity-status");
+
+  if (severity_status != ''){
+	
+	if (severity_status >= 0.1 && severity_status <= 3.9) {
+	gsm_status.style.backgroundColor = "#87ceeb80";
+	gsm_status.style.color = "white";
+	}
+	else if (severity_status >= 0.4 && severity_status <= 6.9) {
+		gsm_status.style.backgroundColor = "#ffa50080";
+		gsm_status.style.color = "white";
+	}
+	else if (severity_status >= 7.0 && severity_status <= 10.0) {
+		gsm_status.style.backgroundColor = "#f5141480";
+		gsm_status.style.color = "white";
+	}
+	else {
+		gsm_status.style.backgroundColor = "#dddddd80";
+		gsm_status.style.color = "black";
+	}
+  }
 });
 
 });

@@ -33,7 +33,11 @@
 				<td>{{target_info.comment}}</td>
 				<td>{{ user.get_username }}</td>
 				<td class="gsm-status-class">{{ target_info.status }}
-					<div>
+					{% if  target_info.status == 'Done' %}
+						<div severity-status="{{target_info.severity}}">
+					{% else %}
+						<div severity-status="">
+					{% endif %}
 						<p>	
 							{% if target_info.severity or target_info.scan_end %}
 							&nbsp;{{target_info.scan_end}} / Sev {{target_info.severity}}
