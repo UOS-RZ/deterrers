@@ -52,7 +52,7 @@ class FWMock(FWAbstract):
             addrs = set(
                 [
                     ipaddress.ip_address(addr)
-                    for addr in data[HostServiceProfile.value]
+                    for addr in data[serv_profile.value]
                 ]
             )
         return addrs
