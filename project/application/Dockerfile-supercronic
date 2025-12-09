@@ -8,8 +8,8 @@ RUN apt-get update
 RUN apt-get -y install cron curl openssh-client
 
 # Latest releases available at https://github.com/aptible/supercronic/releases
-ENV SUPERCRONIC_URL=https://github.com/aptible/supercronic/releases/download/v0.2.36/supercronic-linux-amd64 \
-    SUPERCRONIC_SHA1SUM=53a484404b0c559d64f78e9481a3ec22f782dc46 \
+ENV SUPERCRONIC_URL=https://github.com/aptible/supercronic/releases/download/v0.2.40/supercronic-linux-amd64 \
+    SUPERCRONIC_SHA1SUM=8ab9683df4b8287ba1e09923101d6ebf532b6eba \
     SUPERCRONIC=supercronic-linux-amd64
 
 RUN curl -fsSLO "$SUPERCRONIC_URL" \
