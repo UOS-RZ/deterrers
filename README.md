@@ -13,35 +13,108 @@ To test the user interface of DETERRERS, perform the following steps below. This
 
 ### Requirements:
 
-- Docker + Docker Compose
+- Docker + Docker Compose + Git
+
+#### Install Git
+
+```bash
+sudo apt update
+sudo apt install -y git
+```
+
+#### Install Docker
+
+Docker needs to be installed properly. See the official [Docker installation guide](https://docs.docker.com/engine/install/). For Linux systems using apt, run:
+
+```bash
+sudo apt install -y docker.io
+```
+
+After installation, follow the [post-install steps](https://docs.docker.com/engine/install/linux-postinstall/) to use Docker without `sudo`.
+
+#### Install Docker Compose
+
+```bash
+sudo apt install -y docker-compose
+```
 
 ### Step-by-step Tutorial:
 
-1. Fill out the <code>.env.dev</code>-configuration-file:
+1. **Clone the repository**
 
-    1.1 Add the domain name to <code>DJANGO_ALLOWED_HOSTS</code> and <code>DOMAIN_NAME</code>.
+   ```bash
+   git clone https://github.com/UOS-RZ/deterrers.git
+   ```
 
-2. Build and create the docker containers by running
+2. **Navigate to the project directory**
 
-        docker compose -f docker-compose.dev.yml create --build
+   ```bash
+   cd deterrers/project
+   ```
 
-    inside <code>deterrers/project/</code>.
+3. **Fill out the `.env.dev` configuration file**
 
-3. Start containers by running
+   Edit the `.env.dev` file using nano or your preferred editor:
 
-        docker compose -f docker-compose.dev.yml start
+   ```bash
+   nano .env.dev
+   ```
 
-    inside <code>deterrers/project/</code>.
+   Or using VS Code:
 
-4. DETERRERS is now running on port 80. You should be able to log in with the credentials (<code>DJANGO_SUPERUSER_USERNAME</code>, <code>DJANGO_SUPERUSER_PASSWORD</code>) from the configuration file.
+   ```bash
+   code .env.dev
+   ```
 
-5. You can interact freely with DETERRERS by adding any valid IP address.
+   At a minimum, configure the following:
 
-6. Stop containers by running
+   ```bash
+   DOMAIN_NAME=localhost
+   DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 0.0.0.0 [::1]
+   
+   POSTGRES_USER=deterrers
+   POSTGRES_PASSWORD=deterrers
+   POSTGRES_DB=deterrers
+   POSTGRES_HOST=postgres
+   POSTGRES_PORT=5432
+   
+   DJANGO_SUPERUSER_USERNAME=admin
+   DJANGO_SUPERUSER_PASSWORD=admin
+   ```
 
-        docker compose -f docker-compose.dev.yml down --remove-orphans
+4. **Build and create the Docker containers**
 
-    inside <code>deterrers/project/</code>.
+   ```bash
+   docker compose -f docker-compose.dev.yml create --build
+   ```
+
+5. **Start the containers**
+
+   ```bash
+   docker compose -f docker-compose.dev.yml start
+   ```
+
+6. **Verify the setup**
+
+   Check the running containers and their ports:
+
+   ```bash
+   docker compose -f docker-compose.dev.yml ps
+   ```
+
+   DETERRERS should now be running on port 80. Log in with the credentials specified in your `.env.dev` file (`DJANGO_SUPERUSER_USERNAME` and `DJANGO_SUPERUSER_PASSWORD`).
+
+7. **Interact with DETERRERS**
+
+   You can now interact freely with DETERRERS by adding any valid IP address.
+
+8. **Stop the containers**
+
+   When finished, stop and remove the containers:
+
+   ```bash
+   docker compose -f docker-compose.dev.yml down --remove-orphans
+   ```
 
 
 ## Deployment
