@@ -54,16 +54,16 @@ sudo apt install -y docker-compose
 
 3. **Fill out the `.env.dev` configuration file**
 
-   Edit the `.env.dev` file using nano or your preferred editor:
+   Edit the `.dev.env` file using nano or your preferred editor:
 
    ```bash
-   nano .env.dev
+   nano .dev.env
    ```
 
    Or using VS Code:
 
    ```bash
-   code .env.dev
+   code .dev.env
    ```
 
    At a minimum, configure the following:
