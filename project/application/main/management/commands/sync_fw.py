@@ -9,12 +9,15 @@ from django.conf import settings
 
 from main.core.contracts import HostStatus, HostServiceProfile
 from main.core.host import MyHost
-if settings.IPAM_DUMMY:
+if settings.IPAM_DUMMY == "DUMMY":
     from main.core.data_logic.data_mock \
         import DataMockWrapper as IPAMWrapper
-else:
+elif settings.IPAM_DUMMY == "BlueCatV1":
     from main.core.data_logic.ipam_wrapper \
         import ProteusIPAMWrapper as IPAMWrapper
+elif settings.IPAM_DUMMY == "BlueCatV2":
+    from main.core.data_logic.blueCatV2_wrapper \
+        import ProteusV2IPAMWrapper as IPAMWrapper
 if settings.FIREWALL_TYPE == 'DUMMY':
     from main.core.fw.fw_mock \
         import FWMock as FWWrapper

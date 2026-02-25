@@ -21,7 +21,7 @@ from main.core.rule_generator import HostBasedPolicy
 logger = logging.getLogger(__name__)
 
 
-class ProteusIPAMWrapper(DataAbstract):
+class ProteusV2IPAMWrapper(DataAbstract):
     """ Wrapper for BlueCat Proteus IPAM API v2."""
 
     TAG_GROUP_NAME = "Deterrers Host Admins"
