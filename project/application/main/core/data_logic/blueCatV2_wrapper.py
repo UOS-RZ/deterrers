@@ -138,7 +138,7 @@ class ProteusV2IPAMWrapper(DataAbstract):
                 entity_id=host_id,
                 ipv4_addr=ip,
                 mac_addr=mac,
-                admin_names=set(tagged_admins),
+                admin_ids=set(tagged_admins),
                 status=HostStatus(status) if status else HostStatus.EMPTY,
                 name=name,
                 dns_rcs=set(dns_rcs),
