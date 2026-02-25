@@ -114,9 +114,10 @@ class ProteusV2IPAMWrapper(DataAbstract):
                 rules_list = json.loads(rules_str)
                 if isinstance(rules_list, list):
                     for rule_item in rules_list:
-                        # Adjust this based on how HostBasedPolicy is constructed
                         if rule_item:
-                            rules.append(rule_item)
+                            policy = HostBasedPolicy.from_string(rule_item)
+                            if policy:
+                                rules.append(policy)
             except (json.JSONDecodeError, ValueError, TypeError):
                 rules = []
             #### comment
