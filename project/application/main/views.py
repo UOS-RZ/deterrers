@@ -43,12 +43,16 @@ from main.core.contracts import (HostBasedPolicySrc,
                                  HostStatus,
                                  HostServiceProfile,
                                  HostFW,)
-if settings.IPAM_DUMMY:
+if settings.IPAM_DUMMY == "DUMMY":
     from main.core.data_logic.data_mock \
         import DataMockWrapper as IPAMWrapper
-else:
+elif settings.IPAM_DUMMY == "BlueCatV1":
     from main.core.data_logic.ipam_wrapper \
         import ProteusIPAMWrapper as IPAMWrapper
+elif settings.IPAM_DUMMY == "BlueCatV2":
+    from main.core.data_logic.blueCatV2_wrapper \
+        import ProteusV2IPAMWrapper as IPAMWrapper
+
 if settings.SCANNER_DUMMY:
     from main.core.scanner.scanner_mock \
         import ScannerMock as ScannerWrapper
@@ -1732,3 +1736,48 @@ Admin copy:
     t.start()
 
     return HttpResponse("Success!", status=200)
+
+
+from django.views.decorators.csrf import csrf_exempt
+# Remove an admin from a host
+@login_required
+@require_http_methods(["POST"])
+@csrf_exempt
+def remove_admin_from_host_view(request, ipv4: str, admin_name: str):
+    """
+    View to remove an admin from a host.
+    Args:
+        request: Django request object
+        ipv4: Host IPv4 address (escaped)
+        admin_name: Admin username to remove
+    Returns:
+        HttpResponseRedirect to host detail page with a message
+    """
+    hostadmin = get_object_or_404(MyUser, username=request.user.username)
+    with IPAMWrapper(
+        settings.IPAM_USERNAME,
+        settings.IPAM_SECRET_KEY,
+        settings.IPAM_URL
+    ) as ipam:
+        if not ipam.enter_ok:
+            return HttpResponse(status=500)
+
+        # Only allow if user is admin of this host
+        host = ipam.get_host_info_from_ip(ipv4)
+        if not host or not host.is_valid():
+            return HttpResponse(status=404)
+        if hostadmin.username not in host.admin_ids:
+            return HttpResponse(status=403)
+
+        # Prevent removing the last admin from a host
+        if len(host.admin_ids) <= 1:
+            messages.error(request, "Cannot remove the last admin from a host.")
+            return redirect('host_detail', ipv4=ipv4, tab='general')
+
+        code = ipam.remove_admin_from_host(admin_name, host)
+        if code == 200:
+            messages.success(request, f"Admin '{admin_name}' removed from host.")
+        else:
+            messages.error(request, f"Failed to remove admin '{admin_name}' from host.")
+
+    return redirect('host_detail', ipv4=ipv4, tab='general')
