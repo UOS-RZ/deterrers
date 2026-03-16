@@ -3,13 +3,13 @@ import logging
 
 from django.conf import settings
 
-if settings.IPAM_DUMMY == "DUMMY":
+if settings.IPAM_TYPE == "DUMMY":
     from main.core.data_logic.data_mock \
         import DataMockWrapper as IPAMWrapper
-elif settings.IPAM_DUMMY == "BlueCatV1":
+elif settings.IPAM_TYPE == "BlueCatV1":
     from main.core.data_logic.ipam_wrapper \
         import ProteusIPAMWrapper as IPAMWrapper
-elif settings.IPAM_DUMMY == "BlueCatV2":
+elif settings.IPAM_TYPE == "BlueCatV2":
     from main.core.data_logic.blueCatV2_wrapper \
         import ProteusV2IPAMWrapper as IPAMWrapper
 

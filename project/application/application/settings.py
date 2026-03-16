@@ -28,7 +28,7 @@ DEBUG = os.environ.get('DJANGO_DEBUG', '') == 'True'
 
 # parse dev flags
 DEV_MODE = os.environ.get('DEV_MODE', '') == 'True'
-IPAM_DUMMY = os.environ.get('IPAM_DUMMY', 'DUMMY')
+IPAM_TYPE = os.environ.get('IPAM_TYPE', 'DUMMY')
 SCANNER_DUMMY = os.environ.get('SCANNER_DUMMY', 'True') == 'True'
 FIREWALL_TYPE = os.environ.get('FIREWALL_TYPE', 'DUMMY')
 SMTP_DUMMY = os.environ.get('SMTP_DUMMY', 'True') == 'True'
