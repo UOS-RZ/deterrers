@@ -21,12 +21,24 @@ class ProteusV2IPAMWrapper(DataAbstract):
     TAG_GROUP_NAME = "Deterrers Host Admins"
 
     def __init__(self, username: str, password: str, url: str) -> None:
+        """Initialize the BlueCat IPAM v2 wrapper.
+
+        Args:
+            username (str): Username for BlueCat IPAM authentication.
+            password (str): Password for BlueCat IPAM authentication.
+            url (str): Base URL of the BlueCat IPAM API.
+        """
         super().__init__(username, password, url)
         self.client = None
         self.__tag_group_id = None
         self.__department_tags = None
 
     def __enter__(self):
+        """Open a session to the BlueCat IPAM API v2.
+
+        Returns:
+            ProteusV2IPAMWrapper: Self reference for use in with-statements.
+        """
         try:
             self.client = Client(self.url)
             self.client.login(self.username, self._password)
@@ -38,7 +50,8 @@ class ProteusV2IPAMWrapper(DataAbstract):
         return self
     
     def __exit__(self, exc_type, exc_value, traceback):
-        if self.client:
+        """Close the session to the BlueCat IPAM API v2."""
+        if self.client and self.enter_ok:
             try:
                 self.client.logout()
                 logger.info("Closed connection to BlueCat IPAM API v2.")
@@ -131,12 +144,12 @@ class ProteusV2IPAMWrapper(DataAbstract):
             dns_rcs = self.__get_linked_dns_records(host_id, ip)
             tagged_admins = self.__get_admins_of_host(host_id)
             
-            return MyHost(
+            my_host = MyHost(
                 entity_id=int(host_id),
                 ipv4_addr=ip,
                 mac_addr=mac,
                 admin_ids=set(tagged_admins),
-                status=HostStatus(status) if status else HostStatus.EMPTY,
+                status=HostStatus(status) if status else HostStatus.UNREGISTERED,
                 name=name,
                 dns_rcs=set(dns_rcs),
                 service_profile=HostServiceProfile(service_profile) if service_profile else HostServiceProfile.EMPTY,
@@ -144,6 +157,12 @@ class ProteusV2IPAMWrapper(DataAbstract):
                 host_based_policies=rules,
                 comment=comment if comment else "",
             )
+
+            if my_host.is_valid():
+                return my_host
+            else:
+                logger.warning("Host '%s' is not valid!", ipv4)
+                return None
             
         except Exception as e:
             logger.exception(f"Error retrieving host info for IP {ipv4}: {e}")
@@ -175,6 +194,18 @@ class ProteusV2IPAMWrapper(DataAbstract):
         return tagged_admins
     
     def __get_linked_dns_records(self, address_id: int, ip: str) -> set[str]:
+        """Query DNS records linked to an IPv4 address entity.
+
+        Falls back to a socket-based reverse DNS lookup if the API
+        query fails.
+
+        Args:
+            address_id (int): Entity ID of the IPv4 address in BlueCat.
+            ip (str): IPv4 address string used for fallback DNS lookup.
+
+        Returns:
+            set[str]: Set of DNS names associated with the address.
+        """
         dns_names = set()
         try:
             records_resp = self.client.http_get(f"/addresses/{address_id}/resourceRecords")
@@ -197,6 +228,15 @@ class ProteusV2IPAMWrapper(DataAbstract):
         return dns_names
     
     def get_hosts_of_admin(self, admin_name: str) -> list[MyHost]:
+        """Query all hosts tagged with an admin or their parent department tag.
+
+        Args:
+            admin_name (str): Identifier string for the admin tag.
+
+        Returns:
+            list[MyHost]: List of unique MyHost instances associated with
+            the admin.
+        """
         hosts = []
         try:
             tag_resp = self.client.http_get("/tags", params={"filter": f"name:'{admin_name}'"})
@@ -217,20 +257,11 @@ class ProteusV2IPAMWrapper(DataAbstract):
                 tag_ids_to_query.append(parent_id)
     
             for tid in tag_ids_to_query:
-                try:
-                    tagged_resp = self.client.http_get(
-                        f"/tags/{tid}/taggedResources",
-                        params={"filter": "type:'IPv4Address'", "limit": "10000"}
-                    )
-                    tagged_resources = tagged_resp.get("data", [])
-                except Exception:
-                    logger.warning(f"API filtering for IPv4Address type failed for tag ID {tid}, falling back to unfiltered query and manual filtering.")
-                    tagged_resp = self.client.http_get(
-                        f"/tags/{tid}/taggedResources",
-                        params={"limit": "10000"}
-                    )
-                    tagged_resources = tagged_resp.get("data", [])
-                    tagged_resources = [res for res in tagged_resources if res.get("type") == "IPv4Address"]
+                tagged_resp = self.client.http_get(
+                    f"/tags/{tid}/taggedResources",
+                    params={"filter": "type:'IPv4Address'", "limit": "10000"}
+                )
+                tagged_resources = tagged_resp.get("data", [])
 
                 for addr in tagged_resources:
                     ip = addr.get("address")
@@ -254,21 +285,50 @@ class ProteusV2IPAMWrapper(DataAbstract):
 
     def get_IP6Addresses(self, host: MyHost) -> set[str]:
         """
-        Resolve IPv6 addresses for a host using DNS (AAAA records).
+        Query public IPv6 addresses linked to a host's IPv4 address via
+        shared HostRecords in the BlueCat IPAM API v2.
 
         Args:
-            host (MyHost): Host instance.
+            host (MyHost): Host instance for which IPv6 addresses are queried.
 
         Returns:
-            set[str]: Set of IPv6 address strings.
+            set[str]: Set of public IPv6 address strings in exploded form.
         """
         try:
-            name = getattr(host, "name", None)
-            if not name:
-                return set()
-            results = socket.getaddrinfo(name, None, socket.AF_INET6)
-            return {r[4][0] for r in results if r and r[4]}
+            ipv4_id = host.entity_id
+            records_resp = self.client.http_get(
+                f"/addresses/{ipv4_id}/resourceRecords"
+            )
+            all_addresses = set()
+            for record in records_resp.get("data", []):
+                if record.get("type") != "HostRecord":
+                    continue
+                record_id = record.get("id")
+                if not record_id:
+                    continue
+                addr_resp = self.client.http_get(
+                    f"/resourceRecords/{record_id}/addresses"
+                )
+                for addr in addr_resp.get("data", []):
+                    address = addr.get("address")
+                    if address:
+                        all_addresses.add(address)
+
+            ipv6_addrs = set()
+            for ip in all_addresses:
+                try:
+                    ipv6 = ipaddress.IPv6Address(ip)
+                    if not ipv6.is_private:
+                        ipv6_addrs.add(ipv6.exploded)
+                except ipaddress.AddressValueError:
+                    continue
+
+            return ipv6_addrs
+
         except Exception:
+            logger.exception(
+                "Couldn't get IPv6 addresses for host %s!", host.ipv4_addr
+            )
             return set()
 
     def get_department_names(self) -> list:
@@ -298,6 +358,14 @@ class ProteusV2IPAMWrapper(DataAbstract):
             return names
 
     def get_department_to_admin(self, admin_name: str) -> str | None:
+        """Get the department name for a given admin tag.
+
+        Args:
+            admin_name (str): Name of the admin tag.
+
+        Returns:
+            str | None: Department name or None if not found.
+        """
         try:
             tag_resp = self.client.http_get("/tags", params={"filter": f"name:'{admin_name}'"})
             tags = tag_resp.get("data", [])
@@ -307,12 +375,12 @@ class ProteusV2IPAMWrapper(DataAbstract):
             if not tag_id:
                 return None
             tag_detail = self.client.http_get(f"/tags/{tag_id}")
-            tag_data = tag_detail.get("data", tag_detail)
+            tag_data = tag_detail
             up_link = (tag_data.get("_links", {}) or {}).get("up", {}).get("href")
             if not up_link:
                 return None
             parent_detail = self.client.http_get(up_link.replace("/api/v2", ""))
-            parent_data = parent_detail.get("data", parent_detail)
+            parent_data = parent_detail
             return parent_data.get("name")
         except Exception:
             logger.exception("Couldn't query parent tag from IPAM!")
@@ -379,8 +447,12 @@ class ProteusV2IPAMWrapper(DataAbstract):
             if not department_tag_id:
                 return False
 
-            self.client.http_post(f"/tags/{department_tag_id}/tags", json={"name": admin_name})
-            return True
+            response = self.client.http_post(f"/tags/{department_tag_id}/tags", json={"name": admin_name})
+            if response and isinstance(response, dict) and response.get("id"):
+                return True
+            else:
+                logger.error("Failed to create tag for admin %s!", admin_name)
+                return False
 
         except Exception:
             logger.exception("Couldn't create a tag for admin %s!", admin_name)
@@ -432,7 +504,7 @@ class ProteusV2IPAMWrapper(DataAbstract):
                 return 200
             
             response = self.client.http_post(f"/addresses/{host_id}/tags", json={"id": tag_id})
-            if response and isinstance(response, dict) and response.get("data"):
+            if response and isinstance(response, dict) and response.get("id"):
                 return 200
             else:
                 logger.error(f"Failed to add tag '{admin_name}' to host {host.ipv4_addr}")
@@ -505,7 +577,7 @@ class ProteusV2IPAMWrapper(DataAbstract):
                     rules_list.append(policy)
 
             current_resp = self.client.http_get(f"/addresses/{host.entity_id}")
-            current_data = current_resp.get("data", current_resp)
+            current_data = current_resp
             current_udf = current_data.get("userDefinedFields") or {}
 
             user_defined_fields = {
@@ -529,7 +601,7 @@ class ProteusV2IPAMWrapper(DataAbstract):
             }
 
             response = self.client.http_put(f"/addresses/{host.entity_id}", json=payload)
-            if response and isinstance(response, dict) and response.get("data"):
+            if response and isinstance(response, dict) and response.get("id"):
                 return True
             else:
                 logger.error(f"Failed to update host info for {host.ipv4_addr}")
