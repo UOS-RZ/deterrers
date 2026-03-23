@@ -1767,7 +1767,8 @@ def remove_admin_from_host_view(request, ipv4: str, admin_name: str):
         if not ipam.enter_ok:
             return HttpResponse(status=500)
 
-        # Only allow if user is admin of this host # Dont know if this is nessary 
+        # Only allow if user is admin of this host
+        # Dont know if this is nessary 
         host = ipam.get_host_info_from_ip(ipv4)
         if not host or not host.is_valid():
             return HttpResponse(status=404)
