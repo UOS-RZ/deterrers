@@ -1738,79 +1738,79 @@ Admin copy:
     return HttpResponse("Success!", status=200)
 
 
-# # Remove an admin from a host
-# @login_required
-# @require_http_methods(["POST"])
-# def remove_admin_from_host_view(request, ipv4: str, admin_name: str):
-#     """
-#     View to remove an admin from a host.
-#     Args:
-#         request: Django request object
-#         ipv4: Host IPv4 address (escaped)
-#         admin_name: Admin username to remove
-#     Returns:
-#         HttpResponseRedirect to host detail page with a message
-#     """
-#     logger.info(
-#         "Request: Remove admin '%s' from host %s by user %s",
-#         admin_name,
-#         ipv4,
-#         request.user.username
-#     )
+# Remove an admin from a host
+@login_required
+@require_http_methods(["POST"])
+def remove_admin_from_host_view(request, ipv4: str, admin_name: str):
+    """
+    View to remove an admin from a host.
+    Args:
+        request: Django request object
+        ipv4: Host IPv4 address (escaped)
+        admin_name: Admin username to remove
+    Returns:
+        HttpResponseRedirect to host detail page with a message
+    """
+    logger.info(
+        "Request: Remove admin '%s' from host %s by user %s",
+        admin_name,
+        ipv4,
+        request.user.username
+    )
 
-#     hostadmin = get_object_or_404(MyUser, username=request.user.username)
-#     with IPAMWrapper(
-#         settings.IPAM_USERNAME,
-#         settings.IPAM_SECRET_KEY,
-#         settings.IPAM_URL
-#     ) as ipam:
-#         if not ipam.enter_ok:
-#             return HttpResponse(status=500)
+    hostadmin = get_object_or_404(MyUser, username=request.user.username)
+    with IPAMWrapper(
+        settings.IPAM_USERNAME,
+        settings.IPAM_SECRET_KEY,
+        settings.IPAM_URL
+    ) as ipam:
+        if not ipam.enter_ok:
+            return HttpResponse(status=500)
 
-#         # Only allow if user is admin of this host
-#         # Dont know if this is nessary 
-#         host = ipam.get_host_info_from_ip(ipv4)
-#         if not host or not host.is_valid():
-#             return HttpResponse(status=404)
-#         if hostadmin.username not in host.admin_ids:
-#             return HttpResponse(status=403)
+        # Only allow if user is admin of this host
+        # Dont know if this is nessary 
+        host = ipam.get_host_info_from_ip(ipv4)
+        if not host or not host.is_valid():
+            return HttpResponse(status=404)
+        if hostadmin.username not in host.admin_ids:
+            return HttpResponse(status=403)
 
-#         # Validate that the admin to remove actually exists on this host
-#         if admin_name not in host.admin_ids:
-#             messages.error(
-#                 request,
-#                 f"Admin '{admin_name}' is not associated with this host."
-#             )
-#             return redirect('host_detail', ipv4=ipv4, tab='general')
+        # Validate that the admin to remove actually exists on this host
+        if admin_name not in host.admin_ids:
+            messages.error(
+                request,
+                f"Admin '{admin_name}' is not associated with this host."
+            )
+            return redirect('host_detail', ipv4=ipv4, tab='general')
 
-#         # Prevent removing the last admin from a host
-#         if len(host.admin_ids) <= 1:
-#             messages.error(request, "Cannot remove the last admin from a host.")
-#             return redirect('host_detail', ipv4=ipv4, tab='general')
+        # Prevent removing the last admin from a host
+        if len(host.admin_ids) <= 1:
+            messages.error(request, "Cannot remove the last admin from a host.")
+            return redirect('host_detail', ipv4=ipv4, tab='general')
 
 
-#         code = ipam.remove_admin_from_host(admin_name, host)
+        code = ipam.remove_admin_from_host(admin_name, host)
 
-#         # Log the outcome and set appropriate messages
-#         if code in range(200, 205, 1):
-#             logger.info(
-#                 "Successfully removed admin '%s' from host %s by user %s",
-#                 admin_name,
-#                 ipv4,
-#                 request.user.username
-#             )
-#             messages.success(request, f"Admin '{admin_name}' removed from host.")
-#         else:
-#             logger.error(
-#                 "Failed to remove admin '%s' from host %s. Code: %d",
-#                 admin_name,
-#                 ipv4,
-#                 code
-#             )
-#             messages.error(
-#                 request,
-#                 f"Failed to remove admin '{admin_name}' from host. "
-#                 f"Error code: {code}"
-#             )
+        # Log the outcome and set appropriate messages
+        if code in range(200, 205, 1):
+            logger.info(
+                "Successfully removed admin '%s' from host %s by user %s",
+                admin_name,
+                ipv4,
+                request.user.username
+            )
+            messages.success(request, f"Admin '{admin_name}' removed from host.")
+        else:
+            logger.error(
+                "Failed to remove admin '%s' from host %s. Code: %d",
+                admin_name,
+                ipv4,
+                code
+            )
+            messages.error(
+                request,
+                f"Failed to remove admin '{admin_name}' from host. "
+                f"Error code: {code}"
+            )
 
-#     return redirect('host_detail', ipv4=ipv4, tab='general')
+    return redirect('host_detail', ipv4=ipv4, tab='general')
