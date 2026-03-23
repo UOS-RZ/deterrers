@@ -545,6 +545,8 @@ class ProteusV2IPAMWrapper(DataAbstract):
 
             response = self.client.http_delete(f"/addresses/{host_id}/tags/{tag_id}")
             if response is not None:
+                # remove admin from admin set of host
+                host.admin_ids.remove(admin_name)
                 return 200
             else:
                 logger.error(f"Failed to remove tag '{admin_name}' from host {host.ipv4_addr}")
