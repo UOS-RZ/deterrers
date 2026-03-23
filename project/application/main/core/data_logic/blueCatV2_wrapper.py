@@ -119,8 +119,8 @@ class ProteusV2IPAMWrapper(DataAbstract):
             
             try:
                 mac = data["macAddress"]["address"]
-            except KeyError:
-                mac = None
+            except (KeyError, TypeError):
+                mac = ''
             
             udf = data.get("userDefinedFields", {})
             status = udf.get("deterrers_status")
