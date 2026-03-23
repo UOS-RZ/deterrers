@@ -274,7 +274,7 @@ def host_detail_view(request, ipv4: str, tab: str = 'general'):
             logger.warning("Host '%s' is not valid!", str(host))
             raise Http404()
         # check if user is admin of this host
-        if hostadmin.username not in host.admin_ids:
+        if (hostadmin.username not in host.admin_ids) and (ipam.get_department_to_admin(hostadmin.username) not in host.admin_ids):
             raise Http404()
 
         # parse form data and update host on POST
