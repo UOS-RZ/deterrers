@@ -102,7 +102,7 @@ sudo apt install -y docker-compose
    docker compose -f docker-compose.dev.yml ps
    ```
 
-   DETERRERS should now be running on port 80. Log in with the credentials specified in your `.env.dev` file (`DJANGO_SUPERUSER_USERNAME` and `DJANGO_SUPERUSER_PASSWORD`).
+   DETERRERS should now be running on port 80. Log in with the credentials specified in your `.dev.env` file (`DJANGO_SUPERUSER_USERNAME` and `DJANGO_SUPERUSER_PASSWORD`).
 
 7. **Interact with DETERRERS**
 
