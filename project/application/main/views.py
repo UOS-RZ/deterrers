@@ -541,7 +541,7 @@ def update_host_detail(request, ipv4: str):
             raise Http404()
 
         # check if user is admin of this host
-        if hostadmin.username not in host.admin_ids:
+        if (hostadmin.username not in host.admin_ids) and (ipam.get_department_to_admin(hostadmin.username) not in host.admin_ids):
             raise Http404()
 
         # check if this host can be changed at the moment or whether there
@@ -704,7 +704,7 @@ def update_host_firewall(request, ipv4: str):
             raise Http404()
 
         # check if user is admin of this host
-        if hostadmin.username not in host.admin_ids:
+        if (hostadmin.username not in host.admin_ids) and (ipam.get_department_to_admin(hostadmin.username) not in host.admin_ids):
             raise Http404()
 
         # do processing based on whether this is GET or POST request
@@ -789,7 +789,7 @@ def register_host(request, ipv4: str):
             if not host:
                 raise Http404()
             # check if user is admin of this host
-            if hostadmin.username not in host.admin_ids:
+            if (hostadmin.username not in host.admin_ids) and (ipam.get_department_to_admin(hostadmin.username) not in host.admin_ids):
                 raise Http404()
             actions = available_actions(host)
             # check if host is missing service profile or host ip is not public
@@ -896,7 +896,7 @@ def scan_host(request, ipv4: str):
             if not host:
                 raise Http404()
             # check if user is admin of this host
-            if hostadmin.username not in host.admin_ids:
+            if (hostadmin.username not in host.admin_ids) and (ipam.get_department_to_admin(hostadmin.username) not in host.admin_ids):
                 raise Http404()
             # check if this host can be scanned at the moment or whether
             # there are already processes running for it
@@ -983,7 +983,7 @@ def block_host(request, ipv4: str):
     if not host:
         raise Http404()
     # check if user is admin of this host
-    if hostadmin.username not in host.admin_ids:
+    if (hostadmin.username not in host.admin_ids) and (ipam.get_department_to_admin(hostadmin.username) not in host.admin_ids):
         raise Http404()
     # check if this host can be blocked at the moment or whether there
     # are already processes running for it
@@ -1047,7 +1047,7 @@ def delete_host_rule(request, ipv4: str, rule_id: uuid.UUID):
         if not host:
             raise Http404()
         # check if user is admin of this host
-        if hostadmin.username not in host.admin_ids:
+        if (hostadmin.username not in host.admin_ids) and (ipam.get_department_to_admin(hostadmin.username) not in host.admin_ids):
             raise Http404()
 
         # delete rule from host
@@ -1115,7 +1115,7 @@ def get_fw_config(request, ipv4: str):
         if not host:
             raise Http404()
         # check if user is admin of this host
-        if hostadmin.username not in host.admin_ids:
+        if (hostadmin.username not in host.admin_ids) and (ipam.get_department_to_admin(hostadmin.username) not in host.admin_ids):
             raise Http404()
         if not host.is_valid():
             logger.warning("Host '%s' is not valid!", str(host))
@@ -1177,7 +1177,7 @@ def remove_host(request, ipv4: str):
         if not host:
             raise Http404()
         # check if user is admin of this host
-        if hostadmin.username not in host.admin_ids:
+        if (hostadmin.username not in host.admin_ids) and (ipam.get_department_to_admin(hostadmin.username) not in host.admin_ids):
             raise Http404()
 
         # check if this host can be removed at the moment or whether there
@@ -1772,7 +1772,7 @@ def remove_admin_from_host_view(request, ipv4: str, admin_name: str):
         host = ipam.get_host_info_from_ip(ipv4)
         if not host or not host.is_valid():
             return HttpResponse(status=404)
-        if hostadmin.username not in host.admin_ids:
+        if (hostadmin.username not in host.admin_ids) and (ipam.get_department_to_admin(hostadmin.username) not in host.admin_ids):
             return HttpResponse(status=403)
 
         # Validate that the admin to remove actually exists on this host
