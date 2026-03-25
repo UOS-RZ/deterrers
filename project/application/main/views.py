@@ -1768,7 +1768,6 @@ def remove_admin_from_host_view(request, ipv4: str, admin_name: str):
             return HttpResponse(status=500)
 
         # Only allow if user is admin of this host
-        # Dont know if this is nessary 
         host = ipam.get_host_info_from_ip(ipv4)
         if not host or not host.is_valid():
             return HttpResponse(status=404)
@@ -1792,7 +1791,7 @@ def remove_admin_from_host_view(request, ipv4: str, admin_name: str):
         code = ipam.remove_admin_from_host(admin_name, host)
 
         # Log the outcome and set appropriate messages
-        if code in range(200, 205, 1):
+        if code == 200:
             logger.info(
                 "Successfully removed admin '%s' from host %s by user %s",
                 admin_name,
@@ -1813,4 +1812,7 @@ def remove_admin_from_host_view(request, ipv4: str, admin_name: str):
                 f"Error code: {code}"
             )
 
+    # If the user removed themselves, they no longer have access to the host
+    if admin_name == request.user.username:
+        return redirect('hosts_list')
     return redirect('host_detail', ipv4=ipv4, tab='general')
