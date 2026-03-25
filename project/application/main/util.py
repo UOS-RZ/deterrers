@@ -10,12 +10,15 @@ from main.core.contracts import (HostStatus,
                                  HostServiceProfile,
                                  HostFW)
 from main.core.risk_assessor import VulnerabilityScanResult
-if settings.IPAM_DUMMY:
+if settings.IPAM_TYPE == "DUMMY":
     from main.core.data_logic.data_mock \
         import DataMockWrapper as IPAMWrapper
-else:
+elif settings.IPAM_TYPE == "BlueCatV1":
     from main.core.data_logic.ipam_wrapper \
         import ProteusIPAMWrapper as IPAMWrapper
+elif settings.IPAM_TYPE == "BlueCatV2":
+    from main.core.data_logic.blueCatV2_wrapper \
+        import ProteusV2IPAMWrapper as IPAMWrapper
 if settings.SCANNER_DUMMY:
     from main.core.scanner.scanner_mock \
         import ScannerMock as ScannerWrapper

@@ -139,7 +139,7 @@ class MyHost():
             return False
 
         # check for valid mac address format if mac is set
-        if self.mac_addr != '':
+        if self.mac_addr is not None and self.mac_addr != '':
             if len(self.mac_addr.split('-')) != 6:
                 return False
             for hex in self.mac_addr.split('-'):
