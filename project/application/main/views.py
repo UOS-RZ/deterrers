@@ -1827,7 +1827,7 @@ def health_check_view(request):
     all_ok = True
 
     # Check both databases
-    for db_alias in ['default', 'vulnerability_mgmt']:
+    for db_alias in ['default', 'vulnerability_mgmt']: #TODO: maybe make this more dynamic in case more databases are added in the future
         try:
             conn = connections[db_alias]
             conn.ensure_connection()
