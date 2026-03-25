@@ -6,6 +6,7 @@ import os
 import markdown
 import pathlib
 import json
+import requests
 from application.settings import TIME_ZONE
 from zoneinfo import ZoneInfo
 from xml.etree import ElementTree
@@ -14,10 +15,13 @@ from django.contrib.auth.decorators import login_required
 from django.http import (Http404,
                          HttpResponseRedirect,
                          HttpResponse,
+                         JsonResponse,
                          FileResponse)
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
+from django.db import connections
+from django.db.utils import OperationalError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.conf import settings
 from django.contrib import messages
@@ -1814,3 +1818,89 @@ def remove_admin_from_host_view(request, ipv4: str, admin_name: str):
             )
 
     return redirect('host_detail', ipv4=ipv4, tab='general')
+
+
+@require_http_methods(['GET', ])
+def health_check_view(request):
+    """Public health check endpoint returning JSON status of all services."""
+    checks = {}
+    all_ok = True
+
+    # Check both databases
+    for db_alias in ['default', 'vulnerability_mgmt']:
+        try:
+            conn = connections[db_alias]
+            conn.ensure_connection()
+            checks[f'database_{db_alias}'] = 'ok'
+        except Exception as e:
+            checks[f'database_{db_alias}'] = str(e)
+            all_ok = False
+
+    # Check IPAM (BlueCat/Proteus) connectivity
+    try:
+        with IPAMWrapper(
+            settings.IPAM_USERNAME,
+            settings.IPAM_SECRET_KEY,
+            settings.IPAM_URL
+        ) as ipam:
+            if ipam.enter_ok:
+                checks['ipam'] = 'ok'
+            else:
+                checks['ipam'] = 'connection failed'
+                all_ok = False
+    except Exception as e:
+        checks['ipam'] = str(e)
+        all_ok = False
+
+    # Check Scanner (OpenVAS/Greenbone) connectivity
+    try:
+        with ScannerWrapper(
+            settings.SCANNER_USERNAME,
+            settings.SCANNER_SECRET_KEY,
+            settings.SCANNER_HOSTNAME
+        ) as scanner:
+            if scanner.enter_ok:
+                checks['scanner'] = 'ok'
+            else:
+                checks['scanner'] = 'connection failed'
+                all_ok = False
+    except Exception as e:
+        checks['scanner'] = str(e)
+        all_ok = False
+
+    # Check Firewall connectivity
+    #Not sure about the FW yet
+    #bypass both wrappers and do a direct HTTP reachability probe.
+    if settings.FIREWALL_TYPE == 'DUMMY':
+        checks['firewall'] = 'ok (mock)'
+    else:
+        try:
+            requests.get(
+                settings.FIREWALL_URL,
+                timeout=5,
+                verify=False
+            )
+            checks['firewall'] = 'ok'
+        except Exception as e:
+            checks['firewall'] = str(e)
+            all_ok = False
+
+    # Check LDAP server connectivity (only if configured)
+    ldap_urls = getattr(settings, 'LDAP_AUTH_URL', [])
+    if ldap_urls and ldap_urls[0]:
+        try:
+            from ldap3 import Server, Connection
+            ldap_server = Server(ldap_urls[0], connect_timeout=5)
+            conn = Connection(ldap_server)
+            conn.open()
+            conn.unbind()
+            checks['ldap'] = 'ok'
+        except Exception as e:
+            checks['ldap'] = str(e)
+            all_ok = False
+
+    status_code = 200 if all_ok else 503
+    return JsonResponse(
+        {'status': 'healthy' if all_ok else 'unhealthy', 'checks': checks},
+        status=status_code
+    )
