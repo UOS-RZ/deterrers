@@ -4,7 +4,7 @@ bluecat-libraries == 25.3.0
 django-python3-ldap == 0.16.1
 requests
 gunicorn
-python-gvm == 26.9.1
+python-gvm == 26.11.1
 icalendar
 django-bootstrap5
 djangorestframework
