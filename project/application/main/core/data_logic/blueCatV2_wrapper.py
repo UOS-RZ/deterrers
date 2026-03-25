@@ -40,7 +40,8 @@ class ProteusV2IPAMWrapper(DataAbstract):
             ProteusV2IPAMWrapper: Self reference for use in with-statements.
         """
         try:
-            self.client = Client(self.url)
+            #self.client = Client(self.url) 
+            self.client = Client(self.url, verify=False) # Disable SSL verification for testing; remove verify=False in production!
             self.client.login(self.username, self._password)
             logger.info("Successfully connected to BlueCat IPAM API v2.")
             self.enter_ok = True
