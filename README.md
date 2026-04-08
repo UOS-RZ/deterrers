@@ -121,7 +121,7 @@ sudo apt install -y docker-compose
 
 A deployment is currently only possible in conjunction with the following components and API endpoints:
 
-    Data Backend: BlueCat IP Address Manager with the REST API version 1
+    Data Backend: BlueCat IP Address Manager with the REST API version 1 and 2
 
     Vulnerability Scanner: Greenbone GMP version 22.4
 

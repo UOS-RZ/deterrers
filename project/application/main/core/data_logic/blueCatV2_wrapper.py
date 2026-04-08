@@ -42,7 +42,7 @@ class ProteusV2IPAMWrapper(DataAbstract):
         try:
             self.client = Client(self.url)
             self.client.login(self.username, self._password)
-            logger.info("Successfully connected to BlueCat IPAM API v2.")
+            logger.debug("Successfully connected to BlueCat IPAM API v2.")
             self.enter_ok = True
         except Exception as e:
             logger.exception(f"Failed to connect to BlueCat IPAM API v2: {e}")
@@ -54,7 +54,7 @@ class ProteusV2IPAMWrapper(DataAbstract):
         if self.client and self.enter_ok:
             try:
                 self.client.logout()
-                logger.info("Closed connection to BlueCat IPAM API v2.")
+                logger.debug("Closed connection to BlueCat IPAM API v2.")
             except Exception as e:
                 logger.exception(f"Error closing connection: {e}")
 
@@ -119,8 +119,8 @@ class ProteusV2IPAMWrapper(DataAbstract):
             
             try:
                 mac = data["macAddress"]["address"]
-            except KeyError:
-                mac = None
+            except (KeyError, TypeError):
+                mac = ''
             
             udf = data.get("userDefinedFields", {})
             status = udf.get("deterrers_status")
@@ -545,6 +545,8 @@ class ProteusV2IPAMWrapper(DataAbstract):
 
             response = self.client.http_delete(f"/addresses/{host_id}/tags/{tag_id}")
             if response is not None:
+                # remove admin from admin set of host
+                host.admin_ids.remove(admin_name)
                 return 200
             else:
                 logger.error(f"Failed to remove tag '{admin_name}' from host {host.ipv4_addr}")
