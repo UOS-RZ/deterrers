@@ -43,6 +43,14 @@ class ProteusV2IPAMWrapper(DataAbstract):
     # Exact name of the tag group in BAM under which all Deterrers admin tags
     # are organised.  Must match the name configured in BAM exactly.
     TAG_GROUP_NAME = "Deterrers Host Admins"
+    # BlueCat rejects address updates when these required UDFs are empty.
+    # Only these known required fields get a fallback value; other UDFs are
+    # left unchanged so that Deterrers does not silently modify unrelated data.
+    REQUIRED_ADDRESS_UDF_DEFAULTS = {
+        "admin_name": "N/A",
+        "admin_email": "N/A",
+        "admin_phone": "N/A",
+    }
 
     def __init__(self, username: str, password: str, url: str) -> None:
         """Initialize the BlueCat IPAM v2 wrapper.
@@ -72,15 +80,9 @@ class ProteusV2IPAMWrapper(DataAbstract):
             ProteusV2IPAMWrapper: Self reference for use in with-statements.
         """
         try:
-            # verify=False disables TLS certificate verification.
-            # This is necessary in test/dev environments that use self-signed
-            # certificates.  In production with a valid certificate,
-            # replace this line with: self.client = Client(self.url)
-            #self.client = Client(self.url)
-            self.client = Client(self.url, verify=False) # Disable SSL verification for testing; remove verify=False in production!
-            # login() sends credentials to /sessions and stores the returned
-            # session token internally.  All subsequent requests made by the
-            # client object carry that token automatically.
+            # The Client object handles session management and provides helper methods
+            self.client = Client(self.url)
+            # Login creates a session server-side and consumes a licence slot; it must succeed for any subsequent API calls to work.
             self.client.login(self.username, self._password)
             logger.info("Successfully connected to BlueCat IPAM API v2.")
             # enter_ok is read in __exit__ to decide whether a logout is
@@ -94,11 +96,9 @@ class ProteusV2IPAMWrapper(DataAbstract):
     def __exit__(self, exc_type, exc_value, traceback):
         """Close the session to the BlueCat IPAM API v2."""
         # Only attempt logout if a session was actually established.
-        # Calling logout with an invalid session would raise an exception.
         if self.client and self.enter_ok:
             try:
-                # logout() deletes the current session server-side
-                # (DELETE /sessions/current) and releases the licence slot.
+                # Logout invalidates the session server-side and releases the licence slot.
                 self.client.logout()
                 logger.info("Closed connection to BlueCat IPAM API v2.")
             except Exception as e:
@@ -112,17 +112,15 @@ class ProteusV2IPAMWrapper(DataAbstract):
         Returns:
             int | None: Tag group ID or None if not found.
         """
-        # Short-circuit: return the cached value if it is already available.
-        # Avoids an unnecessary API call for every operation that needs the
-        # group ID within the same session.
+        # Caching logic: if the ID has already been fetched during this session, return it directly.
         if self.__tag_group_id is not None:
             return self.__tag_group_id
 
         try:
-            # Filter by exact name so that only the relevant tag group is
-            # returned.  The BlueCat v2 API supports OData-like filter
-            # expressions of the form  name:'<value>'.
+            # Filter by exact name so that only the relevant tag group is rerurned.  The filter syntax is "name:'exact_name'".
             tag_group_resp = self.client.http_get("/tagGroups", params={"filter": f"name:'{self.TAG_GROUP_NAME}'"})
+            # The response contains a "data" field which is a list of matching tag groups. 
+            # We expect exactly one match; if there are multiple matches or no matches, we return None.
             tag_group = tag_group_resp.get("data", [])
             if tag_group:
                 # Cache the ID for reuse within this session.
@@ -149,12 +147,8 @@ class ProteusV2IPAMWrapper(DataAbstract):
 
         try:
             # Validate and normalise the address before passing it to the API.
-            # IPv4Address() rejects invalid input (e.g. hostnames, leading zeros)
-            # immediately and returns a canonical string representation.
             ip_obj = ipaddress.IPv4Address(ipv4)
-            # Query /addresses with an exact filter and limit=1 – each IP should
-            # be unique in the IPAM; the limit prevents unexpected duplicates
-            # from complicating processing.
+            # Get the host entity by filtering for the exact IP address.  The filter syntax is "address:'exact_ip'".  limit=1 is a pragmatic upper bound since IP addresses are unique in the IPAM; it also optimises performance by avoiding unnecessary data transfer.
             response_data = self.client.http_get("/addresses", params={"filter": f"address:'{ip_obj}'", "limit": 1})["data"]
             
             if not response_data or len(response_data) == 0:
@@ -204,12 +198,12 @@ class ProteusV2IPAMWrapper(DataAbstract):
             fw = udf.get("deterrers_fw")
             
             # ── Parse firewall rules from JSON string ─────────────────────────
-            # Host-based policies are stored as a JSON array of strings in a
-            # single UDF field because BAM does not support array fields.
+            # Host-based policies are stored as a JSON array of strings in a single UDF field 
             # Example value:  '["ALLOW tcp 443", "ALLOW tcp 80"]'
             rules_str = udf.get("deterrers_rules") or "[]"
             rules = []
             try:
+                # Parse the JSON string into a list of rule strings.
                 rules_list = json.loads(rules_str)
                 if isinstance(rules_list, list):
                     for rule_item in rules_list:
@@ -229,7 +223,7 @@ class ProteusV2IPAMWrapper(DataAbstract):
             # DNS names and admin tags are not stored directly on the
             # IPv4Address object in the BAM data model but are linked via
             # relations, so additional API calls are required.
-            dns_rcs = self.__get_linked_dns_records(host_id, ip)
+            dns_rcs = self.__get_linked_dns_records(host_id)
             tagged_admins = self.__get_admins_of_host(host_id)
             
             my_host = MyHost(
@@ -237,20 +231,16 @@ class ProteusV2IPAMWrapper(DataAbstract):
                 ipv4_addr=ip,
                 mac_addr=mac,
                 admin_ids=set(tagged_admins),
-                # Reconstruct the enum value from the stored string; default
-                # to UNREGISTERED when no value is set in BAM.
-                status=HostStatus(status) if status else HostStatus.UNREGISTERED,
+                status=HostStatus(status) if status else HostStatus.UNREGISTERED, # Default to UNREGISTERED if the status UDF is not set or empty.
                 name=name,
                 dns_rcs=set(dns_rcs),
-                service_profile=HostServiceProfile(service_profile) if service_profile else HostServiceProfile.EMPTY,
-                fw=HostFW(fw) if fw else HostFW.EMPTY,
+                service_profile=HostServiceProfile(service_profile) if service_profile else HostServiceProfile.EMPTY, # Default to EMPTY if the service profile UDF is not set or empty.
+                fw=HostFW(fw) if fw else HostFW.EMPTY, # Default to EMPTY if the firewall UDF is not set or empty.
                 host_based_policies=rules,
                 comment=comment if comment else "",
             )
 
             # is_valid() checks that all required fields are populated.
-            # A host without a valid IP or entity ID would cause errors in
-            # subsequent operations.
             if my_host.is_valid():
                 return my_host
             else:
@@ -273,14 +263,13 @@ class ProteusV2IPAMWrapper(DataAbstract):
         """
         tagged_admins = []
         try:
-            # GET /addresses/{id}/tags returns all tag objects linked to this
-            # IPv4Address object.
+            # GET /addresses/{id}/tags returns all tag objects linked to this IPv4Address object.
             tags_resp = self.client.http_get(f"/addresses/{host_id}/tags")
             tags = tags_resp.get("data", [])
             
             for tag in tags:
                 # The "name" of a tag corresponds to the admin's username/ID.
-                # Tags without a name (data inconsistency in BAM) are skipped.
+                # Tags without a name are skipped.
                 tag_id = tag.get("name")
                 if tag_id:
                     tagged_admins.append(tag_id)
@@ -290,52 +279,34 @@ class ProteusV2IPAMWrapper(DataAbstract):
 
         return tagged_admins
     
-    def __get_linked_dns_records(self, address_id: int, ip: str) -> set[str]:
+    def __get_linked_dns_records(self, address_id: int) -> set[str]:
         """Query DNS records linked to an IPv4 address entity.
-
-        Falls back to a socket-based reverse DNS lookup if the API
-        query fails.
 
         Args:
             address_id (int): Entity ID of the IPv4 address in BlueCat.
-            ip (str): IPv4 address string used for fallback DNS lookup.
+
 
         Returns:
             set[str]: Set of DNS names associated with the address.
         """
         dns_names = set()
-        try:
-            # GET /addresses/{id}/resourceRecords returns all DNS resource
-            # records linked to this IP address.
-            records_resp = self.client.http_get(f"/addresses/{address_id}/resourceRecords")
-            for record in records_resp.get("data", []):
-                rec_type = record.get("type")
-                # Only HostRecord and ExternalHostRecord contain meaningful
-                # fully qualified domain names (FQDNs).
-                # Other record types (e.g. AliasRecord/CNAME) are skipped
-                # because they do not represent a standalone hostname.
-                if rec_type in {"HostRecord", "ExternalHostRecord"}:
-                    # absoluteName holds the FQDN, e.g. "server.example.com".
-                    # Falls back to the relative name if absoluteName is absent.
-                    name = record.get("absoluteName") or record.get("name")
-                    if name:
-                        dns_names.add(name)
-        except Exception:
-            # ── Fallback: socket-based reverse DNS lookup ─────────────────────
-            # If the IPAM API is unreachable or the host has no resource records,
-            # query the OS DNS resolver directly via a PTR record lookup.
-            # Limitation: returns only the PTR entry, not all A-record names.
-            try:
-                host_info = socket.gethostbyaddr(ip)
-                # gethostbyaddr returns (hostname, [aliases], [addresses]).
-                dns_names.add(host_info[0])      # primary hostname
-                for alias in host_info[1]:        # optional aliases
-                    dns_names.add(alias)
-            except (socket.herror, OSError):
-                # herror: host/DNS not found; OSError: network error.
-                # In both cases, return an empty set rather than aborting
-                # the entire host lookup.
-                pass
+
+        # GET /addresses/{id}/resourceRecords returns all DNS resource
+        # records linked to this IP address.
+        records_resp = self.client.http_get(f"/addresses/{address_id}/resourceRecords")
+        for record in records_resp.get("data", []):
+            rec_type = record.get("type")
+            # Only HostRecord and ExternalHostRecord contain meaningful
+            # fully qualified domain names (FQDNs).
+            # Other record types (e.g. AliasRecord/CNAME) are skipped
+            # because they do not represent a standalone hostname.
+            if rec_type in {"HostRecord", "ExternalHostRecord"}:
+                # absoluteName holds the FQDN, e.g. "server.example.com".
+                # Falls back to the relative name if absoluteName is absent.
+                name = record.get("absoluteName") or record.get("name")
+                if name:
+                    dns_names.add(name)
+
 
         return dns_names
     
@@ -381,14 +352,16 @@ class ProteusV2IPAMWrapper(DataAbstract):
                 # GET /tags/{id}/taggedResources returns all objects linked to
                 # this tag.  The filter type:'IPv4Address' restricts results to
                 # IP addresses and excludes other BAM objects (e.g. networks,
-                # blocks).  limit=10000 is a pragmatic upper bound sufficient
-                # for typical department sizes.
+                # blocks). limit=10000 is a upper bound to avoid performance 
+                # issues in case of an unexpectedly large number of tagged hosts.
                 tagged_resp = self.client.http_get(
                     f"/tags/{tid}/taggedResources",
                     params={"filter": "type:'IPv4Address'", "limit": "10000"}
                 )
                 tagged_resources = tagged_resp.get("data", [])
 
+                # Each tagged resource contains a nested "address" field with the IP address string.
+                #  The host info is loaded for each IP and added to the result list.
                 for addr in tagged_resources:
                     ip = addr.get("address")
                     if ip:
@@ -430,9 +403,7 @@ class ProteusV2IPAMWrapper(DataAbstract):
             # A HostRecord in BAM can point to both an IPv4 AND an IPv6 address
             # (dual-stack DNS entry).  The shared HostRecord is the bridge to
             # the corresponding IPv6 addresses.
-            records_resp = self.client.http_get(
-                f"/addresses/{ipv4_id}/resourceRecords"
-            )
+            records_resp = self.client.http_get(f"/addresses/{ipv4_id}/resourceRecords")
             all_addresses = set()
             for record in records_resp.get("data", []):
                 # Only consider HostRecords – standalone AAAA records are not
@@ -514,7 +485,7 @@ class ProteusV2IPAMWrapper(DataAbstract):
             str | None: Department name or None if not found.
         """
         try:
-            # Look up the admin tag by name.
+            # Look up the admin tag by name. The filter syntax is "name:'exact_name'".
             tag_resp = self.client.http_get("/tags", params={"filter": f"name:'{admin_name}'"})
             tags = tag_resp.get("data", [])
             if not tags:
@@ -522,9 +493,7 @@ class ProteusV2IPAMWrapper(DataAbstract):
             tag_id = tags[0].get("id")
             if not tag_id:
                 return None
-            # Fetch the full tag detail to access the HATEOAS links.
-            # The tag response contains a "_links" block with navigable
-            # relations to the BAM object hierarchy.
+            # Get the tag details to access the "_links" section, which contains the "up" link to the parent tag.
             tag_detail = self.client.http_get(f"/tags/{tag_id}")
             tag_data = tag_detail
             # The "up" link points to the parent tag (= department tag).
@@ -534,11 +503,9 @@ class ProteusV2IPAMWrapper(DataAbstract):
             up_link = (tag_data.get("_links", {}) or {}).get("up", {}).get("href")
             if not up_link:
                 return None
-            # The HATEOAS path includes /api/v2/ as a prefix, which the client
-            # library adds internally.  Strip it here to avoid duplication.
+            # Follow the "up" link to get the parent tag details, which contain the department name.
             parent_detail = self.client.http_get(up_link.replace("/api/v2", ""))
-            parent_data = parent_detail
-            return parent_data.get("name")
+            return parent_detail.get("name")
         except Exception:
             logger.exception("Couldn't query parent tag from IPAM!")
         return None
@@ -562,11 +529,11 @@ class ProteusV2IPAMWrapper(DataAbstract):
             
             for dept in departments:
                 dept_id = dept.get("id")
-                # Second level: load all admin tags under this department tag.
+                # Second level: load all admin tags under this department tags.
                 # GET /tags/{dept_id}/tags returns the direct child tags.
                 admin_resp = self.client.http_get(f"/tags/{dept_id}/tags")
                 admin_tags = admin_resp.get("data", [])
-                for admin in admin_tags:
+                for admin in admin_tags: 
                     admin_name = admin.get("name")
                     if admin_name:
                         admin_tag_names.append(admin_name)
@@ -642,8 +609,6 @@ class ProteusV2IPAMWrapper(DataAbstract):
             # Delegates to get_all_admin_names() to load the full set of admin
             # tags, then checks membership via a set lookup (O(1)).
             # Trade-off: loads all admin names even when checking just one.
-            # For the current use case (single checks before create_admin)
-            # this approach is acceptable.
             all_admins = self.get_all_admin_names()
             return admin_name in all_admins
         except Exception:
@@ -754,6 +719,7 @@ class ProteusV2IPAMWrapper(DataAbstract):
         Returns:
             bool: Returns True on success and False on error.
         """
+        # Validation check: ensure that the host object has all required fields
         if hasattr(host, "is_valid") and not host.is_valid():
             logger.error("Host not valid: %s", str(host))
             return False
@@ -772,29 +738,41 @@ class ProteusV2IPAMWrapper(DataAbstract):
                     rules_list.append(policy)
 
             # ── Read-before-Write: load current state from BAM ────────────────
-            # BlueCat API v2 requires ALL fields when doing a PUT on
-            # /addresses/{id} – PATCH is not available for this endpoint.
-            # Problem: many existing hosts have required UDFs (admin_email,
-            # admin_name, admin_phone, ...) set to None; a PUT without these
-            # fields fails with a validation error.
-            # Solution: read the current state, then selectively overwrite
-            # only the Deterrers-owned fields and keep everything else as-is.
+            # BlueCat API v2 expects a full object on PUT, not a partial update.
+            # That means we first read the current address and then build the
+            # outgoing payload from that state.
             current_resp = self.client.http_get(f"/addresses/{host.entity_id}")
             current_data = current_resp
             current_udf = current_data.get("userDefinedFields") or {}
 
-            # Use the existing UDFs as the base (dict spread) and selectively
-            # overwrite only Deterrers-owned fields.
-            # Fields unknown to Deterrers (e.g. admin_email, admin_phone)
-            # are preserved unchanged.
-            user_defined_fields = {
-                **current_udf,  # carry over all existing UDFs
-                "deterrers_service_profile": host.get_service_profile_display() if hasattr(host, "get_service_profile_display") else str(getattr(host, "service_profile", "")),
-                "deterrers_fw": host.get_fw_display() if hasattr(host, "get_fw_display") else str(getattr(host, "fw", "")),
-                "deterrers_status": host.get_status_display() if hasattr(host, "get_status_display") else str(getattr(host, "status", "")),
-                "deterrers_rules": json.dumps(rules_list),
-                "comment": getattr(host, "comment", "") or "",
-            }
+            # Start with the current UDFs exactly as stored in BAM.
+            user_defined_fields = dict(current_udf)
+
+            # Only fill in the known required UDFs when they are empty.
+            # This avoids changing unrelated custom fields just because their
+            # current value happens to be None or an empty string.
+            for field_name, default_value in self.REQUIRED_ADDRESS_UDF_DEFAULTS.items():
+                if not user_defined_fields.get(field_name):
+                    user_defined_fields[field_name] = default_value
+
+            # Overwrite only the fields that Deterrers is responsible for.
+            user_defined_fields["deterrers_service_profile"] = (
+                host.get_service_profile_display()
+                if hasattr(host, "get_service_profile_display")
+                else str(getattr(host, "service_profile", ""))
+            )
+            user_defined_fields["deterrers_fw"] = (
+                host.get_fw_display()
+                if hasattr(host, "get_fw_display")
+                else str(getattr(host, "fw", ""))
+            )
+            user_defined_fields["deterrers_status"] = (
+                host.get_status_display()
+                if hasattr(host, "get_status_display")
+                else str(getattr(host, "status", ""))
+            )
+            user_defined_fields["deterrers_rules"] = json.dumps(rules_list)
+            user_defined_fields["comment"] = getattr(host, "comment", "") or ""
 
             # The PUT payload must include all top-level fields required by the
             # API; missing required fields result in HTTP 400/422.
