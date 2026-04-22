@@ -48,7 +48,7 @@ class ProteusV2IPAMWrapper(DataAbstract):
     # left unchanged so that Deterrers does not silently modify unrelated data.
     REQUIRED_ADDRESS_UDF_DEFAULTS = {
         "admin_name": "N/A",
-        "admin_email": "N/A",
+        "admin_email": "unknown@uni-osnabrueck.de",
         "admin_phone": "N/A",
     }
 
