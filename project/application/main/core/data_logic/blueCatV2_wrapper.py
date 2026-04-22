@@ -291,21 +291,27 @@ class ProteusV2IPAMWrapper(DataAbstract):
         """
         dns_names = set()
 
-        # GET /addresses/{id}/resourceRecords returns all DNS resource
-        # records linked to this IP address.
-        records_resp = self.client.http_get(f"/addresses/{address_id}/resourceRecords")
-        for record in records_resp.get("data", []):
-            rec_type = record.get("type")
-            # Only HostRecord and ExternalHostRecord contain meaningful
-            # fully qualified domain names (FQDNs).
-            # Other record types (e.g. AliasRecord/CNAME) are skipped
-            # because they do not represent a standalone hostname.
-            if rec_type in {"HostRecord", "ExternalHostRecord"}:
-                # absoluteName holds the FQDN, e.g. "server.example.com".
-                # Falls back to the relative name if absoluteName is absent.
-                name = record.get("absoluteName") or record.get("name")
-                if name:
-                    dns_names.add(name)
+        try:
+            # GET /addresses/{id}/resourceRecords returns all DNS resource
+            # records linked to this IP address.
+            records_resp = self.client.http_get(f"/addresses/{address_id}/resourceRecords")
+            for record in records_resp.get("data", []):
+                rec_type = record.get("type")
+                # Only HostRecord and ExternalHostRecord contain meaningful
+                # fully qualified domain names (FQDNs).
+                # Other record types (e.g. AliasRecord/CNAME) are skipped
+                # because they do not represent a standalone hostname.
+                if rec_type in {"HostRecord", "ExternalHostRecord"}:
+                    # absoluteName holds the FQDN, e.g. "server.example.com".
+                    # Falls back to the relative name if absoluteName is absent.
+                    name = record.get("absoluteName") or record.get("name")
+                    if name:
+                        dns_names.add(name)
+        except Exception:
+            logger.exception(
+                "Couldn't query linked DNS records for address id %s!",
+                address_id,
+            )
 
 
         return dns_names
