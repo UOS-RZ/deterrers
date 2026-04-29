@@ -62,7 +62,8 @@ class FortigateWrapper(FWAbstract):
         self,
         username: str,
         password: str,
-        url: str
+        url: str,
+        **kwargs
     ) -> None:
         super().__init__(username, password, url)
 
@@ -71,7 +72,7 @@ class FortigateWrapper(FWAbstract):
             "Accept": "application/json",
             "Authorization": f"Bearer {password}"
         }
-        self.query_params = "?vdom=Uni"
+        self.query_params = f"?vdom={kwargs['vdom']}"
 
     def __enter__(self):
         return self

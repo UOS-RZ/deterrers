@@ -100,7 +100,7 @@ class ProteusV2IPAMWrapper(DataAbstract):
             try:
                 # Logout invalidates the session server-side and releases the licence slot.
                 self.client.logout()
-                logger.info("Closed connection to BlueCat IPAM API v2.")
+                logger.debug("Closed connection to BlueCat IPAM API v2.")
             except Exception as e:
                 logger.exception(f"Error closing connection: {e}")
 

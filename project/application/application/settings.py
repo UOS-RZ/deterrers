@@ -317,6 +317,11 @@ SCANNER_SECRET_KEY = os.environ.get('SCANNER_SECRET_KEY', '')
 FIREWALL_URL = os.environ.get('FIREWALL_URL', '')
 FIREWALL_USERNAME = os.environ.get('FIREWALL_USERNAME', '')
 FIREWALL_SECRET_KEY = os.environ.get('FIREWALL_SECRET_KEY', '')
+FIREWALL_KWARGS = dict(
+    item.split('=', 1)
+    for item in os.environ.get('FIREWALL_KWARGS', '').split(',')
+    if item
+)
 
 DJANGO_SUPERUSER_USERNAME = os.environ.get('DJANGO_SUPERUSER_USERNAME', '')
 DJANGO_SUPERUSER_EMAIL = os.environ.get('DJANGO_SUPERUSER_EMAIL', '')

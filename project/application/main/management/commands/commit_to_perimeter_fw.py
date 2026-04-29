@@ -29,7 +29,8 @@ class Command(BaseCommand):
         fw_username = settings.FIREWALL_USERNAME
         fw_password = settings.FIREWALL_SECRET_KEY
         fw_url = settings.FIREWALL_URL
-        with FWWrapper(fw_username, fw_password, fw_url) as fw:
+        fw_kwargs = settings.FIREWALL_KWARGS
+        with FWWrapper(fw_username, fw_password, fw_url, **fw_kwargs) as fw:
             if not fw.enter_ok:
                 logger.error("Couldn't start session with perimeter FW!")
                 return

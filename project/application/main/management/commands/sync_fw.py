@@ -142,14 +142,21 @@ class Command(BaseCommand):
                         fw_username = settings.FIREWALL_USERNAME
                         fw_password = settings.FIREWALL_SECRET_KEY
                         fw_url = settings.FIREWALL_URL
+                        fw_kwargs = settings.FIREWALL_KWARGS
                     except Exception:
                         fw_username = os.environ.get('FIREWALL_USERNAME')
                         fw_password = os.environ.get('FIREWALL_SECRET_KEY')
                         fw_url = os.environ.get('FIREWALL_URL')
+                        fw_kwargs = dict(
+                            item.split('=', 1)
+                            for item in os.environ.get('FIREWALL_KWARGS', '').split(',')
+                            if item
+                        )
                     with FWWrapper(
                         fw_username,
                         fw_password,
-                        fw_url
+                        fw_url,
+                        **fw_kwargs
                     ) as fw:
                         if not fw.enter_ok:
                             sleep(1.0)

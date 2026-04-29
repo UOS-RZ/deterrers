@@ -14,15 +14,15 @@ from django.urls import reverse
 
 from user.models import MyUser
 from main.util import (available_actions,
-                            set_host_bulk_offline,
-                            set_host_online,
-                            set_host_offline)
+                       set_host_bulk_offline,
+                       set_host_online,
+                       set_host_offline)
 from main.core.host import MyHost
 from main.core.contracts import (HostStatus,
-                                      HostServiceProfile,
-                                      HostBasedPolicySrc,
-                                      HostBasedPolicyProtocol,
-                                      HostFW)
+                                 HostServiceProfile,
+                                 HostBasedPolicySrc,
+                                 HostBasedPolicyProtocol,
+                                 HostFW)
 if settings.IPAM_TYPE == "DUMMY":
     from main.core.data_logic.data_mock \
         import DataMockWrapper as IPAMWrapper
