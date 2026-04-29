@@ -174,7 +174,8 @@ def set_host_offline(host: MyHost) -> bool:
             with FWWrapper(
                 settings.FIREWALL_USERNAME,
                 settings.FIREWALL_SECRET_KEY,
-                settings.FIREWALL_URL
+                settings.FIREWALL_URL,
+                **settings.FIREWALL_KWARGS
             ) as fw:
                 if not fw.enter_ok:
                     return False
@@ -240,7 +241,8 @@ def set_host_online(host: MyHost) -> bool:
             with FWWrapper(
                 settings.FIREWALL_USERNAME,
                 settings.FIREWALL_SECRET_KEY,
-                settings.FIREWALL_URL
+                settings.FIREWALL_URL,
+                **settings.FIREWALL_KWARGS
             ) as fw:
                 if not fw.enter_ok:
                     return False
