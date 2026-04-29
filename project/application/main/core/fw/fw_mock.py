@@ -16,7 +16,8 @@ class FWMock(FWAbstract):
         self,
         username: str,
         password: str,
-        url: str = ""
+        url: str = "",
+        **kwargs
     ) -> None:
         super().__init__(username, password, url)
 

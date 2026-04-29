@@ -57,7 +57,7 @@ class PaloAltoWrapper(FWAbstract):
     VERSION = "v10.1"
     LOCATION = 'vsys&vsys=vsys1'
 
-    def __init__(self, username: str, password: str, url: str):
+    def __init__(self, username: str, password: str, url: str, **kwargs):
         super().__init__(username, password, url)
 
         self.rest_url = f"{url}/restapi/{self.VERSION}/"
