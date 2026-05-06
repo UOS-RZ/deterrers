@@ -18,9 +18,6 @@ class IPPathConverter:
 register_converter(IPPathConverter, 'esc_ip')
 
 urlpatterns = [
-     path('host/<esc_ip:ipv4>/remove_admin/<str:admin_name>/',
-           views.remove_admin_from_host_view,
-           name='remove_admin_from_host'),
     path('',
          views.hosts_list_view,
          name='main_landing'),
@@ -66,6 +63,9 @@ urlpatterns = [
     path('host/<esc_ip:ipv4>/remove/',
          views.remove_host,
          name='remove_host'),
+    path('host/<esc_ip:ipv4>/remove_admin/<str:admin_name>/',
+         views.remove_admin_from_host_view,
+         name='remove_admin_from_host'),
     # V-scanner alerts
     path('scanner/alert/registration/',
          views.scanner_registration_alert,
