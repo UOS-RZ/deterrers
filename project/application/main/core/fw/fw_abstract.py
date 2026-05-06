@@ -13,7 +13,8 @@ class FWAbstract(ABC):
         self,
         username: str,
         password: str,
-        url: str
+        url: str,
+        **kwargs
     ) -> None:
         self.username = username
         self._password = password

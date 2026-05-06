@@ -1444,7 +1444,8 @@ def scanner_scan_alert(request):
                     with FWWrapper(
                         settings.FIREWALL_USERNAME,
                         settings.FIREWALL_SECRET_KEY,
-                        settings.FIREWALL_URL
+                        settings.FIREWALL_URL,
+                        **settings.FIREWALL_KWARGS
                     ) as fw:
                         if not fw.enter_ok:
                             return
