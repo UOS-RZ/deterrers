@@ -1772,7 +1772,10 @@ def remove_admin_from_host_view(request, ipv4: str, admin_name: str):
         host = ipam.get_host_info_from_ip(ipv4)
         if not host or not host.is_valid():
             return HttpResponse(status=404)
-        if (hostadmin.username not in host.admin_ids) and (ipam.get_department_to_admin(hostadmin.username) not in host.admin_ids):
+        if (
+            (hostadmin.username not in host.admin_ids) and
+            (ipam.get_department_to_admin(hostadmin.username) not in host.admin_ids)
+        ):
             return HttpResponse(status=403)
 
         # Validate that the admin to remove actually exists on this host
@@ -1787,7 +1790,6 @@ def remove_admin_from_host_view(request, ipv4: str, admin_name: str):
         if len(host.admin_ids) <= 1:
             messages.error(request, "Cannot remove the last admin from a host.")
             return redirect('host_detail', ipv4=ipv4, tab='general')
-
 
         code = ipam.remove_admin_from_host(admin_name, host)
 
