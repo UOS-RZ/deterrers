@@ -1781,6 +1781,11 @@ def remove_admin_from_host_view(request, ipv4: str, admin_name: str):
         ):
             return HttpResponse(status=403)
 
+        # check if an admin can be removed at the moment or whether there
+        # are processes running for it
+        if not available_actions(host).get('can_update'):
+            return HttpResponse(status=409)
+
         # Validate that the admin to remove actually exists on this host
         if admin_name not in host.admin_ids:
             messages.error(
