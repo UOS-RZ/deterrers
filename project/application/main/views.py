@@ -1767,14 +1767,24 @@ def remove_admin_from_host_view(request, ipv4: str, admin_name: str):
     ) as ipam:
         if not ipam.enter_ok:
             return HttpResponse(status=500)
+        # check if user has IPAM permission or an admin tag for them exists
+        if not ipam.is_admin(hostadmin.username):
+            raise Http404()
 
         # Only allow if user is admin of this host
-        # Dont know if this is nessary 
         host = ipam.get_host_info_from_ip(ipv4)
         if not host or not host.is_valid():
             return HttpResponse(status=404)
-        if (hostadmin.username not in host.admin_ids) and (ipam.get_department_to_admin(hostadmin.username) not in host.admin_ids):
+        if (
+            (hostadmin.username not in host.admin_ids) and
+            (ipam.get_department_to_admin(hostadmin.username) not in host.admin_ids)
+        ):
             return HttpResponse(status=403)
+
+        # check if an admin can be removed at the moment or whether there
+        # are processes running for it
+        if not available_actions(host).get('can_update'):
+            return HttpResponse(status=409)
 
         # Validate that the admin to remove actually exists on this host
         if admin_name not in host.admin_ids:
@@ -1789,11 +1799,10 @@ def remove_admin_from_host_view(request, ipv4: str, admin_name: str):
             messages.error(request, "Cannot remove the last admin from a host.")
             return redirect('host_detail', ipv4=ipv4, tab='general')
 
-
         code = ipam.remove_admin_from_host(admin_name, host)
 
         # Log the outcome and set appropriate messages
-        if code in range(200, 205, 1):
+        if code == 200:
             logger.info(
                 "Successfully removed admin '%s' from host %s by user %s",
                 admin_name,
@@ -1801,6 +1810,10 @@ def remove_admin_from_host_view(request, ipv4: str, admin_name: str):
                 request.user.username
             )
             messages.success(request, f"Admin '{admin_name}' removed from host.")
+
+            # If the user removed themselves, they no longer have access to the host
+            if admin_name == request.user.username:
+                return redirect('hosts_list')
         else:
             logger.error(
                 "Failed to remove admin '%s' from host %s. Code: %d",
@@ -1813,5 +1826,4 @@ def remove_admin_from_host_view(request, ipv4: str, admin_name: str):
                 f"Failed to remove admin '{admin_name}' from host. "
                 f"Error code: {code}"
             )
-
     return redirect('host_detail', ipv4=ipv4, tab='general')

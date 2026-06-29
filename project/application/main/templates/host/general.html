@@ -18,7 +18,18 @@
                 <td>{{host_detail.ipv4_addr}}</td>
                 <td>{{host_detail.get_dns_rcs_display}}</td>
                 <td>{{host_detail.comment}}</td>
-                <td>{{host_detail.admin_ids|join:", "}}</td>
+                <td>
+                {% for admin in host_detail.admin_ids %}
+                    <span>{{ admin }}</span>
+                    {% if can_update and host_detail.admin_ids|length > 1 %}        
+                        <form action="{% url 'remove_admin_from_host' ipv4=host_ipv4 admin_name=admin %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Remove admin \u0027{{ admin|escapejs }}\u0027 from this host?');" title="Remove this admin from the host.">Remove</button>
+                        </form>
+                    {% endif %}
+                    {% if not forloop.last %}, {% endif %}
+                {% endfor %}
+                </td>
                 <td>{{host_detail.get_service_profile_display}}</td>
                 <td>{{host_detail.get_status_display}}</td>
             </tr>
