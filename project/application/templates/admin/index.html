@@ -1,0 +1,15 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block coltype %}colMS{% endblock %}
+{% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+
+{% block app_list %}
+  {#
+    Keep Django's default dashboard app list markup.
+    The Vulnerability Metrics entry is injected by
+    vulnerability_mgmt/admin.py via admin.site.get_app_list patching,
+    so it appears here together with other admin sections on the left.
+  #}
+  {{ block.super }}
+{% endblock %}
