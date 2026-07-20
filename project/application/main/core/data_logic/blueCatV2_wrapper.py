@@ -180,18 +180,59 @@ class ProteusV2IPAMWrapper(DataAbstract):
         """
         tagged_admins = []
         try:
-            tags_resp = self.client.http_get(f"/addresses/{host_id}/tags")
+            tag_group_id = self.__get_tag_group_id()
+            if not tag_group_id:
+                logger.warning("Tag group ID for 'Deterrers Host Admins' not found.")
+                return []
+
+            dept_resp = self.client.http_get(f"/tagGroups/{tag_group_id}/tags") #get all departments
+            departments = dept_resp.get("data", []) #get department data
+            department_ids = {
+                dept.get("id") for dept in departments if dept.get("id")
+            } #get department ids
+            department_names_by_id = {
+                dept.get("id"): dept.get("name")
+                for dept in departments
+                if dept.get("id") and dept.get("name")
+            } #get department names by id
+            admin_names_by_id = {}
+            admin_parent_ids_by_id = {}
+            child_admin_names_by_department_id = {}
+
+            for dept_id in department_ids:  #for each department, get all admins
+                admin_resp = self.client.http_get(f"/tags/{dept_id}/tags") 
+                admins = admin_resp.get("data", [])
+                child_admin_names_by_department_id[dept_id] = []
+                for admin in admins: #for each admin, get id and name, and store in dicts
+                    admin_id = admin.get("id")
+                    admin_name = admin.get("name")
+                    if not admin_id or not admin_name: # check if admin_id or admin_name is None, if so, skip to next iteration
+                        continue
+                    admin_names_by_id[admin_id] = admin_name
+                    admin_parent_ids_by_id[admin_id] = dept_id
+                    child_admin_names_by_department_id[dept_id].append(
+                        admin_name
+                    )
+
+            tags_resp = self.client.http_get(f"/addresses/{host_id}/tags") #get all tags of the host
             tags = tags_resp.get("data", [])
-            
-            for tag in tags:
-                tag_id = tag.get("name")
-                if tag_id:
-                    tagged_admins.append(tag_id)
+
+            for tag in tags: # for each tag, check if it is a department or admin, and add to tagged_admins
+                tag_id = tag.get("id")
+                if tag_id in department_ids: # when tag_id is a department, add the department name and all child admins to tagged_admins
+                    dept_name = department_names_by_id.get(tag_id)
+                    if dept_name:
+                        tagged_admins.append(dept_name)
+                    tagged_admins.extend(
+                        child_admin_names_by_department_id.get(tag_id, [])
+                    )
+                elif tag_id in admin_parent_ids_by_id: # when tag_id is an admin, add the admin name to tagged_admins
+                    tagged_admins.append(admin_names_by_id[tag_id])
                         
         except Exception:
-            logger.exception("Caught an unknown exception!")
+            logger.exception("Caught an unknown exception in __get_admins_of_host!")
 
-        return tagged_admins
+        return list(dict.fromkeys(tagged_admins))
     
     def __get_linked_dns_records(self, address_id: int, ip: str) -> set[str]:
         """Query DNS records linked to an IPv4 address entity.
