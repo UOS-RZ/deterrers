@@ -19,9 +19,9 @@ logger = logging.getLogger(__name__)
 # add_tag_to_host()
 
 
-class ProteusIPAMWrapper(DataAbstract):
+class BlueCatRESTWrapper(DataAbstract):
     """
-    Interface to BlueCat's Proteus IP Address Manager REST API
+    Interface to BlueCat's IP Address Manager REST API v1
     """
     # settings
     TAG_GROUP_NAME = "Deterrers Host Admins"

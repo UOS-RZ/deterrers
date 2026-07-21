@@ -15,7 +15,7 @@ from main.core.rule_generator import HostBasedPolicy
 logger = logging.getLogger(__name__)
 
 
-class ProteusV2IPAMWrapper(DataAbstract):
+class BlueCatRESTv2Wrapper(DataAbstract):
     """Wrapper for BlueCat IPAM REST API v2."""
 
     TAG_GROUP_NAME = "Deterrers Host Admins"
@@ -37,7 +37,7 @@ class ProteusV2IPAMWrapper(DataAbstract):
         """Open a session to the BlueCat IPAM API v2.
 
         Returns:
-            ProteusV2IPAMWrapper: Self reference for use in with-statements.
+            BlueCatRESTv2Wrapper: Self reference for use in with-statements.
         """
         try:
             self.client = Client(self.url)

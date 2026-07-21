@@ -15,10 +15,10 @@ if settings.IPAM_TYPE == "DUMMY":
         import DataMockWrapper as IPAMWrapper
 elif settings.IPAM_TYPE == "BlueCatV1":
     from main.core.data_logic.ipam_wrapper \
-        import ProteusIPAMWrapper as IPAMWrapper
+        import BlueCatRESTWrapper as IPAMWrapper
 elif settings.IPAM_TYPE == "BlueCatV2":
     from main.core.data_logic.blueCatV2_wrapper \
-        import ProteusV2IPAMWrapper as IPAMWrapper
+        import BlueCatRESTv2Wrapper as IPAMWrapper
 if settings.SCANNER_DUMMY:
     from main.core.scanner.scanner_mock \
         import ScannerMock as ScannerWrapper
