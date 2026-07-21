@@ -168,30 +168,99 @@ class ProteusV2IPAMWrapper(DataAbstract):
             logger.exception(f"Error retrieving host info for IP {ipv4}: {e}")
             return None
 
-    def __get_admins_of_host(self, host_id: int) -> list:
+    def __get_admin_names_by_tag_id(self) -> dict[int, tuple[str, ...]]:
+        """Build lookup values for tags in the host-admin hierarchy.
+
+        An admin tag ID maps to that admin's name. A department tag ID maps
+        to the department name followed by every admin in that department.
+        For example::
+
+            {
+                department_id: ("department", "admin-a", "admin-b"),
+                admin_a_id: ("admin-a",),
+                admin_b_id: ("admin-b",),
+            }
+
+        Returns:
+            dict[int, tuple[str, ...]]: Names contributed by each valid tag.
         """
-        Queries the BlueCat IPAM API v2 for all tagged admins of a host.
+
+        try:
+            tag_group_id = self.__get_tag_group_id()
+            if tag_group_id is None:
+                logger.warning(
+                    "Tag group ID for '%s' not found.",
+                    self.TAG_GROUP_NAME
+                )
+                return {}
+
+            department_resp = self.client.http_get(
+                f"/tagGroups/{tag_group_id}/tags",
+                params={"fields": "embed(tags)", "limit": 100000}
+            )
+            tag_index = {}
+
+            for department in department_resp.get("data", []):
+                department_id = department.get("id")
+                department_name = department.get("name")
+                embedded = department.get("_embedded", {}) or {}
+                admins = embedded["tags"]
+
+                expanded_names = []
+                if department_name:
+                    expanded_names.append(department_name)
+
+                for admin in admins:
+                    admin_id = admin.get("id")
+                    admin_name = admin.get("name")
+                    if admin_id is None or not admin_name:
+                        continue
+                    tag_index[admin_id] = (admin_name,)
+                    expanded_names.append(admin_name)
+
+                if department_id is not None and expanded_names:
+                    tag_index[department_id] = tuple(
+                        dict.fromkeys(expanded_names)
+                    )
+
+            return tag_index
+        except Exception:
+            logger.exception(
+                "Could not build the BlueCat V2 host-admin hierarchy."
+            )
+            return {}
+
+    def __get_admins_of_host(self, host_id: int) -> list[str]:
+        """Resolve the host's admin and department tags to names.
+
+        Direct admin tags contribute one admin name. Department tags
+        contribute the department name and every admin in that department.
+        Tags outside ``Deterrers Host Admins`` are ignored.
 
         Args:
             host_id (int): Entity ID of the host in the BlueCat IPAM system.
 
         Returns:
-            list: Returns a list of admin rz-ids.
+            list[str]: Unique department and admin names in tag order.
         """
-        tagged_admins = []
         try:
-            tags_resp = self.client.http_get(f"/addresses/{host_id}/tags")
-            tags = tags_resp.get("data", [])
-            
-            for tag in tags:
-                tag_id = tag.get("name")
-                if tag_id:
-                    tagged_admins.append(tag_id)
-                        
+            tag_index = self.__get_admin_names_by_tag_id()
+            if not tag_index:
+                return []
+            tags_resp = self.client.http_get(
+                f"/addresses/{host_id}/tags",
+                params={"limit": 100000}
+            )
+            # Unknown tag IDs expand to an empty tuple and are ignored.
+            tagged_admins = [
+                admin_name
+                for tag in tags_resp.get("data", [])
+                for admin_name in tag_index.get(tag.get("id"), ())
+            ]
+            return list(dict.fromkeys(tagged_admins))
         except Exception:
-            logger.exception("Caught an unknown exception!")
-
-        return tagged_admins
+            logger.exception("Caught an unknown exception in __get_admins_of_host!")
+            return []
     
     def __get_linked_dns_records(self, address_id: int, ip: str) -> set[str]:
         """Query DNS records linked to an IPv4 address entity.
