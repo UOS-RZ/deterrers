@@ -12,6 +12,8 @@ services:
     restart: "always"
     networks:
       - deterrers
+    dns:
+      - 127.0.0.11
 
   web:
     depends_on:
