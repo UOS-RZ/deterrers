@@ -445,6 +445,9 @@ class GmpScannerWrapper(ScannerAbstract):
         Raises:
             GmpAPIError: Raised if couldn't query or modify alert.
         """
+        # check if protocol is given in URL
+        if 'https://' not in deterrers_url or 'http://' not in deterrers_url:
+            deterrers_url = 'https://' + deterrers_url
         response = self.gmp.get_alert(alert_uuid)
         response_status = int(response.xpath('@status')[0])
         if response_status != 200:
