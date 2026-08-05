@@ -204,7 +204,7 @@ class ProteusV2IPAMWrapper(DataAbstract):
                 department_id = department.get("id")
                 department_name = department.get("name")
                 embedded = department.get("_embedded", {}) or {}
-                admins = embedded["tags"]
+                admins = embedded.get("tags", [])
 
                 expanded_names = []
                 if department_name:
@@ -213,15 +213,13 @@ class ProteusV2IPAMWrapper(DataAbstract):
                 for admin in admins:
                     admin_id = admin.get("id")
                     admin_name = admin.get("name")
-                    if admin_id is None or not admin_name:
+                    if not admin_id or not admin_name:
                         continue
                     tag_index[admin_id] = (admin_name,)
                     expanded_names.append(admin_name)
 
-                if department_id is not None and expanded_names:
-                    tag_index[department_id] = tuple(
-                        dict.fromkeys(expanded_names)
-                    )
+                if department_id and expanded_names:
+                    tag_index[department_id] = tuple(expanded_names)
 
             return tag_index
         except Exception:
