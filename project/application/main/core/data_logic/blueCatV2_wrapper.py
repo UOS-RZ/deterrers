@@ -32,6 +32,7 @@ class ProteusV2IPAMWrapper(DataAbstract):
         self.client = None
         self.__tag_group_id = None
         self.__department_tags = None
+        self.__admin_department_hierarchy_by_tag_id = None
 
     def __enter__(self):
         """Open a session to the BlueCat IPAM API v2.
@@ -184,6 +185,8 @@ class ProteusV2IPAMWrapper(DataAbstract):
         Returns:
             dict[int, tuple[str, ...]]: Names contributed by each valid tag.
         """
+        if self.__admin_department_hierarchy_by_tag_id is not None:
+            return self.__admin_department_hierarchy_by_tag_id
 
         try:
             tag_group_id = self.__get_tag_group_id()
@@ -192,15 +195,17 @@ class ProteusV2IPAMWrapper(DataAbstract):
                     "Tag group ID for '%s' not found.",
                     self.TAG_GROUP_NAME
                 )
-                return {}
+                self.__admin_department_hierarchy_by_tag_id = {}
+                return self.__admin_department_hierarchy_by_tag_id
 
             department_resp = self.client.http_get(
                 f"/tagGroups/{tag_group_id}/tags",
                 params={"fields": "embed(tags)", "limit": 100000}
             )
+            departments = department_resp.get("data", [])
             tag_index = {}
 
-            for department in department_resp.get("data", []):
+            for department in departments:
                 department_id = department.get("id")
                 department_name = department.get("name")
                 embedded = department.get("_embedded", {}) or {}
@@ -221,7 +226,8 @@ class ProteusV2IPAMWrapper(DataAbstract):
                 if department_id and expanded_names:
                     tag_index[department_id] = tuple(expanded_names)
 
-            return tag_index
+            self.__admin_department_hierarchy_by_tag_id = tag_index
+            return self.__admin_department_hierarchy_by_tag_id
         except Exception:
             logger.exception(
                 "Could not build the BlueCat V2 host-admin hierarchy."
@@ -516,6 +522,8 @@ class ProteusV2IPAMWrapper(DataAbstract):
 
             response = self.client.http_post(f"/tags/{department_tag_id}/tags", json={"name": admin_name})
             if response and isinstance(response, dict) and response.get("id"):
+                # Reset cached hierarchy so follow-up reads include new admin.
+                self.__admin_department_hierarchy_by_tag_id = None
                 return True
             else:
                 logger.error("Failed to create tag for admin %s!", admin_name)
