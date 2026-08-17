@@ -261,6 +261,7 @@ class ProteusV2IPAMWrapper(DataAbstract):
                 for tag in tags_resp.get("data", [])
                 for admin_name in tag_index.get(tag.get("id"), ())
             ]
+            # remove duplicates while retaining order
             return list(dict.fromkeys(tagged_admins))
         except Exception:
             logger.exception("Caught an unknown exception in __get_admins_of_host!")
