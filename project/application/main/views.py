@@ -1199,10 +1199,10 @@ def remove_host(request, ipv4: str):
             return HttpResponse(status=500)
 
         # remove all admin tags
-        for admin_tag_name in host.admin_ids.copy():
+        for admin_tag_name in host.direct_admin_names:
             ipam.remove_admin_from_host(admin_tag_name, host)
         # check that no admins are left for this host
-        if len(host.admin_ids) > 0:
+        if host.direct_admin_names:
             logger.error(
                 "Couldn't remove all tags from host '%s'",
                 str(host.ipv4_addr)
@@ -1787,7 +1787,7 @@ def remove_admin_from_host_view(request, ipv4: str, admin_name: str):
             return HttpResponse(status=409)
 
         # Validate that the admin to remove actually exists on this host
-        if admin_name not in host.admin_ids:
+        if admin_name not in host.direct_admin_names:
             messages.error(
                 request,
                 f"Admin '{admin_name}' is not associated with this host."

@@ -143,13 +143,14 @@ class ProteusV2IPAMWrapper(DataAbstract):
             comment = udf.get("comment")
 
             dns_rcs = self.__get_linked_dns_records(host_id, ip)
-            tagged_admins = self.__get_admins_of_host(host_id)
+            tagged_admins, direct_admin_tags = self.__get_admins_of_host(host_id)
             
             my_host = MyHost(
                 entity_id=int(host_id),
                 ipv4_addr=ip,
                 mac_addr=mac,
                 admin_ids=set(tagged_admins),
+                direct_admin_tags=direct_admin_tags,
                 status=HostStatus(status) if status else HostStatus.UNREGISTERED,
                 name=name,
                 dns_rcs=set(dns_rcs),
@@ -169,7 +170,7 @@ class ProteusV2IPAMWrapper(DataAbstract):
             logger.exception(f"Error retrieving host info for IP {ipv4}: {e}")
             return None
 
-    def __get_admin_names_by_tag_id(self) -> dict[int, tuple[str, ...]]:
+    def __get_admin_names_by_tag_id(self) -> dict[int | str, tuple[str, ...]]:
         """Build lookup values for tags in the host-admin hierarchy.
 
         An admin tag ID maps to that admin's name. A department tag ID maps
@@ -225,6 +226,10 @@ class ProteusV2IPAMWrapper(DataAbstract):
 
                 if department_id and expanded_names:
                     tag_index[department_id] = tuple(expanded_names)
+                if department_name and expanded_names:
+                    # Legacy department tags use different IDs but the same
+                    # names as their current counterparts.
+                    tag_index[department_name] = tuple(expanded_names)
 
             self.__admin_department_hierarchy_by_tag_id = tag_index
             return self.__admin_department_hierarchy_by_tag_id
@@ -234,7 +239,10 @@ class ProteusV2IPAMWrapper(DataAbstract):
             )
             return {}
 
-    def __get_admins_of_host(self, host_id: int) -> list[str]:
+    def __get_admins_of_host(
+        self,
+        host_id: int
+    ) -> tuple[list[str], dict[int, str]]:
         """Resolve the host's admin and department tags to names.
 
         Direct admin tags contribute one admin name. Department tags
@@ -245,27 +253,33 @@ class ProteusV2IPAMWrapper(DataAbstract):
             host_id (int): Entity ID of the host in the BlueCat IPAM system.
 
         Returns:
-            list[str]: Unique department and admin names in tag order.
+            tuple[list[str], dict[int, str]]: Effective names and directly
+                attached tag IDs mapped to their names.
         """
         try:
             tag_index = self.__get_admin_names_by_tag_id()
             if not tag_index:
-                return []
+                return [], {}
             tags_resp = self.client.http_get(
                 f"/addresses/{host_id}/tags",
                 params={"limit": 100000}
             )
-            # Unknown tag IDs expand to an empty tuple and are ignored.
-            tagged_admins = [
-                admin_name
-                for tag in tags_resp.get("data", [])
-                for admin_name in tag_index.get(tag.get("id"), ())
-            ]
+            tagged_admins = []
+            direct_admin_tags = {}
+            for tag in tags_resp.get("data", []):
+                tag_names = tag_index.get(tag.get("id"))
+                if tag_names is None:
+                    tag_names = tag_index.get(tag.get("name"), ())
+                if not tag_names:
+                    continue
+                direct_admin_tags[int(tag["id"])] = tag["name"]
+                tagged_admins.extend(tag_names)
+
             # remove duplicates while retaining order
-            return list(dict.fromkeys(tagged_admins))
+            return list(dict.fromkeys(tagged_admins)), direct_admin_tags
         except Exception:
             logger.exception("Caught an unknown exception in __get_admins_of_host!")
-            return []
+            return [], {}
     
     def __get_linked_dns_records(self, address_id: int, ip: str) -> set[str]:
         """Query DNS records linked to an IPv4 address entity.
@@ -564,13 +578,27 @@ class ProteusV2IPAMWrapper(DataAbstract):
         """
         try:
             host_id = host.entity_id
-            
-            tag_resp = self.client.http_get("/tags", params={"filter": f"name:'{admin_name}'"})
+
+            if admin_name in host.direct_admin_names:
+                return 200
+
+            tag_resp = self.client.http_get(
+                "/tags", params={"filter": f"name:'{admin_name}'"}
+            )
             tag_list = tag_resp.get("data", [])
             if not tag_list:
                 return 404
-            
-            tag_id = tag_list[0].get("id")
+
+            tag_index = self.__get_admin_names_by_tag_id()
+            tag_id = next(
+                (
+                    tag.get("id") for tag in tag_list
+                    if tag.get("id") in tag_index
+                ),
+                None
+            )
+            if tag_id is None:
+                return 404
             
             tags_resp = self.client.http_get(f"/addresses/{host_id}/tags")
             host_tags = tags_resp.get("data", [])
@@ -581,6 +609,10 @@ class ProteusV2IPAMWrapper(DataAbstract):
             
             response = self.client.http_post(f"/addresses/{host_id}/tags", json={"id": tag_id})
             if response and isinstance(response, dict) and response.get("id"):
+                if host.direct_admin_tags is None:
+                    host.direct_admin_tags = {}
+                host.direct_admin_tags[int(tag_id)] = admin_name
+                host.admin_ids.update(tag_index.get(tag_id, (admin_name,)))
                 return 200
             else:
                 logger.error(f"Failed to add tag '{admin_name}' to host {host.ipv4_addr}")
@@ -603,26 +635,20 @@ class ProteusV2IPAMWrapper(DataAbstract):
         """
         try:
             host_id = host.entity_id
-
-            # Get tag ID from admin name
-            tag_resp = self.client.http_get("/tags", params={"filter": f"name:'{admin_name}'"})
-            tag_list = tag_resp.get("data", [])
-            if not tag_list:
-                return 404
-
-            tag_id = tag_list[0].get("id")
-
-            tags_resp = self.client.http_get(f"/addresses/{host_id}/tags")
-            host_tags = tags_resp.get("data", [])
-            host_tag_ids = {t.get("id") for t in host_tags}
-
-            if tag_id not in host_tag_ids:
+            direct_admin_tags = host.direct_admin_tags or {}
+            tag_id = next(
+                (
+                    tag_id for tag_id, tag_name in direct_admin_tags.items()
+                    if tag_name == admin_name
+                ),
+                None
+            )
+            if tag_id is None:
                 return 200
 
             response = self.client.http_delete(f"/addresses/{host_id}/tags/{tag_id}")
             if response is not None:
-                # remove admin from admin set of host
-                host.admin_ids.remove(admin_name)
+                del direct_admin_tags[tag_id]
                 return 200
             else:
                 logger.error(f"Failed to remove tag '{admin_name}' from host {host.ipv4_addr}")
