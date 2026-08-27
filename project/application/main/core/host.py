@@ -29,6 +29,7 @@ class MyHost():
         fw: HostFW = HostFW.EMPTY,
         host_based_policies: list[HostBasedPolicy] = [],
         comment: str = '',
+        direct_admin_tags: dict[int, str] | None = None,
     ):
 
         # Mandatory
@@ -40,6 +41,11 @@ class MyHost():
             return
         self.mac_addr = mac_addr
         self.admin_ids = set(admin_ids)
+        # BlueCat V2 supplies the actual tag attachments separately from the
+        # effective admins inherited through department tags.
+        self.direct_admin_tags = (
+            None if direct_admin_tags is None else dict(direct_admin_tags)
+        )
         self.status = status
         # Optional
         self.name = name
@@ -68,6 +74,13 @@ class MyHost():
 
     def get_ipv4_escaped(self) -> str:
         return str(self.ipv4_addr).replace('.', '_')
+
+    @property
+    def direct_admin_names(self) -> list[str]:
+        """Direct tag names; legacy wrappers fall back to ``admin_ids``."""
+        if self.direct_admin_tags is None:
+            return list(self.admin_ids)
+        return list(self.direct_admin_tags.values())
 
     def get_absolute_url(self):
         """

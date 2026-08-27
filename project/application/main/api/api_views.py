@@ -209,10 +209,10 @@ def __remove_host(request) -> Response:
         ipam.update_host_info(host)
 
         # remove all admin tags
-        for admin_tag_name in host.admin_ids.copy():
+        for admin_tag_name in host.direct_admin_names:
             ipam.remove_admin_from_host(admin_tag_name, host)
         # check that no admins are left for this host
-        if len(host.admin_ids) > 0:
+        if host.direct_admin_names:
             logger.error(
                 "Couldn't remove all tags from host '%s'",
                 str(host.ipv4_addr)
@@ -354,8 +354,18 @@ def __update_host(request) -> Response:
             new_admins = set(new_admins)
             if not new_admins:
                 raise Http400("Cannot remove all admins")
-            admins_to_delete = set(host.admin_ids) - new_admins
+            direct_admins = set(host.direct_admin_names)
+            admins_to_delete = direct_admins - new_admins
             admins_to_add = new_admins - set(host.admin_ids)
+
+            # Keep retained admins when removing their department.
+            for admin_tag_name in new_admins & set(host.admin_ids):
+                if (
+                    admin_tag_name not in direct_admins
+                    and ipam.get_department_to_admin(admin_tag_name)
+                    in admins_to_delete
+                ):
+                    admins_to_add.add(admin_tag_name)
 
             # add new admins
             for admin_tag_name in admins_to_add:
@@ -368,8 +378,11 @@ def __update_host(request) -> Response:
                         return Response(status=code)
 
             # remove old admins
-            for admin_tag_name in admins_to_delete:
-                ipam.remove_admin_from_host(admin_tag_name, host)
+            if not set(host.direct_admin_names) - admins_to_delete:
+                raise Http400("Cannot remove all admins")
+            for admin_tag_name in host.direct_admin_names:
+                if admin_tag_name in admins_to_delete:
+                    ipam.remove_admin_from_host(admin_tag_name, host)
 
         # Update host properties
         __update_host_logic(ipam, host, host_update_data)
