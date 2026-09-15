@@ -277,6 +277,10 @@ def host_detail_view(request, ipv4: str, tab: str = 'general'):
         if (hostadmin.username not in host.admin_ids) and (ipam.get_department_to_admin(hostadmin.username) not in host.admin_ids):
             raise Http404()
 
+        direct_admins = host.admin_ids
+        if hasattr(ipam, 'get_direct_admin_names'):
+            direct_admins = ipam.get_direct_admin_names(host)
+
         # parse form data and update host on POST
         if request.method == 'POST':
             form = AddHostRulesForm(request.POST)
@@ -315,6 +319,7 @@ def host_detail_view(request, ipv4: str, tab: str = 'general'):
         'active_tab': tab,
         'hostadmin': hostadmin,
         'host_detail': host,
+        'direct_admins': direct_admins,
         'host_ipv4': str(host.ipv4_addr),
         'host_rules': [
             {
@@ -1786,8 +1791,12 @@ def remove_admin_from_host_view(request, ipv4: str, admin_name: str):
         if not available_actions(host).get('can_update'):
             return HttpResponse(status=409)
 
+        direct_admins = host.admin_ids
+        if hasattr(ipam, 'get_direct_admin_names'):
+            direct_admins = ipam.get_direct_admin_names(host)
+
         # Validate that the admin to remove actually exists on this host
-        if admin_name not in host.admin_ids:
+        if admin_name not in direct_admins:
             messages.error(
                 request,
                 f"Admin '{admin_name}' is not associated with this host."
@@ -1795,7 +1804,7 @@ def remove_admin_from_host_view(request, ipv4: str, admin_name: str):
             return redirect('host_detail', ipv4=ipv4, tab='general')
 
         # Prevent removing the last admin from a host
-        if len(host.admin_ids) <= 1:
+        if len(direct_admins) <= 1:
             messages.error(request, "Cannot remove the last admin from a host.")
             return redirect('host_detail', ipv4=ipv4, tab='general')
 

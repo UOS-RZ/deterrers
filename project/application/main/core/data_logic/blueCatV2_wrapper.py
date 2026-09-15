@@ -72,10 +72,10 @@ class ProteusV2IPAMWrapper(DataAbstract):
 
         try:
             tag_group_resp = self.client.http_get("/tagGroups", params={"filter": f"name:'{self.TAG_GROUP_NAME}'"})
-            tag_group = tag_group_resp.get("data", [])
-            if tag_group:
-                self.__tag_group_id = tag_group[0].get("id")
-                return self.__tag_group_id
+            for tag_group in tag_group_resp.get("data", []):
+                if tag_group.get("name") == self.TAG_GROUP_NAME:
+                    self.__tag_group_id = tag_group["id"]
+                    return self.__tag_group_id
         except Exception:
             logger.exception("Couldn't query tag group from IPAM!")
 
@@ -234,6 +234,29 @@ class ProteusV2IPAMWrapper(DataAbstract):
             )
             return {}
 
+    def __get_admin_tags_of_host(self, host_id: int) -> dict[int, tuple[str, ...]]:
+        """Map directly linked tag IDs to their names and inherited admins.
+
+        Reuse the hierarchy lookup: the first name is the direct tag name,
+        subsequent names are inherited. Ignore tags outside that hierarchy.
+        Read links on demand so MyHost only needs its effective admin_ids.
+        """
+        tag_index = self.__get_admin_names_by_tag_id()
+        response = self.client.http_get(
+            f"/addresses/{host_id}/tags", params={"limit": 100000}
+        )
+        admin_tags = {}
+        for tag in response.get("data", []):
+            tag_id = tag.get("id")
+            if tag_id in tag_index:
+                admin_tags[tag_id] = tag_index[tag_id]
+        return admin_tags
+
+    def get_direct_admin_names(self, host: MyHost) -> set[str]:
+        """Return removable tag names, without inherited department members."""
+        admin_tags = self.__get_admin_tags_of_host(host.entity_id)
+        return {names[0] for names in admin_tags.values()}
+
     def __get_admins_of_host(self, host_id: int) -> list[str]:
         """Resolve the host's admin and department tags to names.
 
@@ -245,24 +268,13 @@ class ProteusV2IPAMWrapper(DataAbstract):
             host_id (int): Entity ID of the host in the BlueCat IPAM system.
 
         Returns:
-            list[str]: Unique department and admin names in tag order.
+            list[str]: Unique department and admin names in alphabetical order.
         """
         try:
-            tag_index = self.__get_admin_names_by_tag_id()
-            if not tag_index:
-                return []
-            tags_resp = self.client.http_get(
-                f"/addresses/{host_id}/tags",
-                params={"limit": 100000}
-            )
-            # Unknown tag IDs expand to an empty tuple and are ignored.
-            tagged_admins = [
-                admin_name
-                for tag in tags_resp.get("data", [])
-                for admin_name in tag_index.get(tag.get("id"), ())
-            ]
-            # remove duplicates while retaining order
-            return list(dict.fromkeys(tagged_admins))
+            admin_names = set()
+            for names in self.__get_admin_tags_of_host(host_id).values():
+                admin_names.update(names)
+            return sorted(admin_names)
         except Exception:
             logger.exception("Caught an unknown exception in __get_admins_of_host!")
             return []
@@ -552,84 +564,91 @@ class ProteusV2IPAMWrapper(DataAbstract):
             return None
 
     def add_admin_to_host(self, admin_name: str, host: MyHost) -> int:
-        """
-        Link an admin/department tag to a host address.
+        """Link a direct admin/department tag and update effective admin_ids.
 
-        Args:
-            admin_name (str): Tag name corresponding to admin or department.
-            host (MyHost): Host instance for which admin is added.
-
-        Returns:
-            int: Returns HTTP status code (200 on success, 500 on error).
+        Return 200 on success, 404 for unknown names, or 500 on API failure.
+        An inherited admin can also be linked directly.
         """
         try:
-            host_id = host.entity_id
-            
-            tag_resp = self.client.http_get("/tags", params={"filter": f"name:'{admin_name}'"})
-            tag_list = tag_resp.get("data", [])
-            if not tag_list:
-                return 404
-            
-            tag_id = tag_list[0].get("id")
-            
-            tags_resp = self.client.http_get(f"/addresses/{host_id}/tags")
-            host_tags = tags_resp.get("data", [])
+            if admin_name in self.get_direct_admin_names(host):
+                return 200
 
-            host_tag_ids = {t.get("id") for t in host_tags}
-            if tag_id in host_tag_ids:
+            tag_index = self.__get_admin_names_by_tag_id()
+            for tag_id, names in tag_index.items():
+                if names[0] != admin_name:
+                    continue
+                response = self.client.http_post(
+                    f"/addresses/{host.entity_id}/tags", json={"id": tag_id}
+                )
+                if not response or not response.get("id"):
+                    return 500
+                host.admin_ids.update(names)
                 return 200
-            
-            response = self.client.http_post(f"/addresses/{host_id}/tags", json={"id": tag_id})
-            if response and isinstance(response, dict) and response.get("id"):
-                return 200
-            else:
-                logger.error(f"Failed to add tag '{admin_name}' to host {host.ipv4_addr}")
-                return 500
-            
+            return 404
         except Exception:
-            logger.exception(f"Couldn't add tag '{admin_name}' to host {host.ipv4_addr}!")
+            logger.exception("Couldn't add admin tag '%s'!", admin_name)
             return 500
 
     def remove_admin_from_host(self, admin_name: str, host: MyHost) -> int:
-        """
-        Unlink an admin/department tag from a host address.
+        """Unlink matching direct tags; inherited-only names are a no-op.
 
-        Args:
-            admin_name (str): Tag name corresponding to admin or department.
-            host (MyHost): Host instance.
-
-        Returns:
-            int: Returns HTTP status code (200 on success, 404 if tag not found, 500 on error).
+        Recompute effective admins after each successful unlink, preserving
+        access from remaining departments or direct user tags. Removing all
+        direct tags is allowed here because host deletion uses this method.
+        Return 200 on success or 500 on API failure.
         """
         try:
-            host_id = host.entity_id
+            admin_tags = self.__get_admin_tags_of_host(host.entity_id)
+            for tag_id, names in list(admin_tags.items()):
+                if names[0] != admin_name:
+                    continue
+                response = self.client.http_delete(
+                    f"/addresses/{host.entity_id}/tags/{tag_id}"
+                )
+                if response is None:
+                    return 500
+                del admin_tags[tag_id]
+                host.admin_ids = set()
+                for remaining_names in admin_tags.values():
+                    host.admin_ids.update(remaining_names)
+            return 200
+        except Exception:
+            logger.exception("Couldn't remove admin tag '%s'!", admin_name)
+            return 500
 
-            # Get tag ID from admin name
-            tag_resp = self.client.http_get("/tags", params={"filter": f"name:'{admin_name}'"})
-            tag_list = tag_resp.get("data", [])
-            if not tag_list:
+    def set_host_admins(self, host: MyHost, admin_names: set[str]) -> int:
+        """Apply API admin names while keeping department inheritance local.
+
+        Retained direct tags stay direct. New names need a link only if no
+        requested department supplies them. Add before removing so replacing
+        a department with one of its members preserves that member's access.
+        Return 400 for an empty set, 404 for unknown names, or mutation status.
+        """
+        if not admin_names:
+            return 400
+        try:
+            tag_index = self.__get_admin_names_by_tag_id()
+            known_names = {names[0] for names in tag_index.values()}
+            if not admin_names <= known_names:
                 return 404
 
-            tag_id = tag_list[0].get("id")
-
-            tags_resp = self.client.http_get(f"/addresses/{host_id}/tags")
-            host_tags = tags_resp.get("data", [])
-            host_tag_ids = {t.get("id") for t in host_tags}
-
-            if tag_id not in host_tag_ids:
-                return 200
-
-            response = self.client.http_delete(f"/addresses/{host_id}/tags/{tag_id}")
-            if response is not None:
-                # remove admin from admin set of host
-                host.admin_ids.remove(admin_name)
-                return 200
-            else:
-                logger.error(f"Failed to remove tag '{admin_name}' from host {host.ipv4_addr}")
-                return 500
-
+            direct_names = self.get_direct_admin_names(host)
+            inherited_names = set()
+            for names in tag_index.values():
+                if names[0] in admin_names:
+                    inherited_names.update(names[1:])
+            names_to_add = admin_names - direct_names - inherited_names
+            for name in sorted(names_to_add):
+                code = self.add_admin_to_host(name, host)
+                if code != 200:
+                    return code
+            for name in sorted(direct_names - admin_names):
+                code = self.remove_admin_from_host(name, host)
+                if code != 200:
+                    return code
+            return 200
         except Exception:
-            logger.exception(f"Couldn't remove tag '{admin_name}' from host {host.ipv4_addr}!")
+            logger.exception("Couldn't update host-admin tags!")
             return 500
 
     def update_host_info(self, host: MyHost) -> bool:
