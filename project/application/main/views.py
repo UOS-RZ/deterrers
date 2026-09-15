@@ -1795,7 +1795,7 @@ def remove_admin_from_host_view(request, ipv4: str, admin_name: str):
             return redirect('host_detail', ipv4=ipv4, tab='general')
 
         # Prevent removing the last admin from a host
-        if len(host.admin_ids) <= 1:
+        if len(host.direct_admin_names) <= 1:
             messages.error(request, "Cannot remove the last admin from a host.")
             return redirect('host_detail', ipv4=ipv4, tab='general')
 

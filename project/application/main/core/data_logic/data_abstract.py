@@ -41,6 +41,11 @@ class DataAbstract(ABC):
     def get_department_to_admin(self, admin_name: str) -> str | None:
         pass
 
+    def get_departments_to_admin(self, admin_name: str) -> set[str]:
+        """Return all departments, with a fallback for legacy wrappers."""
+        department = self.get_department_to_admin(admin_name)
+        return {department} if department else set()
+
     @abstractmethod
     def get_all_admin_names(self) -> set[str]:
         pass

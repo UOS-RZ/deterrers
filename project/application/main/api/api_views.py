@@ -356,15 +356,12 @@ def __update_host(request) -> Response:
                 raise Http400("Cannot remove all admins")
             direct_admins = set(host.direct_admin_names)
             admins_to_delete = direct_admins - new_admins
-            admins_to_add = new_admins - set(host.admin_ids)
-
-            # Keep retained admins when removing their department.
-            for admin_tag_name in new_admins & set(host.admin_ids):
-                if (
-                    admin_tag_name not in direct_admins
-                    and ipam.get_department_to_admin(admin_tag_name)
-                    in admins_to_delete
-                ):
+            admins_to_add = set()
+            # A requested name needs a direct tag unless one of its
+            # departments is also requested. This includes retained users
+            # whose department is being removed.
+            for admin_tag_name in new_admins - direct_admins:
+                if not (ipam.get_departments_to_admin(admin_tag_name) & new_admins):
                     admins_to_add.add(admin_tag_name)
 
             # add new admins

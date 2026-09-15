@@ -30,9 +30,8 @@ class ProteusV2IPAMWrapper(DataAbstract):
         """
         super().__init__(username, password, url)
         self.client = None
-        self.__tag_group_id = None
-        self.__department_tags = None
-        self.__admin_department_hierarchy_by_tag_id = None
+        self.__admin_names_by_tag_id = None
+        self.__department_tag_ids = {}
 
     def __enter__(self):
         """Open a session to the BlueCat IPAM API v2.
@@ -62,20 +61,23 @@ class ProteusV2IPAMWrapper(DataAbstract):
     def __get_tag_group_id(self) -> int | None:
         """
         Get the tag group ID for 'Deterrers Host Admins'.
-        Result is cached in self.__tag_group_id.
-
         Returns:
             int | None: Tag group ID or None if not found.
         """
-        if self.__tag_group_id is not None:
-            return self.__tag_group_id
-
         try:
-            tag_group_resp = self.client.http_get("/tagGroups", params={"filter": f"name:'{self.TAG_GROUP_NAME}'"})
-            tag_group = tag_group_resp.get("data", [])
+            tag_group_resp = self.client.http_get(
+                "/tagGroups",
+                params={"filter": f"name:'{self.TAG_GROUP_NAME}'"}
+            )
+            tag_group = next(
+                (
+                    group for group in tag_group_resp.get("data", [])
+                    if group.get("name") == self.TAG_GROUP_NAME
+                ),
+                None
+            )
             if tag_group:
-                self.__tag_group_id = tag_group[0].get("id")
-                return self.__tag_group_id
+                return int(tag_group["id"])
         except Exception:
             logger.exception("Couldn't query tag group from IPAM!")
 
@@ -143,13 +145,13 @@ class ProteusV2IPAMWrapper(DataAbstract):
             comment = udf.get("comment")
 
             dns_rcs = self.__get_linked_dns_records(host_id, ip)
-            tagged_admins, direct_admin_tags = self.__get_admins_of_host(host_id)
+            direct_admin_tags = self.__get_direct_admin_tags(host_id)
             
             my_host = MyHost(
                 entity_id=int(host_id),
                 ipv4_addr=ip,
                 mac_addr=mac,
-                admin_ids=set(tagged_admins),
+                admin_ids=set(),
                 direct_admin_tags=direct_admin_tags,
                 status=HostStatus(status) if status else HostStatus.UNREGISTERED,
                 name=name,
@@ -159,6 +161,7 @@ class ProteusV2IPAMWrapper(DataAbstract):
                 host_based_policies=rules,
                 comment=comment if comment else "",
             )
+            self.__refresh_effective_admins(my_host)
 
             if my_host.is_valid():
                 return my_host
@@ -170,8 +173,8 @@ class ProteusV2IPAMWrapper(DataAbstract):
             logger.exception(f"Error retrieving host info for IP {ipv4}: {e}")
             return None
 
-    def __get_admin_names_by_tag_id(self) -> dict[int | str, tuple[str, ...]]:
-        """Build lookup values for tags in the host-admin hierarchy.
+    def __get_admin_names_by_tag_id(self) -> dict[int, tuple[str, ...]]:
+        """Load the tag ID to effective names lookup once per wrapper.
 
         An admin tag ID maps to that admin's name. A department tag ID maps
         to the department name followed by every admin in that department.
@@ -183,11 +186,12 @@ class ProteusV2IPAMWrapper(DataAbstract):
                 admin_b_id: ("admin-b",),
             }
 
-        Returns:
-            dict[int, tuple[str, ...]]: Names contributed by each valid tag.
+        Separate IDs preserve admins belonging to multiple departments.
+        Department IDs are also kept so empty departments can be distinguished
+        from leaf admin tags; neither needs a separate reverse lookup.
         """
-        if self.__admin_department_hierarchy_by_tag_id is not None:
-            return self.__admin_department_hierarchy_by_tag_id
+        if self.__admin_names_by_tag_id is not None:
+            return self.__admin_names_by_tag_id
 
         try:
             tag_group_id = self.__get_tag_group_id()
@@ -196,90 +200,92 @@ class ProteusV2IPAMWrapper(DataAbstract):
                     "Tag group ID for '%s' not found.",
                     self.TAG_GROUP_NAME
                 )
-                self.__admin_department_hierarchy_by_tag_id = {}
-                return self.__admin_department_hierarchy_by_tag_id
+                return {}
 
             department_resp = self.client.http_get(
                 f"/tagGroups/{tag_group_id}/tags",
                 params={"fields": "embed(tags)", "limit": 100000}
             )
             departments = department_resp.get("data", [])
-            tag_index = {}
+            names_by_tag_id = {}
+            department_tag_ids = {}
 
             for department in departments:
                 department_id = department.get("id")
                 department_name = department.get("name")
+                if not department_id or not department_name:
+                    continue
                 embedded = department.get("_embedded", {}) or {}
                 admins = embedded.get("tags", [])
 
-                expanded_names = []
-                if department_name:
-                    expanded_names.append(department_name)
+                department_id = int(department_id)
+                department_tag_ids[department_name] = department_id
+                expanded_names = [department_name]
 
                 for admin in admins:
                     admin_id = admin.get("id")
                     admin_name = admin.get("name")
                     if not admin_id or not admin_name:
                         continue
-                    tag_index[admin_id] = (admin_name,)
+                    admin_id = int(admin_id)
+                    names_by_tag_id[admin_id] = (admin_name,)
                     expanded_names.append(admin_name)
 
-                if department_id and expanded_names:
-                    tag_index[department_id] = tuple(expanded_names)
-                if department_name and expanded_names:
-                    # Legacy department tags use different IDs but the same
-                    # names as their current counterparts.
-                    tag_index[department_name] = tuple(expanded_names)
+                names_by_tag_id[department_id] = tuple(expanded_names)
 
-            self.__admin_department_hierarchy_by_tag_id = tag_index
-            return self.__admin_department_hierarchy_by_tag_id
+            self.__department_tag_ids = department_tag_ids
+            self.__admin_names_by_tag_id = names_by_tag_id
+            return names_by_tag_id
         except Exception:
             logger.exception(
                 "Could not build the BlueCat V2 host-admin hierarchy."
             )
             return {}
 
-    def __get_admins_of_host(
-        self,
-        host_id: int
-    ) -> tuple[list[str], dict[int, str]]:
-        """Resolve the host's admin and department tags to names.
+    def __get_direct_admin_tags(self,host_id: int) -> dict[int, str]:
+        """Read the admin and department tags directly attached to a host.
 
-        Direct admin tags contribute one admin name. Department tags
-        contribute the department name and every admin in that department.
         Tags outside ``Deterrers Host Admins`` are ignored.
 
         Args:
             host_id (int): Entity ID of the host in the BlueCat IPAM system.
 
         Returns:
-            tuple[list[str], dict[int, str]]: Effective names and directly
-                attached tag IDs mapped to their names.
+            dict[int, str]: Direct tag IDs mapped to their names.
         """
         try:
             tag_index = self.__get_admin_names_by_tag_id()
             if not tag_index:
-                return [], {}
+                return {}
             tags_resp = self.client.http_get(
                 f"/addresses/{host_id}/tags",
                 params={"limit": 100000}
             )
-            tagged_admins = []
             direct_admin_tags = {}
             for tag in tags_resp.get("data", []):
-                tag_names = tag_index.get(tag.get("id"))
-                if tag_names is None:
-                    tag_names = tag_index.get(tag.get("name"), ())
+                try:
+                    tag_id = int(tag["id"])
+                except (KeyError, TypeError, ValueError):
+                    continue
+                tag_names = tag_index.get(tag_id, ())
                 if not tag_names:
                     continue
-                direct_admin_tags[int(tag["id"])] = tag["name"]
-                tagged_admins.extend(tag_names)
+                direct_admin_tags[tag_id] = tag_names[0]
 
-            # remove duplicates while retaining order
-            return list(dict.fromkeys(tagged_admins)), direct_admin_tags
+            return direct_admin_tags
         except Exception:
-            logger.exception("Caught an unknown exception in __get_admins_of_host!")
-            return [], {}
+            logger.exception("Couldn't query direct host-admin tags!")
+            return {}
+
+    def __refresh_effective_admins(self, host: MyHost) -> None:
+        """Derive effective admins from the host's direct tag attachments."""
+        tag_index = self.__get_admin_names_by_tag_id()
+        effective_admins = set()
+
+        for tag_id in (host.direct_admin_tags or {}):
+            effective_admins.update(tag_index.get(tag_id, ()))
+
+        host.admin_ids = effective_admins
     
     def __get_linked_dns_records(self, address_id: int, ip: str) -> set[str]:
         """Query DNS records linked to an IPv4 address entity.
@@ -327,24 +333,11 @@ class ProteusV2IPAMWrapper(DataAbstract):
         """
         hosts = []
         try:
-            tag_resp = self.client.http_get("/tags", params={"filter": f"name:'{admin_name}'"})
-            tags = tag_resp.get("data", [])
-            if not tags:
-                return []
-            
-            tag_id = tags[0].get("id")
-            
-            department_name = self.get_department_to_admin(admin_name)
-            parent_id = None
-            if department_name:
-                dep_resp = self.client.http_get("/tags", params={"filter": f"name:'{department_name}'"})
-                parent_id = (dep_resp.get("data", [{}])[0] or {}).get("id")
-            
-            tag_ids_to_query = [tag_id]
-            if parent_id:
-                tag_ids_to_query.append(parent_id)
-    
-            for tid in tag_ids_to_query:
+            tag_index = self.__get_admin_names_by_tag_id()
+            candidate_ips = set()
+            for tid, names in tag_index.items():
+                if admin_name not in names:
+                    continue
                 tagged_resp = self.client.http_get(
                     f"/tags/{tid}/taggedResources",
                     params={"filter": "type:'IPv4Address'", "limit": "10000"}
@@ -354,22 +347,17 @@ class ProteusV2IPAMWrapper(DataAbstract):
                 for addr in tagged_resources:
                     ip = addr.get("address")
                     if ip:
-                        host = self.get_host_info_from_ip(ip)
-                        if host:
-                            hosts.append(host)
-                        
+                        candidate_ips.add(ip)
+
+            for ip in candidate_ips:
+                host = self.get_host_info_from_ip(ip)
+                if host and admin_name in host.admin_ids:
+                    hosts.append(host)
+
         except Exception:
             logger.exception("Caught an unknown exception!")
-        
-        seen_ips = set()
-        unique_hosts = []
-        for host in hosts:
-            ip_str = str(host.ipv4_addr)
-            if ip_str not in seen_ips:
-                seen_ips.add(ip_str)
-                unique_hosts.append(host)
-        
-        return unique_hosts
+
+        return hosts
 
     def get_IP6Addresses(self, host: MyHost) -> set[str]:
         """
@@ -426,53 +414,32 @@ class ProteusV2IPAMWrapper(DataAbstract):
         Returns:
             list: Returns list of department tag names.
         """
-        names = []
-        try:
-            tag_group_id = self.__get_tag_group_id()
-            if not tag_group_id:
-                return names
-            
-            dept_resp = self.client.http_get(f"/tagGroups/{tag_group_id}/tags")
-            departments = dept_resp.get("data", [])
-            
-            for dept in departments:
-                dept_name = dept.get("name")
-                if dept_name:
-                    names.append(dept_name)
-            
-            return names
-        except Exception:
-            logger.exception("Couldn't query department tag names from IPAM!")
-            return names
+        self.__get_admin_names_by_tag_id()
+        return list(self.__department_tag_ids)
 
     def get_department_to_admin(self, admin_name: str) -> str | None:
-        """Get the department name for a given admin tag.
+        """Get one department for compatibility with the legacy interface.
 
         Args:
             admin_name (str): Name of the admin tag.
 
         Returns:
-            str | None: Department name or None if not found.
+            str | None: Alphabetically first department or None if not found.
+
+        New V2 code should use ``get_departments_to_admin`` because an admin
+        can belong to more than one department.
         """
-        try:
-            tag_resp = self.client.http_get("/tags", params={"filter": f"name:'{admin_name}'"})
-            tags = tag_resp.get("data", [])
-            if not tags:
-                return None
-            tag_id = tags[0].get("id")
-            if not tag_id:
-                return None
-            tag_detail = self.client.http_get(f"/tags/{tag_id}")
-            tag_data = tag_detail
-            up_link = (tag_data.get("_links", {}) or {}).get("up", {}).get("href")
-            if not up_link:
-                return None
-            parent_detail = self.client.http_get(up_link.replace("/api/v2", ""))
-            parent_data = parent_detail
-            return parent_data.get("name")
-        except Exception:
-            logger.exception("Couldn't query parent tag from IPAM!")
-        return None
+        departments = self.get_departments_to_admin(admin_name)
+        return min(departments, default=None)
+
+    def get_departments_to_admin(self, admin_name: str) -> set[str]:
+        """Get all department names for an admin tag name."""
+        tag_index = self.__get_admin_names_by_tag_id()
+        return {
+            department
+            for department, tag_id in self.__department_tag_ids.items()
+            if admin_name in tag_index.get(tag_id, ())[1:]
+        }
 
     def get_all_admin_names(self) -> set[str]:
         """
@@ -481,28 +448,11 @@ class ProteusV2IPAMWrapper(DataAbstract):
         Returns:
             set[str]: Returns a set of unique admin tag names.
         """
-        admin_tag_names = []
-        try:
-            tag_group_id = self.__get_tag_group_id()
-            if not tag_group_id:
-                return set()
-            
-            dept_resp = self.client.http_get(f"/tagGroups/{tag_group_id}/tags")
-            departments = dept_resp.get("data", [])
-            
-            for dept in departments:
-                dept_id = dept.get("id")
-                admin_resp = self.client.http_get(f"/tags/{dept_id}/tags")
-                admin_tags = admin_resp.get("data", [])
-                for admin in admin_tags:
-                    admin_name = admin.get("name")
-                    if admin_name:
-                        admin_tag_names.append(admin_name)
-            
-            return set(admin_tag_names)
-        except Exception:
-            logger.exception("Couldn't query admin tag names from IPAM!")
-        return set()
+        tag_index = self.__get_admin_names_by_tag_id()
+        return {
+            admin for tag_id in self.__department_tag_ids.values()
+            for admin in tag_index.get(tag_id, ())[1:]
+        }
 
     def create_admin(self, admin_name: str, department_name: str) -> bool:
         """
@@ -519,18 +469,7 @@ class ProteusV2IPAMWrapper(DataAbstract):
             if self.is_admin(admin_name):
                 return False
 
-            tag_group_id = self.__get_tag_group_id()
-            if not tag_group_id:
-                return False
-
-            dept_resp = self.client.http_get(f"/tagGroups/{tag_group_id}/tags")
-            departments = dept_resp.get("data", [])
-
-            department_tag_id = None
-            for dept in departments:
-                if dept.get("name") == department_name:
-                    department_tag_id = dept.get("id")
-                    break
+            department_tag_id = self.__department_tag_ids.get(department_name)
 
             if not department_tag_id:
                 return False
@@ -538,7 +477,8 @@ class ProteusV2IPAMWrapper(DataAbstract):
             response = self.client.http_post(f"/tags/{department_tag_id}/tags", json={"name": admin_name})
             if response and isinstance(response, dict) and response.get("id"):
                 # Reset cached hierarchy so follow-up reads include new admin.
-                self.__admin_department_hierarchy_by_tag_id = None
+                self.__admin_names_by_tag_id = None
+                self.__department_tag_ids = {}
                 return True
             else:
                 logger.error("Failed to create tag for admin %s!", admin_name)
@@ -548,7 +488,7 @@ class ProteusV2IPAMWrapper(DataAbstract):
             logger.exception("Couldn't create a tag for admin %s!", admin_name)
             return False
 
-    def is_admin(self, admin_name: str) -> bool | None:
+    def is_admin(self, admin_name: str) -> bool:
         """
         Check whether an admin tag with the given name exists.
 
@@ -556,14 +496,10 @@ class ProteusV2IPAMWrapper(DataAbstract):
             admin_name (str): Name of the admin tag to check.
 
         Returns:
-            bool | None: Returns True if admin exists, False if not, and None on error.
+            bool: True if the admin exists. False if absent or the hierarchy
+                could not be loaded.
         """
-        try:
-            all_admins = self.get_all_admin_names()
-            return admin_name in all_admins
-        except Exception:
-            logger.exception(f"Couldn't check if admin '{admin_name}' exists!")
-            return None
+        return admin_name in self.get_all_admin_names()
 
     def add_admin_to_host(self, admin_name: str, host: MyHost) -> int:
         """
@@ -574,7 +510,8 @@ class ProteusV2IPAMWrapper(DataAbstract):
             host (MyHost): Host instance for which admin is added.
 
         Returns:
-            int: Returns HTTP status code (200 on success, 500 on error).
+            int: 200 if linked or already directly attached, 404 if the name
+                is unknown, 500 if linking fails.
         """
         try:
             host_id = host.entity_id
@@ -582,37 +519,22 @@ class ProteusV2IPAMWrapper(DataAbstract):
             if admin_name in host.direct_admin_names:
                 return 200
 
-            tag_resp = self.client.http_get(
-                "/tags", params={"filter": f"name:'{admin_name}'"}
-            )
-            tag_list = tag_resp.get("data", [])
-            if not tag_list:
-                return 404
-
             tag_index = self.__get_admin_names_by_tag_id()
-            tag_id = next(
-                (
-                    tag.get("id") for tag in tag_list
-                    if tag.get("id") in tag_index
-                ),
-                None
+            # Same-named leaf tags grant the same access; one link suffices.
+            tag_id = min(
+                (tid for tid, names in tag_index.items()
+                 if names[0] == admin_name),
+                default=None,
             )
             if tag_id is None:
                 return 404
-            
-            tags_resp = self.client.http_get(f"/addresses/{host_id}/tags")
-            host_tags = tags_resp.get("data", [])
 
-            host_tag_ids = {t.get("id") for t in host_tags}
-            if tag_id in host_tag_ids:
-                return 200
-            
             response = self.client.http_post(f"/addresses/{host_id}/tags", json={"id": tag_id})
             if response and isinstance(response, dict) and response.get("id"):
                 if host.direct_admin_tags is None:
                     host.direct_admin_tags = {}
-                host.direct_admin_tags[int(tag_id)] = admin_name
-                host.admin_ids.update(tag_index.get(tag_id, (admin_name,)))
+                host.direct_admin_tags[tag_id] = admin_name
+                self.__refresh_effective_admins(host)
                 return 200
             else:
                 logger.error(f"Failed to add tag '{admin_name}' to host {host.ipv4_addr}")
@@ -631,7 +553,7 @@ class ProteusV2IPAMWrapper(DataAbstract):
             host (MyHost): Host instance.
 
         Returns:
-            int: Returns HTTP status code (200 on success, 404 if tag not found, 500 on error).
+            int: 200 if removed or not directly attached, 500 on error.
         """
         try:
             host_id = host.entity_id
@@ -649,6 +571,7 @@ class ProteusV2IPAMWrapper(DataAbstract):
             response = self.client.http_delete(f"/addresses/{host_id}/tags/{tag_id}")
             if response is not None:
                 del direct_admin_tags[tag_id]
+                self.__refresh_effective_admins(host)
                 return 200
             else:
                 logger.error(f"Failed to remove tag '{admin_name}' from host {host.ipv4_addr}")
