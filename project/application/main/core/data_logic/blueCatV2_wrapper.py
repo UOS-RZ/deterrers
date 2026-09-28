@@ -78,6 +78,7 @@ class ProteusV2IPAMWrapper(DataAbstract):
                     return self.__tag_group_id
         except Exception:
             logger.exception("Couldn't query tag group from IPAM!")
+            raise
 
         return None
 
@@ -232,7 +233,7 @@ class ProteusV2IPAMWrapper(DataAbstract):
             logger.exception(
                 "Could not build the BlueCat V2 host-admin hierarchy."
             )
-            return {}
+            raise
 
     def __get_admin_tags_of_host(self, host_id: int) -> dict[int, tuple[str, ...]]:
         """Map directly linked tag IDs to their names and inherited admins.
@@ -246,6 +247,11 @@ class ProteusV2IPAMWrapper(DataAbstract):
             f"/addresses/{host_id}/tags", params={"limit": 100000}
         )
         admin_tags = {}
+        
+        if not response or not isinstance(response, dict):
+            logger.warning("No tags found for host ID %s", host_id)
+            return admin_tags
+        
         for tag in response.get("data", []):
             tag_id = tag.get("id")
             if tag_id in tag_index:

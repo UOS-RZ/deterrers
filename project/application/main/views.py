@@ -279,7 +279,14 @@ def host_detail_view(request, ipv4: str, tab: str = 'general'):
 
         direct_admins = host.admin_ids
         if hasattr(ipam, 'get_direct_admin_names'):
-            direct_admins = ipam.get_direct_admin_names(host)
+            try:
+                direct_admins = ipam.get_direct_admin_names(host)
+            except Exception:
+                logger.exception(
+                    "Couldn't get direct admin tags for host '%s'", ipv4
+                )
+                # Do not offer removals when the direct-tag read failed.
+                direct_admins = set()
 
         # parse form data and update host on POST
         if request.method == 'POST':
@@ -1793,7 +1800,17 @@ def remove_admin_from_host_view(request, ipv4: str, admin_name: str):
 
         direct_admins = host.admin_ids
         if hasattr(ipam, 'get_direct_admin_names'):
-            direct_admins = ipam.get_direct_admin_names(host)
+            try:
+                direct_admins = ipam.get_direct_admin_names(host)
+            except Exception:
+                logger.exception(
+                    "Couldn't get direct admin tags for host '%s'", ipv4
+                )
+                messages.error(
+                    request,
+                    "Could not verify the host's direct admins. Try again later."
+                )
+                return redirect('host_detail', ipv4=ipv4, tab='general')
 
         # Validate that the admin to remove actually exists on this host
         if admin_name not in direct_admins:
