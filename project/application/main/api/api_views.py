@@ -354,22 +354,27 @@ def __update_host(request) -> Response:
             new_admins = set(new_admins)
             if not new_admins:
                 raise Http400("Cannot remove all admins")
-            admins_to_delete = set(host.admin_ids) - new_admins
-            admins_to_add = new_admins - set(host.admin_ids)
+            if hasattr(ipam, 'set_host_admins'):
+                code = ipam.set_host_admins(host, new_admins)
+                if code != 200:
+                    return Response(status=code)
+            else:
+                admins_to_delete = set(host.admin_ids) - new_admins
+                admins_to_add = new_admins - set(host.admin_ids)
 
-            # add new admins
-            for admin_tag_name in admins_to_add:
-                if (
-                    admin_tag_name in ipam.get_department_names()
-                    or ipam.is_admin(admin_tag_name)
-                ):
-                    code = ipam.add_admin_to_host(admin_tag_name, host)
-                    if code not in range(200,  205, 1):
-                        return Response(status=code)
+                # add new admins
+                for admin_tag_name in admins_to_add:
+                    if (
+                        admin_tag_name in ipam.get_department_names()
+                        or ipam.is_admin(admin_tag_name)
+                    ):
+                        code = ipam.add_admin_to_host(admin_tag_name, host)
+                        if code not in range(200,  205, 1):
+                            return Response(status=code)
 
-            # remove old admins
-            for admin_tag_name in admins_to_delete:
-                ipam.remove_admin_from_host(admin_tag_name, host)
+                # remove old admins
+                for admin_tag_name in admins_to_delete:
+                    ipam.remove_admin_from_host(admin_tag_name, host)
 
         # Update host properties
         __update_host_logic(ipam, host, host_update_data)
