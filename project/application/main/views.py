@@ -76,6 +76,7 @@ from user.models import MyUser
 from vulnerability_mgmt.models import Vulnerability
 from vulnerability_mgmt.models import ScanReport
 import datetime
+from contextlib import ExitStack
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +140,7 @@ def __create_vulnerability_objects(
             continue
 
 
-def __create_scan_object(report_xml: str, report_id: str):
+def __create_scan_object(report_xml: str, report_id: str) -> bool:
 
     """
     Method to save the report-xml of the scan.
@@ -151,8 +152,10 @@ def __create_scan_object(report_xml: str, report_id: str):
     try:
         new_scan = ScanReport(report_xml=report_xml, report_id=report_id)
         new_scan.save()
+        return True
     except Exception:
         logger.exception("Caught Exception while saving ScanReport object!")
+        return False
 
 
 def __send_report_email(
@@ -742,6 +745,36 @@ def update_host_firewall(request, ipv4: str):
 """ Host Actions """
 
 
+def __start_host_scan(request, host, ipam, create_scan, callback_name):
+    """Mark the host before starting, so a fast callback cannot be overwritten."""
+    previous_status = host.status
+    host.status = HostStatus.UNDER_REVIEW
+    if not ipam.update_host_info(host):
+        host.status = previous_status
+        messages.error(
+            request, "Could not update host status; scan was not started."
+        )
+        return
+
+    try:
+        callback_url = request.build_absolute_uri(reverse(callback_name))
+        scan_ids = create_scan(str(host.ipv4_addr), callback_url)
+        if all(scan_ids):
+            return
+    except Exception:
+        logger.exception("Couldn't start scan for host %s.", str(host.ipv4_addr))
+
+    host.status = previous_status
+    if not ipam.update_host_info(host):
+        logger.error(
+            "Couldn't restore host status after failed scan for %s.",
+            str(host.ipv4_addr)
+        )
+    messages.error(
+        request, "Not possible to start scan at the moment! Try again later..."
+    )
+
+
 @login_required
 @require_http_methods(['POST', ])
 def register_host(request, ipv4: str):
@@ -812,33 +845,10 @@ def register_host(request, ipv4: str):
                 logger.warning("Host '%s' is not valid!", str(host))
                 messages.error(request, "Host is not valid!")
             else:
-                # create an initial scan of the host
-                own_url = (request.get_host()
-                           + reverse('scanner_registration_alert'))
-                (target_uuid,
-                 task_uuid,
-                 report_uuid,
-                 alert_uuid) = scanner.create_registration_scan(ipv4, own_url)
-                if target_uuid and task_uuid and report_uuid and alert_uuid:
-                    # update state in IPAM
-                    host.status = HostStatus.UNDER_REVIEW
-                    if not ipam.update_host_info(host):
-                        scanner.clean_up_scan_objects(
-                            target_uuid, task_uuid,
-                            report_uuid,
-                            alert_uuid
-                        )
-                        messages.error(
-                            request,
-                            ("Registration was aborted due to unknown reasons."
-                             + " Try again later...")
-                        )
-                else:
-                    messages.error(
-                        request,
-                        ("Not possible to start registration at the moment! "
-                         + "Try again later...")
-                    )
+                __start_host_scan(
+                    request, host, ipam, scanner.create_registration_scan,
+                    'scanner_registration_alert'
+                )
 
     # redirect to a new URL:
     return HttpResponseRedirect(
@@ -906,33 +916,10 @@ def scan_host(request, ipv4: str):
                 logger.warning("Host '%s' is not valid!", str(host))
                 messages.error(request, "Host is not valid!")
             else:
-                # create an initial scan of the host
-                own_url = request.get_host() + reverse('scanner_scan_alert')
-                (target_uuid,
-                 task_uuid,
-                 report_uuid,
-                 alert_uuid) = scanner.create_ordinary_scan(ipv4, own_url)
-                if target_uuid and task_uuid and report_uuid and alert_uuid:
-                    # update state in IPAM
-                    host.status = HostStatus.UNDER_REVIEW
-                    if not ipam.update_host_info(host):
-                        scanner.clean_up_scan_objects(
-                            target_uuid,
-                            task_uuid,
-                            report_uuid,
-                            alert_uuid
-                        )
-                        messages.error(
-                            request,
-                            ("Scan was aborted due to unknown reasons. "
-                             + "Try again later...")
-                        )
-                else:
-                    messages.error(
-                        request,
-                        ("Not possible to start scan at the moment! "
-                         + "Try again later...")
-                    )
+                __start_host_scan(
+                    request, host, ipam, scanner.create_ordinary_scan,
+                    'scanner_scan_alert'
+                )
 
     # redirect to a new URL:
     return HttpResponseRedirect(
@@ -1215,6 +1202,17 @@ def remove_host(request, ipv4: str):
 """ Vulnerability Scanner alerts """
 
 
+def __has_scan_identifiers(request) -> bool:
+    required = ('host_ip', 'task_uuid', 'target_uuid', 'alert_uuid')
+    missing = [key for key in required if not request.GET.get(key)]
+    if missing:
+        logger.warning(
+            "Incomplete scan callback; missing: %s", ', '.join(missing)
+        )
+        return False
+    return True
+
+
 @require_http_methods(['GET', ])
 def scanner_registration_alert(request):
     """
@@ -1229,9 +1227,12 @@ def scanner_registration_alert(request):
         request (_type_): Request object.
 
     Returns:
-        HTTPResponse: Always returns response with status 200 because
-        processing of the alert happens independently in daemon thread.
+        HTTPResponse: Returns 400 for missing scan identifiers. Valid alerts
+        are acknowledged with 200 and processed in a daemon thread.
     """
+    if not __has_scan_identifiers(request):
+        return HttpResponse("Missing scan identifiers.", status=400)
+
     logger.info(
         "Received notification from v-scanner that a registration completed."
     )
@@ -1251,9 +1252,10 @@ def scanner_registration_alert(request):
                 settings.SCANNER_USERNAME,
                 settings.SCANNER_SECRET_KEY,
                 settings.SCANNER_HOSTNAME
-            ) as scanner:
+            ) as scanner, ExitStack() as cleanup:
                 if not scanner.enter_ok:
                     return
+                cleanup_registered = False
                 with IPAMWrapper(
                     settings.IPAM_USERNAME,
                     settings.IPAM_SECRET_KEY,
@@ -1315,17 +1317,29 @@ def scanner_registration_alert(request):
                         # Get HTML report and send via e-mail to admin
                         report_html = scanner.get_report_html(report_uuid)
                         # Create db entries for each vulnerability found
-                        report_xml = scanner.get_report_xml(report_uuid)
+                        report_xml = scanner.get_report_xml(
+                            report_uuid, min_qod=0
+                        )
                         __create_vulnerability_objects(
                             results=scan_results,
                             host_ip=host_ipv4,
                             report_id=report_uuid,
                             task_id=task_uuid
                             )
-                        __create_scan_object(
+                        if not __create_scan_object(
                             report_xml=ElementTree.tostring(report_xml, encoding='unicode'),
                             report_id=report_uuid
-                        )
+                        ):
+                            raise RuntimeError(
+                                "Couldn't archive scan report; "
+                                "keeping scanner objects."
+                            )
+                        if not cleanup_registered:
+                            cleanup.callback(
+                                scanner.clean_up_scan_objects,
+                                target_uuid, task_uuid, report_uuid, alert_uuid
+                            )
+                            cleanup_registered = True
 
                         # get all department names for use below
                         departments = ipam.get_department_names()
@@ -1366,12 +1380,6 @@ def scanner_registration_alert(request):
                             list(set(admin_addresses)),
                         )
 
-                scanner.clean_up_scan_objects(
-                    target_uuid,
-                    task_uuid,
-                    report_uuid,
-                    alert_uuid
-                )
         except Exception:
             logger.exception("Processing registration alert failed!")
 
@@ -1394,9 +1402,12 @@ def scanner_scan_alert(request):
         request (_type_): Request object.
 
     Returns:
-        HTTPResponse: Always returns response with status 200 because
-        processing of the alert happens independently in daemon thread.
+        HTTPResponse: Returns 400 for missing scan identifiers. Valid alerts
+        are acknowledged with 200 and processed in a daemon thread.
     """
+    if not __has_scan_identifiers(request):
+        return HttpResponse("Missing scan identifiers.", status=400)
+
     logger.info(
         ("Received notification from v-scanner that "
          + "an ordinary scan completed.")
@@ -1416,7 +1427,7 @@ def scanner_scan_alert(request):
                 settings.SCANNER_USERNAME,
                 settings.SCANNER_SECRET_KEY,
                 settings.SCANNER_HOSTNAME
-            ) as scanner:
+            ) as scanner, ExitStack() as cleanup:
                 if not scanner.enter_ok:
                     return
                 with IPAMWrapper(
@@ -1457,7 +1468,7 @@ def scanner_scan_alert(request):
 
                 # Get HTML report and send via e-mail to admin
                 report_html = scanner.get_report_html(report_uuid)
-                report_xml = scanner.get_report_xml(report_uuid)
+                report_xml = scanner.get_report_xml(report_uuid, min_qod=0)
                 # Create db entries for each vulerability found
                 __create_vulnerability_objects(
                     results=results,
@@ -1465,9 +1476,16 @@ def scanner_scan_alert(request):
                     report_id=report_uuid,
                     task_id=task_uuid
                 )
-                __create_scan_object(
+                if not __create_scan_object(
                      report_xml=ElementTree.tostring(report_xml, encoding='unicode'),
                      report_id=report_uuid
+                ):
+                    raise RuntimeError(
+                        "Couldn't archive scan report; keeping scanner objects."
+                    )
+                cleanup.callback(
+                    scanner.clean_up_scan_objects,
+                    target_uuid, task_uuid, report_uuid, alert_uuid
                 )
                 # deduce admin email addr and filter out departments
                 admin_addresses = []
@@ -1495,13 +1513,6 @@ def scanner_scan_alert(request):
                      + f"- max. CVSS: {max_sev}"),
                     scan_mail_body(host, scan_end),
                     list(set(admin_addresses)),
-                )
-
-                scanner.clean_up_scan_objects(
-                    target_uuid,
-                    task_uuid,
-                    report_uuid,
-                    alert_uuid
                 )
 
         except Exception:
