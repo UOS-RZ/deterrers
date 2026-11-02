@@ -1837,8 +1837,8 @@ def remove_admin_from_host_view(request, ipv4: str, admin_name: str):
             )
             messages.success(request, f"Admin '{admin_name}' removed from host.")
 
-            # If the user removed themselves, they no longer have access to the host
-            if admin_name == request.user.username:
+            # Check remaining access after direct or department tag removal.
+            if request.user.username not in host.admin_ids:
                 return redirect('hosts_list')
         else:
             logger.error(
