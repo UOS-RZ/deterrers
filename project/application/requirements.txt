@@ -1,10 +1,10 @@
-Django == 5.2.16
+Django == 5.2.18
 ldap3 == 2.9.1
 bluecat-libraries == 26.1.0
 django-python3-ldap == 0.16.1
 requests
 gunicorn
-python-gvm == 27.6.0
+python-gvm == 27.10.1
 icalendar
 django-bootstrap5
 djangorestframework
