@@ -111,7 +111,7 @@ LOGGING = {
 """ SETUP APPLICATION DEFINITION """
 
 INSTALLED_APPS = [
-    'django.contrib.admin',                 # useful
+    'application.apps.MetricsAdminConfig',
     'django.contrib.auth',                  # needed
     'django.contrib.contenttypes',
     'django.contrib.sessions',              # needed
